@@ -1,0 +1,36 @@
+# Compilation
+__pycache__
+
+# Task runners and shell scripts
+.nox
+*.sh
+
+# Linting
+.ruff_cache
+
+# Testing
+.pytest_cache
+.coverage
+
+# Distribution / packaging
+build
+dist
+*.egg-info
+_version.py
+
+# Sphinx documentation
+docs/build
+
+# Saved models
+*.json
+
+# Virtual environments
+.env
+.venv
+env
+venv
+myenv
+.myenv
+
+# Development environments
+.vscode
