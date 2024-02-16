@@ -6,27 +6,28 @@
 # Path setup
 import os
 import sys
+from datetime import datetime
 from importlib.metadata import version as get_version
 
 sys.path.insert(0, os.path.abspath("../.."))
 
 # Project information
 project = "latents"
-copyright = "2024, Evren Gokcen"
 author = "Evren Gokcen"
+copyright = f"{datetime.now().year}, {author}"
 release = get_version("latents")
 version = ".".join(release.split(".")[:2])  # Take only major/minor
 
 # General configuration
 extensions = [
     "sphinx.ext.autodoc",
-    "sphinx.ext.autosectionlabel",
     "sphinx.ext.mathjax",
     "sphinx.ext.napoleon",
-    "sphinx_tabs.tabs",
+    "sphinx_design",
     "myst_parser",
     "nbsphinx",
 ]
+myst_enable_extensions = ["colon_fence"]  # For using MyST Parser with sphinx design
 exclude_patterns = []
 
 # HTML theme options
@@ -70,7 +71,7 @@ html_theme_options = {
     "navigation_depth": 2,  # Control how many levels of navigation are shown
     # Set up the sidebar, on all pages but the index page
     "secondary_sidebar_items": {
-        "**/*": ["page-toc", "edit-this-page", "sourcelink"],
+        "**/*": ["page-toc"],
     },
 }
 html_context = {
@@ -81,6 +82,7 @@ html_context = {
     "default_mode": "dark",
 }
 html_static_path = ["_static"]
+html_css_files = ["latents.css"]
 
 # Autodoc settings
 autodoc_typehints = "description"

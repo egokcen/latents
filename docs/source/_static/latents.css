@@ -1,0 +1,43 @@
+/* Customize the pydata-sphinx-theme */
+
+/* Main page overview cards */
+
+/* Main index page overview cards */
+
+.intro-card {
+  padding: 30px 10px 20px 10px;
+}
+
+.intro-card .sd-card-img-top {
+  height: 52px;
+  width: 52px;
+  margin-left: auto;
+  margin-right: auto;
+  background: none !important;
+}
+
+.intro-card .sd-card-title {
+  color: var(--pst-color-primary);
+  font-size: var(--pst-font-size-h5);
+  padding: 1rem 0rem 0.5rem 0rem;
+}
+
+.intro-card .sd-card-footer {
+  border: none !important;
+}
+
+.intro-card .sd-card-footer p.sd-card-text {
+  max-width: 220px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.intro-card .sd-btn-secondary {
+  background-color: #d35fbcff !important;
+  border-color: #d35fbcff !important;
+}
+
+.intro-card .sd-btn-secondary:hover {
+  background-color: rgb(208, 118, 190) !important;
+  border-color: rgb(208, 118, 190) !important;
+}
