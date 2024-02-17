@@ -2,7 +2,7 @@ The latents toolkit
 ===================
 
 **latents** is a toolkit for latent variable modeling and dimensionality reduction,
-with an emphasis on linear, probabilistic models.
+with an emphasis on linear, probabilistic methods.
 
 .. warning::
     The `latents` toolkit is in an early stage of development and is not yet
