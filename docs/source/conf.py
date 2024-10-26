@@ -81,8 +81,8 @@ html_context = {
     "doc_path": "docs/source",
     "default_mode": "dark",
 }
-html_static_path = ["_static"]
-html_css_files = ["latents.css"]
+html_static_path = ["_static"]  # Include images and CSS files here
+html_css_files = ["latents.css"]  # CSS files for theme customization
 
 # Autodoc settings
 autodoc_typehints = "description"

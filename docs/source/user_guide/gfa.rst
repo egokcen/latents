@@ -14,8 +14,8 @@ used in the following `paper <https://neurips.cc/virtual/2023/poster/70171>`_:
 
   - Gokcen, E., Jasper, A. I., Xu, A., Kohn, A., Machens, C. K. & Yu, B. M. 
     Uncovering motifs of concurrent signaling across multiple neuronal 
-    populations. *Advances in Neural Information Processing Systems* **36**
-    (2023).
+    populations. *Advances in Neural Information Processing Systems* **36**,
+    34711-34722 (2023).
 
 An original formulation with isotropic observation noise can be found
 `here <https://doi.org/10.1109/tnnls.2014.2376974>`_:

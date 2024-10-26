@@ -3,7 +3,9 @@ Simulate data from the group factor analysis (GFA) generative model.
 
 **Functions**
 
-- :func:`simdata` -- Simulates data according to the GFA model.
+- :func:`simulate` -- Generate samples from the full GFA model.
+- :func:`generate_latents` -- Generate latents via the state model.
+- :func:`generate_observations` -- Generate observed data via the observation model.
 
 """
 
@@ -11,23 +13,23 @@ from __future__ import annotations
 
 import numpy as np
 
-from latents.gfa.data_types import (
-    GFAParams,
+from latents.observation_model.observations import ObsStatic
+from latents.observation_model.probabilistic import (
     HyperPriorParams,
-    ObsData,
+    ObsParamsARD,
 )
 
 
-def simdata(
+def simulate(
     N: int,
     y_dims: np.ndarray,
     x_dim: int,
     hyper_priors: HyperPriorParams,
     snr: np.ndarray,
     random_seed: int | None = None,
-) -> tuple[ObsData, np.ndarray, GFAParams]:
+) -> tuple[ObsStatic, np.ndarray, ObsParamsARD]:
     """
-    Generate simulated data according to a group factor analysis model.
+    Generate samples from the full group factor analysis model.
 
     Parameters
     ----------
@@ -55,79 +57,96 @@ def simdata(
 
     Returns
     -------
-    Y : ObsData
+    Y : ObsStatic
         Generated observed data.
     X : ndarray
         `ndarray` of `float`, shape ``(x_dim, N)``.
         Latent data.
-    gfa_params : GFAParams
-        Generated GFA model parameters.
+    obs_params : ObsParamsARD
+        Generated GFA observation model parameters.
     """
     # Seed the random number generator for reproducibility
     rng = np.random.default_rng(random_seed)
 
+    # Generate observation model parameters
+    obs_params = ObsParamsARD.generate(y_dims, x_dim, hyper_priors, snr, rng)
+
+    # Generate latent data
+    X = generate_latents(N, x_dim, rng)
+
+    # Generate observated data
+    Y = generate_observations(X, obs_params, rng)
+
+    return Y, X, obs_params
+
+
+def generate_latents(
+    N: int,
+    x_dim: int,
+    rng: np.random.Generator,
+) -> np.ndarray:
+    """
+    Generate latents via the GFA state model.
+
+    Parameters
+    ----------
+    N
+        Number of data points to generate.
+    x_dim
+        Number of latent dimensions.
+    rng
+        A random number generator object.
+
+    Returns
+    -------
+    ndarray
+        `ndarray` of `float`, shape ``(x_dim, N)``.
+        Latent data.
+    """
+    return rng.normal(size=(x_dim, N))
+
+
+def generate_observations(
+    X: np.ndarray,
+    obs_params: ObsParamsARD,
+    rng: np.random.Generator,
+) -> ObsStatic:
+    """
+    Generate observed data via the GFA observation model, given latents and parameters.
+
+    Parameters
+    ----------
+    X
+        `ndarray` of `float`, shape ``(x_dim, N)``.
+        Latent data.
+    obs_params
+        GFA observation model parameters.
+    rng
+        A random number generator object.
+
+    Returns
+    -------
+    ObsStatic
+        Generated observed data.
+    """
+    # Number of data points
+    N = X.shape[1]
+    # Dimensionality of each observed group
+    y_dims = obs_params.y_dims
     # Number of observed groups
     num_groups = len(y_dims)
 
+    # Split d, phi, and C according to observed groups
+    ds, _ = obs_params.d.get_groups(y_dims)
+    phis, _ = obs_params.phi.get_groups(y_dims)
+    Cs, _, _ = obs_params.C.get_groups(y_dims)
+
     # Initialize observed data list
-    Y = ObsData(data=np.zeros((y_dims.sum(), N)), dims=y_dims)
+    Y = ObsStatic(data=np.zeros((y_dims.sum(), N)), dims=y_dims)
     Ys = Y.get_groups()
 
-    # Generate latent data
-    X = rng.normal(size=(x_dim, N))
-
-    # Initialize GFA parameter object
-    gfa_params = GFAParams(x_dim=x_dim, y_dims=y_dims)
-
-    # Initialize ARD parameters
-    gfa_params.alpha.mean = np.zeros((num_groups, x_dim))
-    if isinstance(hyper_priors.a_alpha, float):
-        # Repeat the ARD hyperparameters for each group and column
-        a_alpha = hyper_priors.a_alpha * np.ones((num_groups, x_dim))
-        b_alpha = hyper_priors.b_alpha * np.ones((num_groups, x_dim))
-    else:
-        # Use the ARD hyperparameters specified by the user
-        a_alpha = hyper_priors.a_alpha
-        b_alpha = hyper_priors.b_alpha
-
-    # Generate observation mean parameters
-    gfa_params.d.mean = rng.normal(
-        0, 1 / np.sqrt(hyper_priors.d_beta), size=(y_dims.sum())
-    )
-    # Split d according to observed groups, so we can use it below
-    ds, _ = gfa_params.d.get_groups(y_dims)
-
-    # Generate observation precision parameters
-    gfa_params.phi.mean = rng.gamma(
-        shape=hyper_priors.a_phi, scale=1 / hyper_priors.b_phi, size=(y_dims.sum())
-    )
-    # Split phi according to observed groups, so we can use it below
-    phis, _ = gfa_params.phi.get_groups(y_dims)
-
-    # Generate group-specific parameters and observed data
-    gfa_params.C.mean = np.zeros((y_dims.sum(), x_dim))
-    Cs, _, _ = gfa_params.C.get_groups(y_dims)
+    # Generate observated data group by group
     for group_idx in range(num_groups):
-        # Generate each ARD parameter and the corresponding column of the
-        # loadings matrix for the current group
-        for x_idx in range(x_dim):
-            # Generate ARD parameters
-            gfa_params.alpha.mean[group_idx, x_idx] = rng.gamma(
-                shape=a_alpha[group_idx, x_idx], scale=1 / b_alpha[group_idx, x_idx]
-            )
-            Cs[group_idx][:, x_idx] = rng.normal(
-                0,
-                1 / np.sqrt(gfa_params.alpha.mean[group_idx, x_idx]),
-                size=(y_dims[group_idx]),
-            )
-
-        # Enforce the desired signal-to-noise ratios
-        var_CC = np.sum(Cs[group_idx] ** 2)
-        var_noise_desired = var_CC / snr[group_idx]
-        var_noise_current = np.sum(1 / phis[group_idx])
-        phis[group_idx] *= var_noise_current / var_noise_desired
-
-        # Generate observated data
         Ys[group_idx][:] = (
             Cs[group_idx] @ X
             + ds[group_idx][:, np.newaxis]
@@ -136,4 +155,4 @@ def simdata(
             ).T
         )
 
-    return Y, X, gfa_params
+    return Y

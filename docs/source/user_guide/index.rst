@@ -9,3 +9,4 @@ The `latents` toolkit currently supports the following methods:
     :maxdepth: 1
     
     gfa
+    mdlag

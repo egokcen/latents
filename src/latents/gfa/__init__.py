@@ -4,14 +4,14 @@ from latents.gfa import (
     core,
     data_types,
     descriptive_stats,
-    plotting,
     simulation,
 )
+from latents.gfa.core import GFAModel
 
 __all__ = [
     "core",
     "data_types",
     "descriptive_stats",
-    "plotting",
+    "GFAModel",
     "simulation",
 ]

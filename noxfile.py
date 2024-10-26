@@ -8,7 +8,7 @@ from pathlib import Path
 
 import nox
 
-ALL_PYTHONS = ["3.8", "3.9", "3.10", "3.11", "3.12"]
+ALL_PYTHONS = ["3.9", "3.10", "3.11", "3.12", "3.13"]
 
 nox.options.sessions = ["lint", "tests"]
 
@@ -28,7 +28,7 @@ def lint(session: nox.Session) -> None:
 def tests(session: nox.Session) -> None:
     """Run the test suite and compute coverage."""
     session.install("-e", ".[dev]")
-    session.run("pytest", "--cov=gfa", "--cov-report=xml", *session.posargs)
+    session.run("pytest", "--cov=latents", "--cov-report=xml", *session.posargs)
 
 
 @nox.session(reuse_venv=True)

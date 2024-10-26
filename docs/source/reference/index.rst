@@ -6,4 +6,6 @@ API reference
 .. toctree::
     :maxdepth: 2
 
-    gfa
+    models/index
+    model_building_blocks/index
+    general_utilities/index

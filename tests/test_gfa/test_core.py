@@ -1,4 +1,4 @@
-"""Test the core module."""
+"""Test the gfa.core module."""
 
 
 def test_fit():
@@ -6,11 +6,11 @@ def test_fit():
     import numpy as np
 
     import latents.gfa.simulation as gfa_sim
-    from latents.gfa.core import GFAModel
-    from latents.gfa.data_types import HyperPriorParams
+    from latents.gfa import GFAModel
+    from latents.observation_model.probabilistic import HyperPriorParams
 
     # Set a random seed, for reproducibility
-    random_seed = 0  # Set to None for no seeding
+    random_seed = 1  # Set to None for no seeding
 
     # Dataset characteristics
     N = 100  # Total number of samples
@@ -42,7 +42,7 @@ def test_fit():
     )
 
     # Simulate data
-    Y, X_true, params_true = gfa_sim.simdata(
+    Y, X_true, params_true = gfa_sim.simulate(
         N,
         y_dims,
         x_dim,
@@ -85,4 +85,4 @@ def test_fit():
     assert model.flags.x_dims_removed == 3
 
     # Check the number of iterations
-    assert len(model.tracker.iter_time) == 2543
+    assert len(model.tracker.iter_time) == 2521

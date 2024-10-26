@@ -7,3 +7,4 @@ Demo gallery
     :maxdepth: 1
 
     demo_gfa
+    demo_mdlag
