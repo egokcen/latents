@@ -2,6 +2,7 @@
 
 [![PyPI Version](https://img.shields.io/pypi/v/latents.svg)](https://pypi.python.org/pypi/latents)
 [![License](https://img.shields.io/pypi/l/latents.svg)](https://pypi.python.org/pypi/latents)
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](code_of_conduct.md)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 **latents** is a toolkit for latent variable modeling and dimensionality reduction,
