@@ -1,0 +1,4 @@
+- [ ] Closes #xxxx (Replace xxxx with the GitHub issue number).
+- [ ] Tests added and passed if fixing a bug or adding a new feature.
+- [ ] All code checks passed.
+- [ ] Added appropriate type hints and docstrings. Documentation builds successfully.
