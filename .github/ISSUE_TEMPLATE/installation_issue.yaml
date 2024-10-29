@@ -10,7 +10,8 @@ body:
       label: Prerequisites
       options:
         - label: >
-            I have read the [installation guide](../../README.md).
+            I have read the 
+            [installation guide](https://github.com/egokcen/latents/blob/main/README.md#getting-started).
           required: true
   - type: input
     id: platform
@@ -64,13 +65,3 @@ body:
 
 
         </details>
-  - type: checkboxes
-    id: code-of-conduct
-    attributes:
-      label: Code of Conduct
-      description: >
-        By submitting this issue, you agree to follow our 
-        [Code of Conduct](../CODE_OF_CONDUCT.md). 
-      options:
-        - label: I agree to follow the Latents Code of Conduct
-          required: true
