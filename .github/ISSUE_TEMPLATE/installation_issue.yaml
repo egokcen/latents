@@ -17,7 +17,7 @@ body:
     attributes:
       label: Platform
       description: >
-        Please provide the output of ``import platform; print(platform.platform())``
+        Please provide the output of ``import platform; print(platform.platform())``.
     validations:
       required: true
   - type: dropdown

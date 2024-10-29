@@ -10,7 +10,7 @@ body:
       label: Location of the documentation
       description: >
         Please provide the location of the documentation, e.g. 
-        "latents.mdlag.simulation.simulate" or the URL of the documentation
+        "latents.mdlag.simulation.simulate" or the URL of the documentation.
     validations:
       required: true
   - type: textarea
@@ -19,7 +19,7 @@ body:
       label: Documentation problem
       description: >
         Please provide a description of what documentation you believe needs to be fixed
-        or improved
+        or improved.
     validations:
       required: true
   - type: textarea
@@ -28,7 +28,7 @@ body:
       label: Suggested fix for documentation
       description: >
         Please explain the suggested fix and **why** it's better than the existing 
-        documentation
+        documentation.
     validations:
       required: true
   - type: checkboxes

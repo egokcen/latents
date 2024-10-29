@@ -21,7 +21,7 @@ body:
     attributes:
       label: Problem Description
       description: >
-        Please describe what problem the feature would solve."
+        Please describe what problem the feature would solve.
     validations:
       required: true
   - type: textarea
