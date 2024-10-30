@@ -1,6 +1,6 @@
 # Perform code checks and linting with pre-commit
 
-name: Code checks with pre-commit
+name: pre-commit
 
 on:
   push:

@@ -1,6 +1,6 @@
 # Build documentation with Sphinx
 
-name: Build documentation with Sphinx
+name: docs
 
 on:
   push:

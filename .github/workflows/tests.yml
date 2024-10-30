@@ -1,6 +1,6 @@
 # Run the tests across platforms and Python versions
 
-name: Test with pytest
+name: pytest
 
 on:
   push:
