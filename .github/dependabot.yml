@@ -1,0 +1,12 @@
+version: 2
+updates:
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/" # Location of GitHub Actions workflows
+    schedule:
+      interval: "weekly"
+  # Enable version updates for Python dependencies
+  - package-ecosystem: "pip"
+    directory: "/" # Location of pyproject.toml
+    schedule:
+      interval: "weekly"
