@@ -9,7 +9,7 @@ on:
     branches: [ "main" ]
 
 jobs:
-  docs:
+  pre-commit:
 
     runs-on: ubuntu-latest
     strategy:
@@ -27,4 +27,5 @@ jobs:
         python -m pip install pre-commit
     - name: Run pre-commit
       run: |
+        pre-commit autoupdate --repo https://github.com/pre-commit/pre-commit-hooks
         pre-commit run --all-files
