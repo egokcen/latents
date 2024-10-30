@@ -4,8 +4,9 @@
 [![License](https://img.shields.io/pypi/l/latents.svg)](https://pypi.python.org/pypi/latents)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](code_of_conduct.md)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/egokcen/latents/main.svg?badge_token=8XYkC-eQTzeuvUkiUW8kfQ)](https://results.pre-commit.ci/latest/github/egokcen/latents/main?badge_token=8XYkC-eQTzeuvUkiUW8kfQ)
-[![Build Status](https://github.com/egokcen/latents/actions/workflows/pytest.yml/badge.svg)](https://github.com/egokcen/latents/actions/workflows/pytest.yml)
+[![Pre-commit Status](https://github.com/egokcen/latents/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/egokcen/latents/actions/workflows/pre-commit.yml)
+[![Test Status](https://github.com/egokcen/latents/actions/workflows/tests.yml/badge.svg)](https://github.com/egokcen/latents/actions/workflows/tests.yml)
+[![Doc Status](https://github.com/egokcen/latents/actions/workflows/docs.yml/badge.svg)](https://github.com/egokcen/latents/actions/workflows/docs.yml)
 
 **Latents** is a toolkit for latent variable modeling and dimensionality reduction,
 with an emphasis on linear, probabilistic methods.
