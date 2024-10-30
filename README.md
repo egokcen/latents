@@ -4,6 +4,7 @@
 [![License](https://img.shields.io/pypi/l/latents.svg)](https://pypi.python.org/pypi/latents)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](code_of_conduct.md)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Build Status](https://github.com/egokcen/latents/actions/workflows/pytest.yml/badge.svg)](https://github.com/egokcen/latents/actions/workflows/pytest.yml)
 
 **Latents** is a toolkit for latent variable modeling and dimensionality reduction,
 with an emphasis on linear, probabilistic methods.
