@@ -15,7 +15,7 @@ with an emphasis on linear, probabilistic methods.
 > The **Latents** toolkit is in an early stage of development and is not yet stable.
 > The API is subject to frequent change.
 
-## Table of Contents
+### Table of Contents
 
 - [Supported Methods](#supported-methods)
 - [Getting Started](#getting-started)
