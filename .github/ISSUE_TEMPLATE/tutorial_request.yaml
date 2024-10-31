@@ -1,0 +1,15 @@
+name: Tutorial Request
+description: Request tutorial content
+title: "[TUT] "
+labels: [tutorial]
+
+body:
+  - type: textarea
+    id: tutorial-description
+    attributes:
+      label: Tutorial Description
+      description: >
+        Please describe the latents functionality that could benefit from a tutorial.
+        Outline the content of the tutorial.
+    validations:
+      required: true

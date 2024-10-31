@@ -1,0 +1,37 @@
+name: Benchmark Request
+description: Suggest a set of benchmarks for the methods in latents
+title: "[BENCH] "
+labels: [benchmark]
+
+body:
+  - type: checkboxes
+    id: benchmark-type
+    attributes:
+      label: Benchmark Type
+      description: Please check what type of benchmark you would like to propose.
+      options:
+        - label: >
+            Runtime
+        - label: >
+            Statistical performance
+        - label: >
+            Other
+    validations:
+      required: true
+  - type: textarea
+    id: method-list
+    attributes:
+      label: Applicable Methods
+      description: >
+        Please list the methods in latents applicable to the benchmark.
+    validations:
+      required: true
+  - type: textarea
+    id: benchmark-description
+    attributes:
+      label: 
+      description: >
+        Please describe the benchmark, and why it is important for the applicable
+        methods.
+    validations:
+      required: true
