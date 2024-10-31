@@ -101,12 +101,12 @@ The official documentation is hosted on **Read the Docs**.
 
 ## Contributing
 
-Interested in contributing? See the [Contributing Guide](.github/CONTRIBUTING.md).
+Interested in contributing? See the [Contributing Guide](CONTRIBUTING.md).
 
 ## Code of Conduct
 
 Whether you are a user, contributor, or maintainer, please consult the 
-[Code of Conduct](.github/CODE_OF_CONDUCT.md).
+[Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License
 [MIT](LICENSE)
