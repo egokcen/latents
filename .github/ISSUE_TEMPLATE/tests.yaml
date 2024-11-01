@@ -1,0 +1,31 @@
+name: Tests
+description: Suggest unit and/or integration tests for latents
+title: "[TEST] "
+labels: [test]
+
+body:
+  - type: textarea
+    id: function-description
+    attributes:
+      label: Functionality to be tested
+      description: >
+        Please describe the latents functionality that needs to be tested.
+    validations:
+      required: true
+  - type: textarea
+    id: involved-code
+    attributes:
+      label: Involved code
+      description: >
+        Specify the involved code. Include subpackages, modules, classes, functions, 
+        etc.
+    validations:
+      required: true
+  - type: textarea
+    id: suggested-fix
+    attributes:
+      label: Suggested tests
+      description: >
+        Describe the necessary tests and how they would cover the latents functionality.
+    validations:
+      required: true

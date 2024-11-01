@@ -18,7 +18,7 @@ from latents.base import ArrayContainer
 
 class PosteriorLatentStatic(ArrayContainer):
     """
-    A class for posterior estimates of static latent variables.
+    Posterior estimates of static latent variables.
 
     Parameters
     ----------
@@ -144,7 +144,7 @@ class PosteriorLatentStatic(ArrayContainer):
 
 
 class PosteriorLatentDelayed(ArrayContainer):
-    """A class for posterior estimates of time-delayed latent variables."""
+    """Posterior estimates of time-delayed latent variables."""
 
     pass
 

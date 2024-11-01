@@ -100,6 +100,7 @@ select = [
 ]
 ignore = [
     "D105",   # Missing docstring in magic method
+    "ISC001", # Implicitly concatenated strings on a single line
     "RUF012", # Mutable class attributes should be annotated with typing.ClassVar
 ]
 
