@@ -140,7 +140,7 @@ Again, you can choose any name you like for the virtual environment, and any
 
 
 You're now ready to install the `latents` Python package and its current dependencies.
-Navigate to the repository directrory:
+Navigate to the repository directory:
 
 ```sh
 cd latents
@@ -330,7 +330,7 @@ to meet these rules to be accepted.
 
 ### Documentation
 
-To facilitate [Sphinx's](https://www.sphinx-doc.org/en/master/) the automated build process, we stick to 
+To facilitate [Sphinx's](https://www.sphinx-doc.org/en/master/) automated build process, we stick to 
 [NumPy style docstrings](https://www.sphinx-doc.org/en/master/usage/extensions/example_numpy.html)
 with [type hints](https://docs.python.org/3/library/typing.html).
 Docstrings include instances of explicit markup syntax and directives 
