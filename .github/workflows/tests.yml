@@ -4,9 +4,8 @@ name: pytest
 
 on:
   push:
-    branches: [ "main" ]
   pull_request:
-    types: [opened, reopened, review_requested]
+    types: [opened, reopened, synchronize, ready_for_review, review_requested]
 
 jobs:
   tests:

@@ -22,8 +22,6 @@ def lint(session: nox.Session) -> None:
     session.run(
         "pre-commit",
         "autoupdate",
-        "--repo",
-        "https://github.com/pre-commit/pre-commit-hooks",
     )
     session.run(
         "pre-commit", "run", "--all-files", "--show-diff-on-failure", *session.posargs
