@@ -90,6 +90,70 @@ class ObsStatic:
 
 
 class ObsTimeSeries:
-    """Store and manipulate views of observed time series data."""
+    """Store and manipulate views of observed time series data.
 
-    pass
+    Parameters
+    ----------
+    data
+        `ndarray` of `float`, shape ``(dim,T,N)``.
+    dims
+        `ndarray` of `int`, shape ``(num_groups,)``.
+        Dimensionalities of each observed group.
+    T
+        `int`.
+        Number of time points.
+
+    Attributes
+    ----------
+    data
+        Same as **data**, above.
+    dims
+        Same as **dims**, above.
+    T
+        Same as **T**, above.
+    """
+    def __init__(self, data: np.ndarray, dims: np.ndarray, T: int): 
+        # Observed data
+        if not isinstance(data, np.ndarray):
+            msg = "data must be a numpy.ndarray."
+            raise TypeError(msg)
+
+        # Dimensionalities of each group
+        if not isinstance(dims, np.ndarray):
+            msg = "dims must be a numpy.ndarray."
+            raise TypeError(msg)
+
+        # Check that the dimensionalities of each group are consistent with
+        # the shape of Y
+        if np.sum(dims) != data.shape[0]:
+            msg = "The sum of dims must equal the number of rows in data."
+            raise ValueError(msg)
+        
+        if T!= data.shape[1]:
+            msg = "T must equal the second dimension of data."
+            raise ValueError(msg)
+
+        self.dims = dims
+        self.data = data
+        self.T = T
+    
+    def __repr__(self) -> str:
+        return (
+            f"{type(self).__name__}("
+            f"data.shape={self.data.shape}, "
+            f"dims={self.dims}, "
+            f"T={self.T})"
+        )
+        
+    def get_groups(self) -> list[np.ndarray]:
+        """
+        Return a list of views of the observed data, one for each group.
+
+        Returns
+        -------
+        list[ndarray]
+            *list* of `ndarray`, length ``num_groups``.
+            List of views of the observed data, one for each group.
+        """
+        return np.split(self.data, np.cumsum(self.dims)[:-1], axis=0)
+    
