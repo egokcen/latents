@@ -10,6 +10,8 @@ Simulate data from the mDLAG generative model.
 """
 
 from __future__ import annotations
+from latents.observation_model.observations import ObsTimeSeries
+from latents.observation_model.probabilistic import ObsParamsARD
 from latents.state_model.latents import StateParamsGP
 from latents.state_model.GP_latents import construct_K_mdlag_fast
 import numpy as np
@@ -58,6 +60,56 @@ def generate_latents(state_params: StateParamsGP, N: int, rng: np.random.Generat
 
     return latents
 
-def generate_observations():
-    """Generate observations via the mDLAG observation model."""
-    pass
+
+def generate_observations(
+        X: np.ndarray,
+        obs_params: ObsParamsARD,
+        rng: np.random.Generator,
+    ) -> ObsTimeSeries:
+    """Generate observations via the mDLAG observation model.
+
+    Parameters
+    ----------
+    X
+        `ndarray` of `float`, shape ``(x_dim, num_groups, T, N)``.
+        Latent data.
+    obs_params
+        GFA observation model parameters.
+    rng
+        A random number generator object.
+
+    Returns
+    -------
+    ObsTimeSeries
+        Generated observed data.
+    """
+    # Number of data points
+    N = X.shape[-1]
+    # Dimensionality of each observed group
+    y_dims = obs_params.y_dims
+    # Number of observed groups
+    num_groups = len(y_dims)
+    # Number of time points
+    T = X.shape[2]
+    # Split d, phi, and C according to observed groups
+    ds, _ = obs_params.d.get_groups(y_dims)
+    phis, _ = obs_params.phi.get_groups(y_dims)
+    Cs, _, _ = obs_params.C.get_groups(y_dims)
+
+    # Initialize observed data list
+    Y = ObsTimeSeries(data=np.zeros((y_dims.sum(), T, N)), dims=y_dims, T=T)
+    Ys = Y.get_groups()
+
+    # Generate observated data group by group
+    for group_idx in range(num_groups):
+        Ys[group_idx][:] = (
+            np.einsum('ij,j...->i...', Cs[group_idx], X[:, group_idx, :, :])
+            + ds[group_idx][:, None, None]
+            + rng.multivariate_normal(
+                np.zeros(y_dims[group_idx]), 
+                np.diag(1 / phis[group_idx]), 
+                size=(T, N)
+            ).transpose(2, 0, 1)
+        )
+        
+    return Y
