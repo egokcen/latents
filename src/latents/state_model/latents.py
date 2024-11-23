@@ -14,7 +14,7 @@ from __future__ import annotations
 import numpy as np
 
 from latents.base import ArrayContainer
-
+from latents.state_model.GP_latents import RBF_GP_Params
 
 class PosteriorLatentStatic(ArrayContainer):
     """
@@ -258,3 +258,71 @@ class StateParamsStatic:
             x_dim=self.x_dim,
             X=self.X.copy(),
         )
+
+
+class StateParamsGP:
+    """
+    A Gaussian Process state model.
+    """
+    def __init__(
+        self,
+        x_dim: int | None = None,
+        num_groups: int | None = None,
+        T: int | None = None,
+        X: PosteriorLatentDelayed | None = None,
+        gp_params: RBF_GP_Params | None = None, 
+    ):
+        # Latent dimensionality
+        if x_dim is not None and not isinstance(x_dim, int):
+            msg = "x_dim must be an integer."
+            raise TypeError(msg)
+        self.x_dim = x_dim
+
+        # Latents
+        if X is None:
+            self.X = PosteriorLatentDelayed()
+        elif not isinstance(X, PosteriorLatentDelayed):
+            msg = "X must be a PosteriorLatentDelayed object."
+            raise TypeError(msg)
+        else:
+            self.X = X
+
+        # Number of groups
+        if num_groups is not None and not isinstance(num_groups, int):
+            msg = "num_groups must be an integer."
+            raise TypeError(msg)
+        self.num_groups = num_groups
+
+        # Time points
+        if T is not None and not isinstance(T, int):
+            msg = "T must be an integer."
+            raise TypeError(msg)
+        self.T = T
+        
+        # Kernel parameters
+        if gp_params is None and all(p is not None for p in [x_dim, num_groups, T]):
+            self.gp_params = RBF_GP_Params(
+                x_dim=x_dim,
+                num_groups=num_groups,
+                T=T,
+                eps=None,
+                gamma=None,
+                D=None
+            )
+        else:
+            self.gp_params = gp_params
+        
+        
+    def __repr__(self) -> str:
+        return f"{type(self).__name__}(x_dim={self.x_dim}, num_groups={self.num_groups}, T={self.T}, X={self.X}, gp_params={self.gp_params})"
+    
+    def is_initialized(self) -> bool:
+        pass
+    
+    def get_subset_dims(self, dims: np.ndarray, in_place: bool = True) -> StateParamsGP | None:
+        pass
+    
+    def copy(self) -> StateParamsGP:
+        pass
+
+        
