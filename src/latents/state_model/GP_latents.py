@@ -1,3 +1,17 @@
+"""
+Building blocks for Gaussian Process latent state models.
+
+**Classes**
+
+- :class:`GP_Params` -- Base class for GP kernel parameters.
+- :class:`RBF_GP_Params` -- Parameters for RBF kernel GP state model.
+
+**Functions**
+- :func:`construct_K_mdlag` -- Construct GP covariance tensor for mDLAG model.
+- :func:`construct_K_mdlag_fast` -- Construct GP covariance matrix for mDLAG model.
+- :func:`tensor_to_matrix` -- Convert covariance tensor to matrix.
+"""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -56,22 +70,7 @@ class GP_Params(ABC):
     def kernel_func(
         self, t1: int, t2: int, j1: int, j2: int, m1: int, m2: int
     ) -> float:
-        """Compute kernel function value for given indices.
-
-        Parameters
-        ----------
-        t1, t2 : int
-            Time indices
-        j1, j2 : int
-            Latent dimension indices
-        m1, m2 : int
-            Group indices
-
-        Returns
-        -------
-        float
-            Kernel function value
-        """
+        """Compute kernel function value for given indices."""
         pass
 
 
@@ -102,13 +101,16 @@ class RBF_GP_Params(GP_Params):
         assert self.eps.shape == (
             self.x_dim,
         ), f"eps shape mismatch: expected ({self.x_dim},), got {self.eps.shape}"
-        assert (
-            self.D.shape == (self.num_groups, self.x_dim)
-        ), f"D shape mismatch: expected ({self.num_groups}, {self.x_dim}), got {self.D.shape}"
+        msg = (
+            f"D shape mismatch: expected ({self.num_groups}, {self.x_dim}), "
+            f"got {self.D.shape}"
+        )
+        assert self.D.shape == (self.num_groups, self.x_dim), msg
 
     def kernel_func(
         self, t1: int, t2: int, j1: int, j2: int, m1: int, m2: int
     ) -> float:
+        """Compute kernel function value for given indices."""
         self.check_indices(t1, t2, j1, j2, m1, m2)
         if j1 != j2:
             return 0.0  # Covariance is zero between different latent dimensions

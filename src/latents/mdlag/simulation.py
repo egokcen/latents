@@ -18,8 +18,8 @@ from latents.observation_model.probabilistic import (
     HyperPriorParams,
     ObsParamsARD,
 )
-from latents.state_model.latents import StateParamsGP
 from latents.state_model.GP_latents import construct_K_mdlag_fast
+from latents.state_model.latents import StateParamsGP
 
 
 def simulate(
@@ -116,7 +116,8 @@ def generate_latents(
         # Adding a small value to the diagonal for numerical stability
         L = np.linalg.cholesky(K_big + 1e-6 * np.eye(K_big_size))
     except np.linalg.LinAlgError:
-        raise ValueError("Covariance matrix is not positive-definite.")
+        msg = "Covariance matrix is not positive-definite."
+        raise ValueError(msg)
 
     mean = np.zeros(K_big_size)
     latents = np.zeros((N, x_dim, num_groups, T))
@@ -177,9 +178,7 @@ def generate_observations(
             np.einsum("ij,j...->i...", Cs[group_idx], X[:, group_idx, :, :])
             + ds[group_idx][:, None, None]
             + rng.multivariate_normal(
-                np.zeros(y_dims[group_idx]), 
-                np.diag(1 / phis[group_idx]), 
-                size=(T, N)
+                np.zeros(y_dims[group_idx]), np.diag(1 / phis[group_idx]), size=(T, N)
             ).transpose(2, 0, 1)
         )
 
