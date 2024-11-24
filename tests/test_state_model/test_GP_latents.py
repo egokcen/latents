@@ -34,8 +34,8 @@ def test_GP_covariance_matrix():
 
     K_big_fast = construct_K_mdlag_fast(gp_params, return_matrix=True)
     K_big = construct_K_mdlag(gp_params, return_matrix=True)
-    
-    fixture_path = os.path.join(os.path.dirname(__file__), 'K_big.mat')
+
+    fixture_path = os.path.join(os.path.dirname(__file__), "K_big.mat")
     matlab_data = loadmat(fixture_path)
     K_matlab = matlab_data["K_big"]
 

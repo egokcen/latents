@@ -16,6 +16,7 @@ import numpy as np
 from latents.base import ArrayContainer
 from latents.state_model.GP_latents import RBF_GP_Params
 
+
 class PosteriorLatentStatic(ArrayContainer):
     """
     Posterior estimates of static latent variables.
@@ -261,16 +262,15 @@ class StateParamsStatic:
 
 
 class StateParamsGP:
-    """
-    A Gaussian Process state model.
-    """
+    """A Gaussian Process state model."""
+
     def __init__(
         self,
         x_dim: int | None = None,
         num_groups: int | None = None,
         T: int | None = None,
         X: PosteriorLatentDelayed | None = None,
-        gp_params: RBF_GP_Params | None = None, 
+        gp_params: RBF_GP_Params | None = None,
     ):
         # Latent dimensionality
         if x_dim is not None and not isinstance(x_dim, int):
@@ -298,31 +298,35 @@ class StateParamsGP:
             msg = "T must be an integer."
             raise TypeError(msg)
         self.T = T
-        
+
         # Kernel parameters
         if gp_params is None and all(p is not None for p in [x_dim, num_groups, T]):
             self.gp_params = RBF_GP_Params(
-                x_dim=x_dim,
-                num_groups=num_groups,
-                T=T,
-                eps=None,
-                gamma=None,
-                D=None
+                x_dim=x_dim, num_groups=num_groups, T=T, eps=None, gamma=None, D=None
             )
         else:
             self.gp_params = gp_params
-        
-        
-    def __repr__(self) -> str:
-        return f"{type(self).__name__}(x_dim={self.x_dim}, num_groups={self.num_groups}, T={self.T}, X={self.X}, gp_params={self.gp_params})"
-    
-    def is_initialized(self) -> bool:
-        pass
-    
-    def get_subset_dims(self, dims: np.ndarray, in_place: bool = True) -> StateParamsGP | None:
-        pass
-    
-    def copy(self) -> StateParamsGP:
-        pass
 
-        
+    def __repr__(self) -> str:
+        return (
+            f"{type(self).__name__}("
+            f"x_dim={self.x_dim}, "
+            f"num_groups={self.num_groups}, "
+            f"T={self.T}, "
+            f"X={self.X}, "
+            f"gp_params={self.gp_params})"
+        )
+
+    def is_initialized(self) -> bool:
+        """Check if observation model parameters have been initialized to data."""
+        raise NotImplementedError
+
+    def get_subset_dims(
+        self, dims: np.ndarray, in_place: bool = True
+    ) -> StateParamsGP | None:
+        """Keep only a subset of the latent dimensions in each relevant parameter."""
+        raise NotImplementedError
+
+    def copy(self) -> StateParamsGP:
+        """Return a copy of self."""
+        raise NotImplementedError

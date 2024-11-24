@@ -112,7 +112,8 @@ class ObsTimeSeries:
     T
         Same as **T**, above.
     """
-    def __init__(self, data: np.ndarray, dims: np.ndarray, T: int): 
+
+    def __init__(self, data: np.ndarray, dims: np.ndarray, T: int):
         # Observed data
         if not isinstance(data, np.ndarray):
             msg = "data must be a numpy.ndarray."
@@ -128,15 +129,15 @@ class ObsTimeSeries:
         if np.sum(dims) != data.shape[0]:
             msg = "The sum of dims must equal the number of rows in data."
             raise ValueError(msg)
-        
-        if T!= data.shape[1]:
+
+        if data.shape[1] != T:
             msg = "T must equal the second dimension of data."
             raise ValueError(msg)
 
         self.dims = dims
         self.data = data
         self.T = T
-    
+
     def __repr__(self) -> str:
         return (
             f"{type(self).__name__}("
@@ -144,7 +145,7 @@ class ObsTimeSeries:
             f"dims={self.dims}, "
             f"T={self.T})"
         )
-        
+
     def get_groups(self) -> list[np.ndarray]:
         """
         Return a list of views of the observed data, one for each group.
@@ -156,4 +157,3 @@ class ObsTimeSeries:
             List of views of the observed data, one for each group.
         """
         return np.split(self.data, np.cumsum(self.dims)[:-1], axis=0)
-    
