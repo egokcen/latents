@@ -3,13 +3,15 @@
 
 def test_GP_covariance_matrix():
     """Test the construction of the GP covariance matrix match matlab."""
-    import numpy as np
     import os
+
+    import numpy as np
     from scipy.io import loadmat
+
     from latents.state_model.GP_latents import (
         RBF_GP_Params,
-        construct_K_mdlag_fast,
         construct_K_mdlag,
+        construct_K_mdlag_fast,
     )
 
     # Dataset characteristics:

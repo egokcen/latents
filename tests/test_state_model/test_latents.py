@@ -2,9 +2,7 @@
 
 import numpy as np
 
-from latents.state_model.latents import (
-    PosteriorLatentStatic,
-)
+from latents.state_model.latents import PosteriorLatentStatic
 
 
 # --------------------------

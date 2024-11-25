@@ -14,10 +14,7 @@ from __future__ import annotations
 import numpy as np
 
 from latents.observation_model.observations import ObsTimeSeries
-from latents.observation_model.probabilistic import (
-    HyperPriorParams,
-    ObsParamsARD,
-)
+from latents.observation_model.probabilistic import HyperPriorParams, ObsParamsARD
 from latents.state_model.GP_latents import construct_K_mdlag_fast
 from latents.state_model.latents import StateParamsGP
 

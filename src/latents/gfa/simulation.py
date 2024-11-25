@@ -14,10 +14,7 @@ from __future__ import annotations
 import numpy as np
 
 from latents.observation_model.observations import ObsStatic
-from latents.observation_model.probabilistic import (
-    HyperPriorParams,
-    ObsParamsARD,
-)
+from latents.observation_model.probabilistic import HyperPriorParams, ObsParamsARD
 
 
 def simulate(

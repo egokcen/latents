@@ -30,12 +30,7 @@ from scipy.linalg import eigh
 from scipy.special import gammaln, psi
 from scipy.stats import gmean
 
-from latents.gfa.data_types import (
-    GFAFitArgs,
-    GFAFitFlags,
-    GFAFitTracker,
-    GFAParams,
-)
+from latents.gfa.data_types import GFAFitArgs, GFAFitFlags, GFAFitTracker, GFAParams
 from latents.observation_model.observations import ObsStatic
 from latents.observation_model.probabilistic import (
     HyperPriorParams,
