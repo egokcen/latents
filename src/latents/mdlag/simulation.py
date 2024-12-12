@@ -15,7 +15,7 @@ import numpy as np
 
 from latents.observation_model.observations import ObsTimeSeries
 from latents.observation_model.probabilistic import HyperPriorParams, ObsParamsARD
-from latents.state_model.GP_latents import construct_K_mdlag_fast
+from latents.state_model.gaussian_process_delayed import construct_delayed_kernel
 from latents.state_model.latents import StateParamsGP
 
 
@@ -105,7 +105,7 @@ def generate_latents(
     T = state_params.T
 
     # Construct the covariance matrix K_big for sequences of length T
-    K_big = construct_K_mdlag_fast(state_params.gp_params, return_matrix=True)
+    K_big = construct_delayed_kernel(state_params.gp_params, return_tensor=False)
 
     # Perform Cholesky decomposition for sampling
     K_big_size = K_big.shape[0]
