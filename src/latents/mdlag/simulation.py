@@ -15,16 +15,23 @@ import numpy as np
 
 from latents.observation_model.observations import ObsTimeSeries
 from latents.observation_model.probabilistic import HyperPriorParams, ObsParamsARD
-from latents.state_model.gaussian_process_delayed import construct_delayed_kernel
-from latents.state_model.latents import StateParamsGP
+from latents.state_model.gaussian_process import (
+    GPParams,
+    construct_gp_covariance_matrix,
+)
 
 
 def simulate(
     N: int,
+    T: int,
     y_dims: np.ndarray,
+    x_dim: int,
     hyper_priors: HyperPriorParams,
-    state_params: StateParamsGP,
     snr: np.ndarray,
+    gp_params: GPParams | None = None,
+    gamma_lim: tuple[float, float] | None = None,
+    eps_lim: tuple[float, float] | None = None,
+    delay_lim: tuple[float, float] | None = None,
     random_seed: int | None = None,
 ) -> tuple[ObsTimeSeries, np.ndarray, ObsParamsARD]:
     """
@@ -34,18 +41,19 @@ def simulate(
     ----------
     N
         Number of sequences to generate.
+    T
+        Number of time points per sequence.
     y_dims
         `ndarray` of `int`, shape ``(num_groups,)``.
         Number of observed dimensions in each group.
     hyper_priors
-        Hyperparameters of the observation model priors.
-    state_params
-        Parameters of the state model.
-    snr
-        `ndarray` of `float`, shape ``(num_groups,)``.
-        Signal-to-noise ratio of each group.
-    random_seed
-        Random seed for reproducibility.
+        Hyperparameters of the mDLAG prior distributions.
+        Note that ``hyper_priors.a_alpha`` and ``hyper_priors.b_alpha`` can be
+        abused here, so that they can be used to specify group- and
+        column-specific sparsity patterns in the loadings matrices.
+        In that case, specify both of them as `ndarray` of shape
+        ``(num_groups, x_dim)``.
+
 
     Returns
     -------
@@ -57,33 +65,41 @@ def simulate(
         Generated observation model parameters.
     """
     rng = np.random.default_rng(seed=random_seed)
-    x_dim = state_params.x_dim
-
     # Generate observation model parameters
     obs_params = ObsParamsARD.generate(y_dims, x_dim, hyper_priors, snr, rng)
 
+    # Generate GP parameters:
+    num_groups = len(y_dims)
+    if gp_params is None:
+        gp_params = GPParams.generate(
+            x_dim, num_groups, gamma_lim, eps_lim, delay_lim, rng
+        )
+
     # Generate latent variables
-    latents = generate_latents(state_params, N, rng)
-    X = np.transpose(latents, (1, 2, 3, 0))
+    X = generate_latents(gp_params, T, N, rng)
 
     # Generate observations
+
     Y = generate_observations(X, obs_params, rng)
 
     return Y, X, obs_params
 
 
 def generate_latents(
-    state_params: StateParamsGP,
+    gp_params: GPParams,
+    T: int,
     N: int,
-    rng: np.random.Generator = np.random.default_rng(),
+    rng: np.random.Generator,
 ) -> np.ndarray:
     """
     Generate latents via the mDLAG state model.
 
     Parameters
     ----------
-    state_params
-        Parameters of the state model.
+    gp_params
+        Parameters of the gp
+    T
+        Number of time points per sequence.
     N
         Number of sequences to generate.
     rng
@@ -92,7 +108,7 @@ def generate_latents(
     Returns
     -------
     ndarray
-        `ndarray` of `float`, shape ``(N, x_dim, num_groups, T)``.
+        `ndarray` of `float`, shape ``(x_dim, num_groups, T, N)``.
         Latent data.
 
     Raises
@@ -100,32 +116,14 @@ def generate_latents(
     ValueError
         If the covariance matrix is not positive-definite.
     """
-    num_groups = state_params.num_groups
-    x_dim = state_params.x_dim
-    T = state_params.T
+    num_groups = gp_params.num_groups
+    x_dim = gp_params.x_dim
 
-    # Construct the covariance matrix K_big for sequences of length T
-    K_big = construct_delayed_kernel(state_params.gp_params, return_tensor=False)
+    K = construct_gp_covariance_matrix(gp_params, T, return_tensor=False, order="F")
+    latents = rng.multivariate_normal(np.zeros(K.shape[0]), K, size=N)
+    latents = latents.reshape((N, x_dim, num_groups, T), order="F")
 
-    # Perform Cholesky decomposition for sampling
-    K_big_size = K_big.shape[0]
-    try:
-        # Adding a small value to the diagonal for numerical stability
-        L = np.linalg.cholesky(K_big + 1e-6 * np.eye(K_big_size))
-    except np.linalg.LinAlgError:
-        msg = "Covariance matrix is not positive-definite."
-        raise ValueError(msg)
-
-    mean = np.zeros(K_big_size)
-    latents = np.zeros((N, x_dim, num_groups, T))
-
-    for n in range(N):
-        # Sample latent variables
-        u = rng.standard_normal(K_big_size)
-        x_n = L @ u + mean
-        latents[n, :, :, :] = x_n.reshape((x_dim, num_groups, T), order="F")
-
-    return latents
+    return latents.transpose(1, 2, 3, 0)
 
 
 def generate_observations(

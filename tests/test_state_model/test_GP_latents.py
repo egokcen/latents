@@ -8,16 +8,13 @@ def test_GP_covariance_matrix():
     import numpy as np
     from scipy.io import loadmat
 
-    from latents.state_model.GP_latents import (
-        RBF_GP_Params,
-        construct_K_mdlag,
-        construct_K_mdlag_fast,
+    from latents.state_model.gaussian_process import (
+        GPParams,
+        construct_gp_covariance_matrix,
     )
 
     # Dataset characteristics:
     T = 25  # Number of samples per sequence
-    y_dims = np.array([10, 11, 12])  # Dimensionalities of each observed group
-    num_groups = len(y_dims)  # Total number of groups
     x_dim = 7
     binWidth = 20  # Sample period of ground truth data
 
@@ -30,17 +27,14 @@ def test_GP_covariance_matrix():
     D = D / binWidth
     gamma = (binWidth / tau) ** 2
 
-    gp_params = RBF_GP_Params(
-        x_dim=x_dim, num_groups=num_groups, T=T, eps=eps, gamma=gamma, D=D
-    )
+    gp_params = GPParams(eps=eps, gamma=gamma, D=D)
 
-    K_big_fast = construct_K_mdlag_fast(gp_params, return_matrix=True)
-    K_big = construct_K_mdlag(gp_params, return_matrix=True)
+    K_big = construct_gp_covariance_matrix(
+        gp_params, T=T, return_tensor=False, order="F"
+    )
 
     fixture_path = os.path.join(os.path.dirname(__file__), "K_big.mat")
     matlab_data = loadmat(fixture_path)
     K_matlab = matlab_data["K_big"]
 
-    assert np.allclose(K_big_fast, K_matlab)
     assert np.allclose(K_big, K_matlab)
-    assert np.allclose(K_big_fast, K_big)

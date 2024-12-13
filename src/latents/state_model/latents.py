@@ -6,7 +6,7 @@ Building blocks for latent state models.
 - :class:`PosteriorLatentStatic` -- Posterior estimates of static latents.
 - :class:`PosteriorLatentDelayed` -- Posterior estimates of time-delayed latents.
 - :class:`StateParamsStatic` -- A generic state model with static latents.
-
+- :class:`StateParamsDelayed` -- A mDLAG Process state model.
 """
 
 from __future__ import annotations

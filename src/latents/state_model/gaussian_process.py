@@ -7,9 +7,9 @@ Gaussian Process kernel functions for delayed latent models.
 
 **Functions**
 
-- :func:`construct_single_latent_delayed_kernel` -- \
+- :func:`construct_single_latent_gp_covariance_matrix` -- \
     Construct kernel matrix for a single latent dimension.
-- :func:`construct_delayed_kernel` -- Construct full delayed kernel matrix.
+- :func:`construct_gp_covariance_matrix` -- Construct full delayed kernel matrix.
 """
 
 from __future__ import annotations
@@ -76,9 +76,9 @@ class GPParams:
         cls,
         x_dim: int,
         num_groups: int,
-        tau_lim: tuple[float, float],
-        eps_lim: tuple[float, float],
-        delay_lim: tuple[float, float],
+        delay_lim: tuple[float, float] = (-5.0, 5.0),
+        eps_lim: tuple[float, float] = (1e-4, 0.1),
+        gamma_lim: tuple[float, float] = (0.01, 0.5),
         rng: np.random.Generator | None = None,
     ) -> GPParams:
         """Generate random mDLAG GP parameters.
@@ -89,12 +89,12 @@ class GPParams:
             Number of latent dimensions
         num_groups : int
             Number of groups
-        tau_lim : tuple[float, float]
-            Limits for timescale parameter
-        eps_lim : tuple[float, float]
-            Limits for noise parameter
-        delay_lim : tuple[float, float]
-            Limits for delay parameter
+        gamma_lim : tuple[float, float], optional
+            Limits for timescale parameter. Defaults to (0.01, 0.5)
+        eps_lim : tuple[float, float], optional
+            Limits for noise parameter. Defaults to (1e-4, 0.1)
+        delay_lim : tuple[float, float], optional
+            Limits for delay parameter. Defaults to (-5.0, 5.0)
         rng : np.random.Generator, optional
             Random number generator
 
@@ -106,14 +106,14 @@ class GPParams:
         if rng is None:
             rng = np.random.default_rng()
 
-        gamma = rng.uniform(tau_lim[0], tau_lim[1], size=x_dim)
+        gamma = rng.uniform(gamma_lim[0], gamma_lim[1], size=x_dim)
         eps = rng.uniform(eps_lim[0], eps_lim[1], size=x_dim)
         D = rng.uniform(delay_lim[0], delay_lim[1], size=(num_groups, x_dim))
         D[0, :] = 0
-        return cls(gamma, eps, D)
+        return cls(gamma=gamma, eps=eps, D=D)
 
 
-def construct_single_latent_delayed_kernel(
+def construct_single_latent_gp_covariance_matrix(
     x: np.ndarray, T: int, return_tensor: bool = False, order: str = "F"
 ) -> np.ndarray:
     """
@@ -163,7 +163,7 @@ def construct_single_latent_delayed_kernel(
     return Kj.reshape(num_groups * T, num_groups * T, order=order)
 
 
-def construct_delayed_kernel(
+def construct_gp_covariance_matrix(
     gp_params: GPParams, T: int, return_tensor: bool = False, order: str = "F"
 ) -> np.ndarray:
     """
@@ -209,7 +209,7 @@ def construct_delayed_kernel(
 
     for dim in range(x_dim):
         x = np.concatenate([D[:, dim], [eps[dim]], [gamma[dim]]])
-        K[dim, :, :, dim, :, :] = construct_single_latent_delayed_kernel(
+        K[dim, :, :, dim, :, :] = construct_single_latent_gp_covariance_matrix(
             x, T, return_tensor=True
         )
 

@@ -5,8 +5,11 @@ import pytest
 
 from latents.mdlag.simulation import generate_latents, generate_observations
 from latents.observation_model.probabilistic import HyperPriorParams, ObsParamsARD
-from latents.state_model.GP_latents import RBF_GP_Params, construct_K_mdlag_fast
-from latents.state_model.latents import StateParamsGP
+from latents.state_model.gaussian_process import (
+    GPParams,
+    construct_gp_covariance_matrix,
+)
+from latents.state_model.latents import StateParamsDelayed
 
 
 @pytest.fixture
@@ -50,31 +53,30 @@ def simulation_params():
     obs_params = ObsParamsARD.generate(
         y_dims, x_dim, hyper_priors, snr, np.random.default_rng(seed=42)
     )
-    gp_params = RBF_GP_Params(
-        x_dim=x_dim, num_groups=num_groups, T=T, eps=eps, gamma=gamma, D=D
-    )
-    state_params = StateParamsGP(
-        x_dim=x_dim, num_groups=num_groups, T=T, gp_params=gp_params
-    )
+    gp_params = GPParams(gamma=gamma, eps=eps, D=D)
 
-    return state_params, obs_params
+    state_params_delayed = StateParamsDelayed(x_dim, num_groups, T)
+
+    return gp_params, state_params_delayed, obs_params
 
 
 def test_generate_latents(simulation_params):
     """Test latents covariance matrix."""
-    state_params, _ = simulation_params
+    gp_params, state_params_delayed, _ = simulation_params
     rng = np.random.default_rng(seed=42)
 
     # Generate latents
     N = int(1e4)  # Number of samples
-    latents = generate_latents(state_params, N, rng=rng)
+    latents = generate_latents(gp_params, N=N, T=state_params_delayed.T, rng=rng)
 
     # Compute empirical covariance matrix
-    latents_flat = latents.reshape(N, -1, order="F")
-    empirical_cov = np.cov(latents_flat.T)
+    latents_flat = latents.reshape(-1, N, order="F")
+    empirical_cov = np.cov(latents_flat)
 
     # Construct theoretical covariance matrix
-    K_big = construct_K_mdlag_fast(state_params.gp_params, return_matrix=True)
+    K_big = construct_gp_covariance_matrix(
+        gp_params, T=state_params_delayed.T, return_tensor=False, order="F"
+    )
 
     # Check similarity of empirical covariance and K_big
     assert np.allclose(
@@ -84,13 +86,12 @@ def test_generate_latents(simulation_params):
 
 def test_generate_observations(simulation_params):
     """Test observations covariance matrix."""
-    state_params, obs_params = simulation_params
+    gp_params, state_params_delayed, obs_params = simulation_params
     rng = np.random.default_rng(seed=42)
 
     # Generate latents
-    N = int(1e4)  # Number of samples
-    latents = generate_latents(state_params, N, rng=rng)
-    X = np.transpose(latents, (1, 2, 3, 0))
+    N = int(1e5)  # Number of samples
+    X = generate_latents(gp_params, N=N, T=state_params_delayed.T, rng=rng)
 
     # Generate observations
     Y = generate_observations(X, obs_params, rng)
@@ -123,7 +124,7 @@ def test_generate_observations(simulation_params):
         C_g = Cs[group_idx]
         Phi_g_inv = np.diag(1.0 / phis[group_idx])
         Cov_x_t = np.eye(
-            state_params.x_dim
+            state_params_delayed.x_dim
         )  # Simplification: assume Cov[x_t] is identity
         theoretical_cov_g = C_g @ Cov_x_t @ C_g.T + Phi_g_inv
 
