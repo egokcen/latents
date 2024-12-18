@@ -61,7 +61,10 @@ def simulation_params():
 
 
 def test_generate_latents(simulation_params):
-    """Test latents covariance matrix."""
+    """Verify the covariance of generated latents.
+
+    Check matches between empirical and theoretical covariance matrices.
+    """
     gp_params, state_params_delayed, _ = simulation_params
     rng = np.random.default_rng(seed=42)
 
@@ -85,7 +88,10 @@ def test_generate_latents(simulation_params):
 
 
 def test_generate_observations(simulation_params):
-    """Test observations covariance matrix."""
+    """Verify the first and second order statistics of generated observations.
+
+    Check matches between empirical and theoretical values.
+    """
     gp_params, state_params_delayed, obs_params = simulation_params
     rng = np.random.default_rng(seed=42)
 

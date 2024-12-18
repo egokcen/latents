@@ -39,21 +39,33 @@ def simulate(
 
     Parameters
     ----------
-    N
+    N : int
         Number of sequences to generate.
-    T
+    T : int
         Number of time points per sequence.
-    y_dims
+    y_dims : ndarray
         `ndarray` of `int`, shape ``(num_groups,)``.
         Number of observed dimensions in each group.
-    hyper_priors
+    x_dim : int
+        Number of latent dimensions.
+    hyper_priors : HyperPriorParams
         Hyperparameters of the mDLAG prior distributions.
         Note that ``hyper_priors.a_alpha`` and ``hyper_priors.b_alpha`` can be
-        abused here, so that they can be used to specify group- and
-        column-specific sparsity patterns in the loadings matrices.
-        In that case, specify both of them as `ndarray` of shape
-        ``(num_groups, x_dim)``.
-
+        abused here to specify group- and column-specific sparsity patterns
+        in the loadings matrices. In that case, specify both as `ndarray`
+        of shape ``(num_groups, x_dim)``.
+    snr : ndarray
+        Signal-to-noise ratio for each group.
+    gp_params : GPParams | None, optional
+        Parameters of the Gaussian Process. If None, will be generated.
+    gamma_lim : tuple[float, float] | None, optional
+        (min, max) limits for generating gamma parameters if gp_params is None.
+    eps_lim : tuple[float, float] | None, optional
+        (min, max) limits for generating epsilon parameters if gp_params is None.
+    delay_lim : tuple[float, float] | None, optional
+        (min, max) limits for generating delay parameters if gp_params is None.
+    random_seed : int | None, optional
+        Random seed for reproducibility.
 
     Returns
     -------
@@ -96,25 +108,24 @@ def generate_latents(
 
     Parameters
     ----------
-    gp_params
-        Parameters of the gp
-    T
+    gp_params : GPParams
+        Parameters of the Gaussian Process.
+    T : int
         Number of time points per sequence.
-    N
+    N : int
         Number of sequences to generate.
-    rng
+    rng : np.random.Generator
         A random number generator object.
 
     Returns
     -------
     ndarray
-        `ndarray` of `float`, shape ``(x_dim, num_groups, T, N)``.
-        Latent data.
-
-    Raises
-    ------
-    ValueError
-        If the covariance matrix is not positive-definite.
+        Generated latent data, shape ``(x_dim, num_groups, T, N)``.
+        The dimensions represent:
+        - x_dim: number of latent dimensions
+        - num_groups: number of observation groups
+        - T: number of time points per sequence
+        - N: number of sequences
     """
     num_groups = gp_params.num_groups
     x_dim = gp_params.x_dim
@@ -136,18 +147,22 @@ def generate_observations(
 
     Parameters
     ----------
-    X
-        `ndarray` of `float`, shape ``(x_dim, num_groups, T, N)``.
-        Latent data.
-    obs_params
+    X : ndarray
+        Latent data, shape ``(x_dim, num_groups, T, N)``.
+        The dimensions represent:
+        - x_dim: number of latent dimensions
+        - num_groups: number of observation groups
+        - T: number of time points per sequence
+        - N: number of sequences
+    obs_params : ObsParamsARD
         mDLAG observation model parameters.
-    rng
+    rng : np.random.Generator
         A random number generator object.
 
     Returns
     -------
     ObsTimeSeries
-        Generated observed data.
+        Generated observed data with dimensions matching the input parameters.
     """
     # Number of data points
     N = X.shape[-1]
@@ -171,7 +186,7 @@ def generate_observations(
     for group_idx in range(num_groups):
         Ys[group_idx][:] = (
             np.einsum("ij,j...->i...", Cs[group_idx], X[:, group_idx, :, :])
-            + ds[group_idx][:, None, None]
+            + ds[group_idx][:, np.newaxis, np.newaxis]
             + rng.multivariate_normal(
                 np.zeros(y_dims[group_idx]), np.diag(1 / phis[group_idx]), size=(T, N)
             ).transpose(2, 0, 1)

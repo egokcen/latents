@@ -6,7 +6,7 @@ Building blocks for latent state models.
 - :class:`PosteriorLatentStatic` -- Posterior estimates of static latents.
 - :class:`PosteriorLatentDelayed` -- Posterior estimates of time-delayed latents.
 - :class:`StateParamsStatic` -- A generic state model with static latents.
-- :class:`StateParamsDelayed` -- A mDLAG Process state model.
+- :class:`StateParamsDelayed` -- A state model for mdlag latent variables.
 """
 
 from __future__ import annotations
@@ -296,7 +296,7 @@ class StateParamsStatic:
 
     def is_initialized(self) -> bool:
         """
-        Check if observation model parameters have been initialized to data.
+        Check if state model parameters have been initialized.
 
         Returns
         -------
@@ -359,7 +359,36 @@ class StateParamsStatic:
 
 
 class StateParamsDelayed:
-    """A Gaussian Process state model."""
+    """
+    A Gaussian Process state model with time-delayed latent variables.
+
+    Parameters
+    ----------
+    x_dim : int | None, optional
+        Number of latent dimensions.
+    num_groups : int | None, optional
+        Number of groups in the data.
+    T : int | None, optional
+        Number of time points.
+    X : PosteriorLatentDelayed | None, optional
+        Posterior latents.
+
+    Attributes
+    ----------
+    x_dim : int | None
+        Same as **x_dim**, above.
+    num_groups : int | None
+        Same as **num_groups**, above.
+    T : int | None
+        Same as **T**, above.
+    X : PosteriorLatentDelayed
+        Same as **X**, above.
+
+    Raises
+    ------
+    TypeError
+        If any attribute is not of the respective type specified above.
+    """
 
     def __init__(
         self,
@@ -374,15 +403,6 @@ class StateParamsDelayed:
             raise TypeError(msg)
         self.x_dim = x_dim
 
-        # Latents
-        if X is None:
-            self.X = PosteriorLatentDelayed()
-        elif not isinstance(X, PosteriorLatentDelayed):
-            msg = "X must be a PosteriorLatentDelayed object."
-            raise TypeError(msg)
-        else:
-            self.X = X
-
         # Number of groups
         if num_groups is not None and not isinstance(num_groups, int):
             msg = "num_groups must be an integer."
@@ -395,6 +415,15 @@ class StateParamsDelayed:
             raise TypeError(msg)
         self.T = T
 
+        # Latents
+        if X is None:
+            self.X = PosteriorLatentDelayed()
+        elif not isinstance(X, PosteriorLatentDelayed):
+            msg = "X must be a PosteriorLatentDelayed object."
+            raise TypeError(msg)
+        else:
+            self.X = X
+
     def __repr__(self) -> str:
         return (
             f"{type(self).__name__}("
@@ -405,11 +434,13 @@ class StateParamsDelayed:
         )
 
     def is_initialized(self) -> bool:
-        """Check if observation model parameters have been initialized to data."""
+        """Check if state model parameters have been initialized."""
         raise NotImplementedError
 
     def get_subset_dims(
-        self, dims: np.ndarray, in_place: bool = True
+        self,
+        dims: np.ndarray,
+        in_place: bool = True,
     ) -> StateParamsDelayed | None:
         """Keep only a subset of the latent dimensions in each relevant parameter."""
         raise NotImplementedError

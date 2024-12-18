@@ -90,27 +90,40 @@ class ObsStatic:
 
 
 class ObsTimeSeries:
-    """Store and manipulate views of observed time series data.
+    """
+    Store and manipulate views of observed time series data.
 
     Parameters
     ----------
-    data
-        `ndarray` of `float`, shape ``(dim,T,N)``.
-    dims
+    data : ndarray
+        `ndarray` of `float`, shape ``(dim, T, N)``.
+        Observed data. Groups are stacked vertically. For example, if there
+        are three groups with dimensionalities 2, 3, and 4, then ``data`` is a
+        `ndarray` of shape ``(9, T, N)``, and ``data[:2, :, :]`` contains the first
+        group, ``data[2:5, :, :]`` contains the second group, and ``data[5:, :, :]``
+        contains the third group.
+    dims : ndarray
         `ndarray` of `int`, shape ``(num_groups,)``.
         Dimensionalities of each observed group.
-    T
-        `int`.
-        Number of time points.
+    T : int
+        Number of time points in each sequence.
 
     Attributes
     ----------
-    data
+    data : ndarray
         Same as **data**, above.
-    dims
+    dims : ndarray
         Same as **dims**, above.
-    T
+    T : int
         Same as **T**, above.
+
+    Raises
+    ------
+    TypeError
+        If ``data`` or ``dims`` is not a `ndarray`.
+    ValueError
+        If the sum of ``dims`` does not equal the number of rows in ``data``,
+        or if ``T`` does not equal the second dimension of ``data``.
     """
 
     def __init__(self, data: np.ndarray, dims: np.ndarray, T: int):

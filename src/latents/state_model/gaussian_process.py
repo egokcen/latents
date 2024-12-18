@@ -62,11 +62,11 @@ class GPParams:
     def __post_init__(self) -> None:
         """Validate dimensions and set derived attributes."""
         if not (len(self.gamma) == len(self.eps) == self.D.shape[1]):
-            error_message = (
+            msg = (
                 f"Dimension mismatch: gamma {self.gamma.shape}, "
                 f"eps {self.eps.shape}, D {self.D.shape[1]}"
             )
-            raise ValueError(error_message)
+            raise ValueError(msg)
 
         self.num_groups = self.D.shape[0]
         self.x_dim = self.D.shape[1]
@@ -196,8 +196,8 @@ def construct_gp_covariance_matrix(
         If gp_params is not an instance of GPParams.
     """
     if not isinstance(gp_params, GPParams):
-        error_message = "First argument must be a GPParams instance"
-        raise TypeError(error_message)
+        msg = "First argument must be a GPParams instance"
+        raise TypeError(msg)
 
     D = gp_params.D
     gamma = gp_params.gamma

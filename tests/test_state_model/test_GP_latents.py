@@ -2,7 +2,10 @@
 
 
 def test_GP_covariance_matrix():
-    """Test the construction of the GP covariance matrix match matlab."""
+    """Test the construction of the GP covariance matrix.
+
+    Test results against a known correct matrix.
+    """
     import os
 
     import numpy as np
