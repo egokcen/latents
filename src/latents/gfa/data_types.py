@@ -14,17 +14,9 @@ from __future__ import annotations
 
 import numpy as np
 
-from latents.base import (
-    FitFlags,
-    FitTracker,
-)
-from latents.observation_model.probabilistic import (
-    HyperPriorParams,
-    ObsParamsARD,
-)
-from latents.state_model.latents import (
-    StateParamsStatic,
-)
+from latents.base import FitFlags, FitTracker
+from latents.observation_model.probabilistic import HyperPriorParams, ObsParamsARD
+from latents.state_model.latents import StateParamsStatic
 
 
 class GFAParams:

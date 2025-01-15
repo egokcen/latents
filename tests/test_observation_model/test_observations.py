@@ -3,9 +3,7 @@
 import numpy as np
 import pytest
 
-from latents.observation_model.observations import (
-    ObsStatic,
-)
+from latents.observation_model.observations import ObsStatic
 
 
 # ------------------

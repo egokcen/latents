@@ -6,7 +6,7 @@ Building blocks for latent state models.
 - :class:`PosteriorLatentStatic` -- Posterior estimates of static latents.
 - :class:`PosteriorLatentDelayed` -- Posterior estimates of time-delayed latents.
 - :class:`StateParamsStatic` -- A generic state model with static latents.
-
+- :class:`StateParamsDelayed` -- A state model for mdlag latent variables.
 """
 
 from __future__ import annotations
@@ -144,9 +144,107 @@ class PosteriorLatentStatic(ArrayContainer):
 
 
 class PosteriorLatentDelayed(ArrayContainer):
-    """Posterior estimates of time-delayed latent variables."""
+    """Posterior estimates of time-delayed latent variables.
 
-    pass
+    Parameters
+    ----------
+    mean
+        `ndarray` of `float`, shape ``(x_dim, num_groups, T, N)``.
+        Posterior mean of the latent variables.
+    cov
+        `ndarray` of `float`, shape ``(x_dim, num_groups, T, x_dim, num_groups, T)``.
+        Posterior covariance of the latent variables.
+    moment
+        `ndarray` of `float`, shape ``(x_dim, num_groups, T, x_dim, num_groups, T)``.
+        Posterior second moments of the latent variables.
+    moment_GP
+        `ndarray` of `float`, shape ``(x_dim, num_groups, T, x_dim, num_groups, T)``.
+        Posterior second moments of the latent variables for the GP case.
+
+    Attributes
+    ----------
+    mean
+        Same as **mean**, above.
+    cov
+        Same as **cov**, above.
+    moment
+        Same as **moment**, above.
+
+    Raises
+    ------
+    TypeError
+        If ``mean``, ``cov``, or ``moment`` is not a `ndarray`.
+    """
+
+    def __init__(
+        self,
+        mean: np.ndarray | None = None,
+        cov: np.ndarray | None = None,
+        moment: np.ndarray | None = None,
+    ):
+        # Mean
+        if mean is not None and not isinstance(mean, np.ndarray):
+            msg = "mean must be a numpy.ndarray."
+            raise TypeError(msg)
+        self.mean = mean
+
+        # Covariance
+        if cov is not None and not isinstance(cov, np.ndarray):
+            msg = "cov must be a numpy.ndarray."
+            raise TypeError(msg)
+        self.cov = cov
+
+        # Second moment
+        if moment is not None and not isinstance(moment, np.ndarray):
+            msg = "moment must be a numpy.ndarray."
+            raise TypeError(msg)
+        self.moment = moment
+
+    def compute_moment_GP(self, in_place: bool = True) -> np.ndarray | None:
+        """
+        Compute the posterior second moments of the latent variables for GP case.
+
+        This function is written to be differentiable with respect to the parameters x.
+
+        Parameters
+        ----------
+        in_place
+            If ``True``, compute the posterior second moments in place.
+            If ``False``, compute the posterior second moments and return as a
+            new `ndarray` without modifying self. Defaults to ``True``.
+
+        Returns
+        -------
+        ndarray | None
+            `ndarray` of shape ``(x_dim, num_groups*T, num_groups*T, N)``.
+            Posterior second moments of the latent variables.
+        """
+        x_dim, num_groups, T, N = self.mean.shape
+        moment_GP = np.zeros((x_dim, num_groups * T, num_groups * T, N))
+
+        for j in range(x_dim):
+            for n in range(N):
+                Sig_jj = self.cov[j, :, :, j, :, :].reshape(
+                    num_groups * T, num_groups * T, order="F"
+                )
+                mu_j = self.mean[j, :, :, n].reshape(num_groups * T, 1, order="F")
+                moment_GP[j, :, :, n] = Sig_jj + mu_j @ mu_j.T
+
+        if in_place:
+            self.moment = moment_GP
+            return None
+
+        return moment_GP
+
+    def compute_moment(self, in_place: bool = True) -> np.ndarray | None:
+        """Compute the posterior second moments of the latent variables."""
+        raise NotImplementedError
+
+    def get_subset_dims(
+        self, dims: np.ndarray, in_place: bool = True
+    ) -> PosteriorLatentDelayed | None:
+        """Keep only a subset of the latent dimensions in each attribute."""
+        raise NotImplementedError
 
 
 class StateParamsStatic:
@@ -198,7 +296,7 @@ class StateParamsStatic:
 
     def is_initialized(self) -> bool:
         """
-        Check if observation model parameters have been initialized to data.
+        Check if state model parameters have been initialized.
 
         Returns
         -------
@@ -258,3 +356,95 @@ class StateParamsStatic:
             x_dim=self.x_dim,
             X=self.X.copy(),
         )
+
+
+class StateParamsDelayed:
+    """
+    A Gaussian Process state model with time-delayed latent variables.
+
+    Parameters
+    ----------
+    x_dim : int | None, optional
+        Number of latent dimensions.
+    num_groups : int | None, optional
+        Number of groups in the data.
+    T : int | None, optional
+        Number of time points.
+    X : PosteriorLatentDelayed | None, optional
+        Posterior latents.
+
+    Attributes
+    ----------
+    x_dim : int | None
+        Same as **x_dim**, above.
+    num_groups : int | None
+        Same as **num_groups**, above.
+    T : int | None
+        Same as **T**, above.
+    X : PosteriorLatentDelayed
+        Same as **X**, above.
+
+    Raises
+    ------
+    TypeError
+        If any attribute is not of the respective type specified above.
+    """
+
+    def __init__(
+        self,
+        x_dim: int | None = None,
+        num_groups: int | None = None,
+        T: int | None = None,
+        X: PosteriorLatentDelayed | None = None,
+    ):
+        # Latent dimensionality
+        if x_dim is not None and not isinstance(x_dim, int):
+            msg = "x_dim must be an integer."
+            raise TypeError(msg)
+        self.x_dim = x_dim
+
+        # Number of groups
+        if num_groups is not None and not isinstance(num_groups, int):
+            msg = "num_groups must be an integer."
+            raise TypeError(msg)
+        self.num_groups = num_groups
+
+        # Time points
+        if T is not None and not isinstance(T, int):
+            msg = "T must be an integer."
+            raise TypeError(msg)
+        self.T = T
+
+        # Latents
+        if X is None:
+            self.X = PosteriorLatentDelayed()
+        elif not isinstance(X, PosteriorLatentDelayed):
+            msg = "X must be a PosteriorLatentDelayed object."
+            raise TypeError(msg)
+        else:
+            self.X = X
+
+    def __repr__(self) -> str:
+        return (
+            f"{type(self).__name__}("
+            f"x_dim={self.x_dim}, "
+            f"num_groups={self.num_groups}, "
+            f"T={self.T}, "
+            f"X={self.X}, "
+        )
+
+    def is_initialized(self) -> bool:
+        """Check if state model parameters have been initialized."""
+        raise NotImplementedError
+
+    def get_subset_dims(
+        self,
+        dims: np.ndarray,
+        in_place: bool = True,
+    ) -> StateParamsDelayed | None:
+        """Keep only a subset of the latent dimensions in each relevant parameter."""
+        raise NotImplementedError
+
+    def copy(self) -> StateParamsDelayed:
+        """Return a copy of self."""
+        raise NotImplementedError

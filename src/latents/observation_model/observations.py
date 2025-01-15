@@ -90,6 +90,83 @@ class ObsStatic:
 
 
 class ObsTimeSeries:
-    """Store and manipulate views of observed time series data."""
+    """
+    Store and manipulate views of observed time series data.
 
-    pass
+    Parameters
+    ----------
+    data : ndarray
+        `ndarray` of `float`, shape ``(dim, T, N)``.
+        Observed data. Groups are stacked vertically. For example, if there
+        are three groups with dimensionalities 2, 3, and 4, then ``data`` is a
+        `ndarray` of shape ``(9, T, N)``, and ``data[:2, :, :]`` contains the first
+        group, ``data[2:5, :, :]`` contains the second group, and ``data[5:, :, :]``
+        contains the third group.
+    dims : ndarray
+        `ndarray` of `int`, shape ``(num_groups,)``.
+        Dimensionalities of each observed group.
+    T : int
+        Number of time points in each sequence.
+
+    Attributes
+    ----------
+    data : ndarray
+        Same as **data**, above.
+    dims : ndarray
+        Same as **dims**, above.
+    T : int
+        Same as **T**, above.
+
+    Raises
+    ------
+    TypeError
+        If ``data`` or ``dims`` is not a `ndarray`.
+    ValueError
+        If the sum of ``dims`` does not equal the number of rows in ``data``,
+        or if ``T`` does not equal the second dimension of ``data``.
+    """
+
+    def __init__(self, data: np.ndarray, dims: np.ndarray, T: int):
+        # Observed data
+        if not isinstance(data, np.ndarray):
+            msg = "data must be a numpy.ndarray."
+            raise TypeError(msg)
+
+        # Dimensionalities of each group
+        if not isinstance(dims, np.ndarray):
+            msg = "dims must be a numpy.ndarray."
+            raise TypeError(msg)
+
+        # Check that the dimensionalities of each group are consistent with
+        # the shape of Y
+        if np.sum(dims) != data.shape[0]:
+            msg = "The sum of dims must equal the number of rows in data."
+            raise ValueError(msg)
+
+        if data.shape[1] != T:
+            msg = "T must equal the second dimension of data."
+            raise ValueError(msg)
+
+        self.dims = dims
+        self.data = data
+        self.T = T
+
+    def __repr__(self) -> str:
+        return (
+            f"{type(self).__name__}("
+            f"data.shape={self.data.shape}, "
+            f"dims={self.dims}, "
+            f"T={self.T})"
+        )
+
+    def get_groups(self) -> list[np.ndarray]:
+        """
+        Return a list of views of the observed data, one for each group.
+
+        Returns
+        -------
+        list[ndarray]
+            *list* of `ndarray`, length ``num_groups``.
+            List of views of the observed data, one for each group.
+        """
+        return np.split(self.data, np.cumsum(self.dims)[:-1], axis=0)
