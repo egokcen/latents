@@ -70,11 +70,7 @@ class ObsStatic:
         self.data = data
 
     def __repr__(self) -> str:
-        return (
-            f"{type(self).__name__}("
-            f"data.shape={self.data.shape}, "
-            f"dims={self.dims})"
-        )
+        return f"{type(self).__name__}(data.shape={self.data.shape}, dims={self.dims})"
 
     def get_groups(self) -> list[np.ndarray]:
         """

@@ -82,9 +82,9 @@ def test_generate_latents(simulation_params):
     )
 
     # Check similarity of empirical covariance and K_big
-    assert np.allclose(
-        empirical_cov, K_big, atol=1e-1
-    ), "Empirical covariance does not match theoretical covariance matrix K_big"
+    assert np.allclose(empirical_cov, K_big, atol=1e-1), (
+        "Empirical covariance does not match theoretical covariance matrix K_big"
+    )
 
 
 def test_generate_observations(simulation_params):
@@ -116,9 +116,9 @@ def test_generate_observations(simulation_params):
         empirical_mean_g = np.mean(observations_g, axis=(1, 2))
         d_g = ds[group_idx]
 
-        assert np.allclose(
-            d_g, empirical_mean_g, atol=1e-1
-        ), f"Empirical mean for group {group_idx} does not match expected mean"
+        assert np.allclose(d_g, empirical_mean_g, atol=1e-1), (
+            f"Empirical mean for group {group_idx} does not match expected mean"
+        )
 
         # Compute empirical covariance
         observations_g_flat = np.reshape(
@@ -134,6 +134,6 @@ def test_generate_observations(simulation_params):
         )  # Simplification: assume Cov[x_t] is identity
         theoretical_cov_g = C_g @ Cov_x_t @ C_g.T + Phi_g_inv
 
-        assert np.allclose(
-            empirical_cov_g, theoretical_cov_g, atol=1e-1
-        ), f"Empirical and theoretical covariance don't match for group {group_idx}"
+        assert np.allclose(empirical_cov_g, theoretical_cov_g, atol=1e-1), (
+            f"Empirical and theoretical covariance don't match for group {group_idx}"
+        )
