@@ -200,11 +200,9 @@ class PosteriorLatentDelayed(ArrayContainer):
             raise TypeError(msg)
         self.moment = moment
 
-    def compute_moment_GP(self, in_place: bool = True) -> np.ndarray | None:
+    def compute_moment_GP(self) -> np.ndarray | None:
         """
-        Compute the posterior second moments of the latent variables for GP case.
-
-        This function is written to be differentiable with respect to the parameters x.
+        Compute the posterior second moments of each GP.
 
         Parameters
         ----------
@@ -230,15 +228,45 @@ class PosteriorLatentDelayed(ArrayContainer):
                 mu_j = self.mean[j, :, :, n].reshape(num_groups * T, 1, order="F")
                 moment_GP[j, :, :, n] = Sig_jj + mu_j @ mu_j.T
 
-        if in_place:
-            self.moment = moment_GP
-            return None
-
         return moment_GP
 
     def compute_moment(self, in_place: bool = True) -> np.ndarray | None:
-        """Compute the posterior second moments of the latent variables."""
-        raise NotImplementedError
+        """Compute the posterior second moments of X for each group."""
+        x_dim, num_groups, T, N = self.mean.shape
+        if self.moment is None:
+            self.moment = np.zeros((num_groups, x_dim, x_dim))
+        else:
+            self.moment[:] = 0
+
+        """for m in range(num_groups):
+            X_mean_m = self.mean[:,m,:,:].reshape(x_dim, -1)
+            self.moment[m,:,:] = X_mean_m @ X_mean_m.T
+            cov_m = self.cov[:,m,:,:,m,:].reshape(x_dim, x_dim, -1)
+            self.moment[m,:,:] += cov_m.sum(axis=2)"""
+        # Reshape the covariance matrix
+        tmp = self.cov.reshape(x_dim * num_groups, T, x_dim * num_groups, T, order="F")
+
+        # Initialize Vsm
+        Vsm = np.zeros((x_dim * num_groups, x_dim * num_groups, T))
+        for t in range(T):
+            Vsm[:, :, t] = tmp[:, t, :, t]
+
+        for group_idx in range(num_groups):
+            # Get latent indices for current group
+            lat_idxs = slice(group_idx * x_dim, (group_idx + 1) * x_dim)
+
+            for n in range(N):
+                self.moment[group_idx, :, :] += np.sum(
+                    Vsm[lat_idxs, lat_idxs, :], axis=2
+                )
+                xsm = self.mean[:, :, :, n].reshape(x_dim * num_groups, T, order="F")[
+                    lat_idxs, :
+                ]
+                self.moment[group_idx, :, :] += xsm @ xsm.T
+
+        if not in_place:
+            return self.moment
+        return None
 
     def get_subset_dims(
         self, dims: np.ndarray, in_place: bool = True
