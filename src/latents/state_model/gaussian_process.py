@@ -21,20 +21,22 @@ import numpy as np
 
 @dataclass
 class GPParams:
-    """
-    Parameters for Gaussian Process kernel.
+    """Parameters for Gaussian Process kernel.
 
     Parameters
     ----------
     gamma
         `ndarray` of `float`, shape ``(x_dim,)``.
-        Length scale parameters for each dimension.
+        Length scale parameters for each dimension. Must be positive.
+        Defaults to ``None``.
     eps
         `ndarray` of `float`, shape ``(x_dim,)``.
-        Noise variance parameters for each dimension.
+        Noise variance parameters for each dimension. Must be positive.
+        Defaults to ``None``.
     D
         `ndarray` of `float`, shape ``(num_groups, x_dim)``.
         Delay matrix for each group and dimension.
+        Defaults to ``None``.
 
     Attributes
     ----------
@@ -52,24 +54,45 @@ class GPParams:
     Raises
     ------
     ValueError
-        If dimensions of gamma, eps, and D are not consistent.
+        If dimensions of gamma, eps, and D are not consistent, or if gamma
+        or eps contain non-positive values.
     """
 
-    gamma: np.ndarray
-    eps: np.ndarray
-    D: np.ndarray
+    gamma: np.ndarray | None = None
+    eps: np.ndarray | None = None
+    D: np.ndarray | None = None
 
     def __post_init__(self) -> None:
         """Validate dimensions and set derived attributes."""
-        if not (len(self.gamma) == len(self.eps) == self.D.shape[1]):
-            msg = (
-                f"Dimension mismatch: gamma {self.gamma.shape}, "
-                f"eps {self.eps.shape}, D {self.D.shape[1]}"
-            )
-            raise ValueError(msg)
+        if self.is_initialized():
+            # Check positivity constraints
+            if not np.all(self.gamma > 0):
+                msg = "gamma must contain positive values"
+                raise ValueError(msg)
+            if not np.all(self.eps > 0):
+                msg = "eps must contain positive values"
+                raise ValueError(msg)
 
-        self.num_groups = self.D.shape[0]
-        self.x_dim = self.D.shape[1]
+            # Check dimension consistency
+            if not (len(self.gamma) == len(self.eps) == self.D.shape[1]):
+                msg = (
+                    f"Dimension mismatch: gamma {self.gamma.shape}, "
+                    f"eps {self.eps.shape}, D {self.D.shape[1]}"
+                )
+                raise ValueError(msg)
+
+            self.num_groups = self.D.shape[0]
+            self.x_dim = self.D.shape[1]
+
+    def is_initialized(self) -> bool:
+        """Check if parameters have been initialized.
+
+        Returns
+        -------
+        bool
+            ``True`` if all parameters (gamma, eps, D) are not None.
+        """
+        return self.gamma is not None and self.eps is not None and self.D is not None
 
     @classmethod
     def generate(
