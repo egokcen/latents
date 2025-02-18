@@ -150,16 +150,17 @@ class PosteriorLatentDelayed(ArrayContainer):
     ----------
     mean
         `ndarray` of `float`, shape ``(x_dim, num_groups, T, N)``.
-        Posterior mean of the latent variables.
+        Posterior mean of the latent variables, where:
+        - ``x_dim`` is the number of latent dimensions
+        - ``num_groups`` is the number of groups
+        - ``T`` is the number of timepoints
+        - ``N`` is the number of trials
     cov
         `ndarray` of `float`, shape ``(x_dim, num_groups, T, x_dim, num_groups, T)``.
         Posterior covariance of the latent variables.
     moment
         `ndarray` of `float`, shape ``(x_dim, num_groups, T, x_dim, num_groups, T)``.
         Posterior second moments of the latent variables.
-    moment_GP
-        `ndarray` of `float`, shape ``(x_dim, num_groups, T, x_dim, num_groups, T)``.
-        Posterior second moments of the latent variables for the GP case.
 
     Attributes
     ----------
@@ -169,6 +170,9 @@ class PosteriorLatentDelayed(ArrayContainer):
         Same as **cov**, above.
     moment
         Same as **moment**, above.
+    moment_gp
+        `ndarray` of `float`, shape ``(x_dim, num_groups * T, num_groups * T)``.
+        Posterior second moments for each latent GP.
 
     Raises
     ------
@@ -200,73 +204,97 @@ class PosteriorLatentDelayed(ArrayContainer):
             raise TypeError(msg)
         self.moment = moment
 
-    def compute_moment_GP(self) -> np.ndarray | None:
-        """
-        Compute the posterior second moments of each GP.
+        # GP second moment (computed attribute)
+        self.moment_gp = None
+
+    def compute_moment_gp(self, in_place: bool = True) -> np.ndarray | None:
+        """Compute a subset of the posterior second moments.
+
+        Corresponding to each latent GP across time points.
+
+        The full posterior second moment of the latent variables is a
+        (num_groups * x_dim * T, num_groups * x_dim * T) matrix.
+        Here, compute a (num_groups * T, num_groups * T) subset of that
+        larger matrix for each latent variable.
 
         Parameters
         ----------
-        in_place
-            If ``True``, compute the posterior second moments in place.
-            If ``False``, compute the posterior second moments and return as a
-            new `ndarray` without modifying self. Defaults to ``True``.
+        in_place : bool
+            If ``True``, store the computed moments in self.moment_gp.
+            If ``False``, return the computed moments without modifying self.
+            Defaults to ``True``.
 
         Returns
         -------
         ndarray | None
-            `ndarray` of shape ``(x_dim, num_groups*T, num_groups*T, N)``.
-            Posterior second moments of the latent variables.
+            If ``in_place=False``, returns `ndarray` of shape
+            ``(x_dim, num_groups * T, num_groups * T)``.
+            Posterior second moments for each latent GP.
+            If ``in_place=True``, returns ``None``.
         """
         x_dim, num_groups, T, N = self.mean.shape
-        moment_GP = np.zeros((x_dim, num_groups * T, num_groups * T, N))
+        moment_gp = np.zeros((x_dim, num_groups * T, num_groups * T))
+        mean_reshaped = self.mean.reshape(x_dim, num_groups * T, N, order="F")
 
         for j in range(x_dim):
-            for n in range(N):
-                Sig_jj = self.cov[j, :, :, j, :, :].reshape(
-                    num_groups * T, num_groups * T, order="F"
-                )
-                mu_j = self.mean[j, :, :, n].reshape(num_groups * T, 1, order="F")
-                moment_GP[j, :, :, n] = Sig_jj + mu_j @ mu_j.T
+            Sig_jj = self.cov[j, :, :, j, :, :].reshape(
+                num_groups * T, num_groups * T, order="F"
+            )
+            mu_j = mean_reshaped[j]
+            moment_gp[j] = N * Sig_jj + mu_j @ mu_j.T
 
-        return moment_GP
+        if in_place:
+            self.moment_gp = moment_gp
+            return None
+        return moment_gp
 
     def compute_moment(self, in_place: bool = True) -> np.ndarray | None:
-        """Compute the posterior second moments of X for each group."""
+        """Compute a subset of the posterior second moments.
+
+        For each time point across latents and groups.
+
+        The full posterior second moment of the latent variables is a
+        (num_groups * x_dim * T, num_groups * x_dim * T) matrix.
+        Here, compute a (x_dim * num_groups, x_dim * num_groups) subset of that
+        larger matrix for each time point.
+
+        Parameters
+        ----------
+        in_place : bool
+            If ``True``, store the computed moments in self.moment.
+            If ``False``, return the computed moments without modifying self.
+            Defaults to ``True``.
+
+        Returns
+        -------
+        ndarray | None
+            If ``in_place=False``, returns `ndarray` of shape
+            ``(num_groups, x_dim, x_dim)``.
+            Posterior second moments for each time point.
+            If ``in_place=True``, returns ``None``.
+        """
         x_dim, num_groups, T, N = self.mean.shape
-        if self.moment is None:
-            self.moment = np.zeros((num_groups, x_dim, x_dim))
-        else:
-            self.moment[:] = 0
+        moment = np.zeros((num_groups, x_dim, x_dim))
 
-        """for m in range(num_groups):
-            X_mean_m = self.mean[:,m,:,:].reshape(x_dim, -1)
-            self.moment[m,:,:] = X_mean_m @ X_mean_m.T
-            cov_m = self.cov[:,m,:,:,m,:].reshape(x_dim, x_dim, -1)
-            self.moment[m,:,:] += cov_m.sum(axis=2)"""
-        # Reshape the covariance matrix
-        tmp = self.cov.reshape(x_dim * num_groups, T, x_dim * num_groups, T, order="F")
-
-        # Initialize Vsm
-        Vsm = np.zeros((x_dim * num_groups, x_dim * num_groups, T))
-        for t in range(T):
-            Vsm[:, :, t] = tmp[:, t, :, t]
+        cov_reshaped = self.cov.reshape(
+            x_dim * num_groups, T, x_dim * num_groups, T, order="F"
+        )
+        cov_time_blocks = np.diagonal(cov_reshaped, axis1=1, axis2=3).transpose(0, 2, 1)
+        cov_time_blocks = cov_time_blocks.reshape(
+            x_dim * num_groups, x_dim * num_groups, T
+        )
 
         for group_idx in range(num_groups):
-            # Get latent indices for current group
             lat_idxs = slice(group_idx * x_dim, (group_idx + 1) * x_dim)
+            cov_term = N * np.sum(cov_time_blocks[lat_idxs, lat_idxs, :], axis=2)
+            group_mean = self.mean[:, group_idx, :, :]
+            mean_term = np.einsum("itn,jtn->ij", group_mean, group_mean, optimize=True)
+            moment[group_idx] = cov_term + mean_term
 
-            for n in range(N):
-                self.moment[group_idx, :, :] += np.sum(
-                    Vsm[lat_idxs, lat_idxs, :], axis=2
-                )
-                xsm = self.mean[:, :, :, n].reshape(x_dim * num_groups, T, order="F")[
-                    lat_idxs, :
-                ]
-                self.moment[group_idx, :, :] += xsm @ xsm.T
-
-        if not in_place:
-            return self.moment
-        return None
+        if in_place:
+            self.moment = moment
+            return None
+        return moment
 
     def get_subset_dims(
         self, dims: np.ndarray, in_place: bool = True
