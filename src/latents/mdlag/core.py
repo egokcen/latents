@@ -23,7 +23,7 @@ Core utilities to fit a delayed latents across multiple groups (mDLAG) model to 
 from __future__ import annotations
 
 import numpy as np
-from scipy.linalg import eigh
+from scipy.linalg import block_diag, eigh
 from scipy.stats import gmean
 
 from latents.mdlag.data_types import mDLAGParams
@@ -31,7 +31,11 @@ from latents.observation_model.observations import ObsTimeSeries
 from latents.observation_model.probabilistic import (
     HyperPriorParams,
 )
-from latents.state_model.gaussian_process import GPParams
+from latents.state_model.gaussian_process import (
+    GPParams,
+    construct_gp_covariance_matrix,
+)
+from latents.state_model.latents import PosteriorLatentDelayed
 
 
 def fit():
@@ -151,9 +155,96 @@ def init(
     return params
 
 
-def infer_latents():
-    """Infer latent variables given mDLAG model parameters and observed data."""
-    pass
+def infer_latents(
+    Y: ObsTimeSeries,
+    params: mDLAGParams,
+    in_place: bool = True,
+) -> PosteriorLatentDelayed | None:
+    """Infer latent variables given mDLAG model parameters and observed data.
+
+    Parameters
+    ----------
+    Y
+        Observed time series data.
+    params
+        mDLAG model parameters.
+    in_place
+        If ``True``, update the posterior latents in place.
+        If ``False``, compute the posterior latents and return as a
+        new ``PosteriorLatentDelayed`` without modifying ``params``. Defaults to
+        ``True``.
+
+    Returns
+    -------
+    PosteriorLatentDelayed | None
+        Posterior estimates of latent variables. If ``in_place=True``, returns
+        ``None``. Otherwise, returns the computed posterior latents.
+    """
+    obs_params = params.obs_params
+    state_params = params.state_params
+    gp_params = params.gp_params
+
+    x_dim = state_params.x_dim
+    y_dims = obs_params.y_dims
+    num_groups = len(obs_params.y_dims)
+    T = params.T
+    N = Y.data.shape[2]
+    K_big = construct_gp_covariance_matrix(gp_params, T, return_tensor=False)
+
+    # Initialize X, if needed
+    if in_place:
+        if state_params.X.mean is None:
+            state_params.X.mean = np.zeros((x_dim, num_groups, T, N))
+        if state_params.X.cov is None:
+            state_params.X.cov = np.zeros((x_dim, num_groups, T, x_dim, num_groups, T))
+        if state_params.X.moment is None:
+            state_params.X.moment = np.zeros((num_groups, x_dim, x_dim))
+        X = state_params.X
+    else:
+        X = PosteriorLatentDelayed(
+            mean=np.zeros((x_dim, num_groups, T, N)),
+            cov=np.zeros((x_dim, num_groups, T, x_dim, num_groups, T)),
+            moment=np.zeros((num_groups, x_dim, x_dim)),
+        )
+    # Covariance
+    CPhiC_diag = []
+    k = 0
+    for group_idx in range(num_groups):
+        CmPhimCm = np.zeros((x_dim, x_dim))
+        for i in range(y_dims[group_idx]):
+            CmPhimCm += obs_params.phi.mean[k] * obs_params.C.moment[k, :, :]
+            k += 1
+        CPhiC_diag.append(CmPhimCm)
+
+    CPhiC = block_diag(*CPhiC_diag)
+    CPhiC_big = block_diag(*[CPhiC] * T)
+
+    SigX = np.linalg.inv(np.linalg.inv(K_big) + CPhiC_big)
+
+    # Ensure symmetry
+    SigX = 0.5 * (SigX + SigX.T)
+
+    # Compute log determinant
+    X.logdet_SigX = np.linalg.slogdet(SigX)[1]
+
+    # Covariance
+    X.cov = np.reshape(SigX, (x_dim, num_groups, T, x_dim, num_groups, T), order="F")
+
+    # Mean
+    C_means, _, _ = obs_params.C.get_groups(y_dims)
+    CPhi = block_diag(*C_means).T @ np.diag(obs_params.phi.mean)
+    CPhi_big = block_diag(*[CPhi] * T)
+    Y_centered = Y.data - obs_params.d.mean[:, None, None]
+    muX = SigX @ CPhi_big @ Y_centered.reshape(-1, N, order="F")
+    X.mean = np.reshape(muX, (x_dim, num_groups, T, N), order="F")
+
+    # Compute moment
+    X.compute_moment(in_place=True)
+    X.compute_moment_gp(in_place=True)
+
+    if not in_place:
+        return X
+    return None
 
 
 def learn_gp_params():
