@@ -204,8 +204,11 @@ class PosteriorLatentDelayed(ArrayContainer):
             raise TypeError(msg)
         self.moment = moment
 
-        # GP second moment (computed attribute)
+        # GP second moment
         self.moment_gp = None
+
+        # determinant of the GP covariance matrix
+        self.logdet_SigX = None
 
     def compute_moment_gp(self, in_place: bool = True) -> np.ndarray | None:
         """Compute a subset of the posterior second moments.
@@ -279,16 +282,15 @@ class PosteriorLatentDelayed(ArrayContainer):
         cov_reshaped = self.cov.reshape(
             x_dim * num_groups, T, x_dim * num_groups, T, order="F"
         )
-        cov_time_blocks = np.diagonal(cov_reshaped, axis1=1, axis2=3).transpose(0, 2, 1)
-        cov_time_blocks = cov_time_blocks.reshape(
-            x_dim * num_groups, x_dim * num_groups, T
-        )
+        cov_time_blocks = np.empty((x_dim * num_groups, x_dim * num_groups, T))
+        for t in range(T):
+            cov_time_blocks[:, :, t] = cov_reshaped[:, t, :, t]
 
         for group_idx in range(num_groups):
             lat_idxs = slice(group_idx * x_dim, (group_idx + 1) * x_dim)
             cov_term = N * np.sum(cov_time_blocks[lat_idxs, lat_idxs, :], axis=2)
-            group_mean = self.mean[:, group_idx, :, :]
-            mean_term = np.einsum("itn,jtn->ij", group_mean, group_mean, optimize=True)
+            group_mean_slice = self.mean[:, group_idx, :, :]
+            mean_term = np.einsum("itn,jtn->ij", group_mean_slice, group_mean_slice)
             moment[group_idx] = cov_term + mean_term
 
         if in_place:
