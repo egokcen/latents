@@ -33,6 +33,7 @@ from latents.observation_model.probabilistic import (
     PosteriorARD,
     PosteriorLoading,
     PosteriorObsMean,
+    PosteriorObsPrec,
 )
 from latents.state_model.gaussian_process import (
     GPParams,
@@ -245,9 +246,7 @@ def infer_latents(
     X.compute_moment(in_place=True)
     X.compute_moment_gp(in_place=True)
 
-    if not in_place:
-        return X
-    return None
+    return None if in_place else X
 
 
 def learn_gp_params():
@@ -334,9 +333,7 @@ def infer_loadings(
     # Second moment
     C.compute_moment(in_place=True)
 
-    if not in_place:
-        return C
-    return None
+    return None if in_place else C
 
 
 def infer_ard(
@@ -394,9 +391,7 @@ def infer_ard(
     # Mean
     alpha.compute_mean(in_place=True)
 
-    if not in_place:
-        return alpha
-    return None
+    return None if in_place else alpha
 
 
 def infer_obs_mean(
@@ -405,7 +400,8 @@ def infer_obs_mean(
     hyper_priors: HyperPriorParams,
     in_place: bool = True,
 ) -> PosteriorObsMean | None:
-    """Infer observation mean parameter given current params and observed data.
+    """
+    Infer observation mean parameter given current params and observed data.
 
     Parameters
     ----------
@@ -464,14 +460,102 @@ def infer_obs_mean(
             d.cov[id_m] * obs_params.phi.mean[id_m] * np.sum(residual, axis=1)
         )
 
-    if not in_place:
-        return d
-    return None
+    return None if in_place else d
 
 
-def infer_obs_prec():
-    """Infer observation precision parameters given current params and observed data."""
-    pass
+def infer_obs_prec(
+    Y: ObsTimeSeries,
+    params: mDLAGParams,
+    hyper_priors: HyperPriorParams,
+    in_place: bool = True,
+    d_moment: np.ndarray | None = None,
+    XY: np.ndarray | None = None,
+    Y2: np.ndarray | None = None,
+) -> PosteriorObsPrec | None:
+    """
+    Infer observation precision parameter given current params and observed data.
+
+    Parameters
+    ----------
+    Y
+    params
+    hyper_priors
+    in_place
+        If ``True``, update the posterior observation precisions in place.
+        If ``False``, compute the posterior observation precisions and return as
+        a new ``PosteriorObsPrec`` without modifying ``params``.
+    d_moment
+        `ndarray` of `float`, shape ``(y_dim,)``.
+        Second moment of the observation mean parameter. If not provided,
+        it will be computed from ``params.d``.
+    XY
+        `ndarray` of `float`, shape ``(x_dim, y_dim)``.
+        Correlation matrix between the latent variables and zero-centered
+        observations. If not provided, it will be computed from ``params.X``
+        and ``Y.data``.
+    Y2
+        `ndarray` of `float`, shape ``(y_dim,)``.
+        Sample second moments of observed data. If not provided, it will be
+        computed from ``Y.data``.
+
+    Returns
+    -------
+    PosteriorObsPrec | None
+        Posterior estimates of observation precision parameters.
+    """
+    obs_params = params.obs_params
+    state_params = params.state_params
+    y_dims = obs_params.y_dims
+    y_dim = y_dims.sum()  # Total number of observed dimensions
+    N = Y.data.shape[2]
+    T = Y.T
+    group_membership = np.repeat(np.arange(len(y_dims)), y_dims)
+
+    # Initialize phi, if needed
+    if in_place:
+        if obs_params.phi.mean is None:
+            obs_params.phi.mean = np.zeros(y_dim)
+        if obs_params.phi.a is None:
+            obs_params.phi.a = hyper_priors.a_phi + N * T / 2
+        if obs_params.phi.b is None:
+            obs_params.phi.b = np.zeros(y_dim)
+        phi = obs_params.phi
+    else:
+        phi = PosteriorObsPrec(
+            mean=np.zeros(y_dim), a=hyper_priors.a_phi + N * T / 2, b=np.zeros(y_dim)
+        )
+    # Pre-computations
+    # Sample second moments of observed data
+    if Y2 is None:
+        Y2 = np.sum(Y.data**2, axis=(1, 2))
+
+    # Second moment of the observation mean parameter
+    if d_moment is None:
+        d_moment = obs_params.d.cov + obs_params.d.mean**2
+
+    # Correlation matrix between latents and zero-centered observations
+    if XY is None:
+        Y0 = Y.data - obs_params.d.mean[:, np.newaxis, np.newaxis]
+        XY = np.einsum(
+            "xytn,ytn->yx", state_params.X.mean[:, group_membership, :, :], Y0
+        )
+
+    # Rate parameter
+    phi.b[:] = hyper_priors.b_phi + 0.5 * (
+        N * T * d_moment
+        + Y2
+        - 2 * np.sum(obs_params.d.mean[:, np.newaxis, np.newaxis] * Y.data, axis=(1, 2))
+        - 2 * np.sum(obs_params.C.mean * XY, axis=1)
+        + np.sum(
+            obs_params.C.moment * state_params.X.moment[group_membership, :, :],
+            axis=(1, 2),
+        )
+    )
+
+    # Mean
+    phi.compute_mean(in_place=True)
+
+    return None if in_place else phi
 
 
 def compute_lower_bound():
