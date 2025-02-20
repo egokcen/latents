@@ -28,9 +28,7 @@ from scipy.stats import gmean
 
 from latents.mdlag.data_types import mDLAGParams
 from latents.observation_model.observations import ObsTimeSeries
-from latents.observation_model.probabilistic import (
-    HyperPriorParams,
-)
+from latents.observation_model.probabilistic import HyperPriorParams, PosteriorLoading
 from latents.state_model.gaussian_process import (
     GPParams,
     construct_gp_covariance_matrix,
@@ -252,9 +250,88 @@ def learn_gp_params():
     pass
 
 
-def infer_loadings():
-    """Infer loadings :math:`C` given current params and observed data."""
-    pass
+def infer_loadings(
+    Y: ObsTimeSeries,
+    params: mDLAGParams,
+    in_place: bool = True,
+    XY: np.ndarray | None = None,
+) -> PosteriorLoading | None:
+    """
+    Infer loadings :math:`C` given current params and observed data.
+
+    Parameters
+    ----------
+    Y
+        Observed time series data.
+    params
+        mDLAG model parameters.
+    in_place
+        If ``True``, update the posterior loadings in place.
+        If ``False``, compute the posterior loadings and return as a
+        new ``PosteriorLoading`` without modifying ``params``. Defaults to
+        ``True``.
+    XY
+        `ndarray` of `float`, shape ``(x_dim, y_dim)``.
+        Correlation matrix between the latent variables and zero-centered
+        observations. If not provided, it will be computed from ``params.X``
+        and ``Y.data``.
+
+    Returns
+    -------
+    PosteriorLoading | None
+        Posterior estimates of loadings.
+    """
+    obs_params = params.obs_params
+    state_params = params.state_params
+    y_dims = obs_params.y_dims
+    y_dim = y_dims.sum()  # Total number of observed dimensions
+    x_dim = obs_params.x_dim  # Number of latent dimensions
+    num_groups = len(obs_params.y_dims)  # Number of observed groups
+
+    # Initialize C, if needed
+    if in_place:
+        if obs_params.C.mean is None:
+            obs_params.C.mean = np.zeros((y_dim, x_dim))
+        if obs_params.C.cov is None:
+            obs_params.C.cov = np.zeros((y_dim, x_dim, x_dim))
+        if obs_params.C.moment is None:
+            obs_params.C.moment = np.zeros((y_dim, x_dim, x_dim))
+        C = obs_params.C
+    else:
+        C = PosteriorLoading(
+            mean=np.zeros((y_dim, x_dim)),
+            cov=np.zeros((y_dim, x_dim, x_dim)),
+            moment=np.zeros((y_dim, x_dim, x_dim)),
+        )
+
+    # Correlation matrix between latents and zero-centered observations
+    if XY is None:
+        Y0 = Y.data - obs_params.d.mean[:, np.newaxis, np.newaxis]
+        group_membership = np.repeat(np.arange(len(y_dims)), y_dims)
+        XY = np.einsum(
+            "xytn,ytn->yx", state_params.X.mean[:, group_membership, :, :], Y0
+        )
+
+    # Get views of the loading matrices and precision parameters for each group
+    _, C_covs, _ = C.get_groups(obs_params.y_dims)
+    phi_means, _ = obs_params.phi.get_groups(obs_params.y_dims)
+
+    for group_idx in range(num_groups):
+        C_covs[group_idx][:] = np.linalg.inv(
+            np.diag(obs_params.alpha.mean[group_idx, :])
+            + phi_means[group_idx][:, np.newaxis, np.newaxis]
+            * state_params.X.moment[group_idx, :, :]
+        )
+    # Mean
+    phi_mean_expanded = obs_params.phi.mean[:, np.newaxis, np.newaxis]
+    phi_C_cov = phi_mean_expanded * obs_params.C.cov
+    C.mean[:] = np.einsum("ijk,ik->ij", phi_C_cov, XY)
+    # Second moment
+    C.compute_moment(in_place=True)
+
+    if not in_place:
+        return C
+    return None
 
 
 def infer_ard():
