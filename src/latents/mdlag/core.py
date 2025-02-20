@@ -32,6 +32,7 @@ from latents.observation_model.probabilistic import (
     HyperPriorParams,
     PosteriorARD,
     PosteriorLoading,
+    PosteriorObsMean,
 )
 from latents.state_model.gaussian_process import (
     GPParams,
@@ -230,7 +231,7 @@ def infer_latents(
     X.logdet_SigX = np.linalg.slogdet(SigX)[1]
 
     # Covariance
-    X.cov = np.reshape(SigX, (x_dim, num_groups, T, x_dim, num_groups, T), order="F")
+    X.cov[:] = np.reshape(SigX, (x_dim, num_groups, T, x_dim, num_groups, T), order="F")
 
     # Mean
     C_means, _, _ = obs_params.C.get_groups(y_dims)
@@ -238,7 +239,7 @@ def infer_latents(
     CPhi_big = block_diag(*[CPhi] * T)
     Y_centered = Y.data - obs_params.d.mean[:, None, None]
     muX = SigX @ CPhi_big @ Y_centered.reshape(-1, N, order="F")
-    X.mean = np.reshape(muX, (x_dim, num_groups, T, N), order="F")
+    X.mean[:] = np.reshape(muX, (x_dim, num_groups, T, N), order="F")
 
     # Compute moment
     X.compute_moment(in_place=True)
@@ -398,9 +399,74 @@ def infer_ard(
     return None
 
 
-def infer_obs_mean():
-    """Infer observation mean parameter given current params and observed data."""
-    pass
+def infer_obs_mean(
+    Y: ObsTimeSeries,
+    params: mDLAGParams,
+    hyper_priors: HyperPriorParams,
+    in_place: bool = True,
+) -> PosteriorObsMean | None:
+    """Infer observation mean parameter given current params and observed data.
+
+    Parameters
+    ----------
+    Y
+        Observed time series data.
+    params
+        mDLAG model parameters.
+    hyper_priors
+        Hyperparameters of the mDLAG prior distributions.
+    in_place
+        If ``True``, update the posterior observation mean parameters in place.
+        If ``False``, compute the posterior observation mean parameters and
+        return as a new ``PosteriorObsMean`` without modifying ``params``.
+        Defaults to ``True``.
+
+    Returns
+    -------
+    PosteriorObsMean | None
+        Posterior estimates of observation mean parameters. If ``in_place=True``,
+        returns ``None``. Otherwise, returns the computed posterior mean.
+    """
+    # Extract parameters and dimensions
+    obs_params = params.obs_params
+    state_params = params.state_params
+    y_dim, T, N = Y.data.shape
+    y_dims = obs_params.y_dims
+    num_groups = len(y_dims)
+    x_dim = state_params.x_dim
+    T = Y.T
+
+    # Initialize d, if needed
+    if in_place:
+        if obs_params.d.mean is None:
+            obs_params.d.mean = np.zeros(y_dim)
+        if obs_params.d.cov is None:
+            obs_params.d.cov = np.zeros(y_dim)
+        d = obs_params.d
+    else:
+        d = PosteriorObsMean(mean=np.zeros(y_dim), cov=np.zeros(y_dim))
+
+    # Covariance
+    d.cov[:] = 1 / (hyper_priors.d_beta + N * T * obs_params.phi.mean)
+
+    # Calculate posterior mean for each group
+    group_membership = np.repeat(np.arange(len(y_dims)), y_dims)
+    for group_idx in range(num_groups):
+        # Get indices for current group
+        id_m = group_membership == group_idx
+
+        residual = Y.data[id_m, :, :].reshape(
+            y_dims[group_idx], -1
+        ) - obs_params.C.mean[id_m, :] @ (
+            state_params.X.mean[:, group_idx, :, :].reshape(x_dim, -1)
+        )
+        d.mean[id_m] = (
+            d.cov[id_m] * obs_params.phi.mean[id_m] * np.sum(residual, axis=1)
+        )
+
+    if not in_place:
+        return d
+    return None
 
 
 def infer_obs_prec():
