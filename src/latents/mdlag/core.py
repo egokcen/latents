@@ -28,7 +28,11 @@ from scipy.stats import gmean
 
 from latents.mdlag.data_types import mDLAGParams
 from latents.observation_model.observations import ObsTimeSeries
-from latents.observation_model.probabilistic import HyperPriorParams, PosteriorLoading
+from latents.observation_model.probabilistic import (
+    HyperPriorParams,
+    PosteriorARD,
+    PosteriorLoading,
+)
 from latents.state_model.gaussian_process import (
     GPParams,
     construct_gp_covariance_matrix,
@@ -334,9 +338,64 @@ def infer_loadings(
     return None
 
 
-def infer_ard():
-    """Infer ARD parameters alpha given current params."""
-    pass
+def infer_ard(
+    params: mDLAGParams,
+    hyper_priors: HyperPriorParams,
+    in_place: bool = True,
+) -> PosteriorARD | None:
+    """
+    Infer ARD parameters alpha given current params.
+
+    Parameters
+    ----------
+    params
+        mDLAG model parameters.
+    hyper_priors
+        Hyperparameters of the mDLAG prior distributions.
+    in_place
+        If ``True``, update the posterior ARD parameters in place.
+        If ``False``, compute the posterior ARD parameters and return as a
+        new ``PosteriorARD`` without modifying ``params``. Defaults to ``True``.
+
+    Returns
+    -------
+    PosteriorARD | None
+        Posterior estimates of ARD parameters.
+    """
+    obs_params = params.obs_params
+    num_groups = len(obs_params.y_dims)  # Number of observed groups
+    y_dims = obs_params.y_dims
+    # Initialize alpha, if needed
+    if in_place:
+        if obs_params.alpha.a is None:
+            obs_params.alpha.a = hyper_priors.a_alpha + obs_params.y_dims / 2
+        if obs_params.alpha.b is None:
+            obs_params.alpha.b = np.zeros((num_groups, obs_params.x_dim))
+        if obs_params.alpha.mean is None:
+            obs_params.alpha.mean = np.zeros((num_groups, obs_params.x_dim))
+        alpha = obs_params.alpha
+    else:
+        alpha = PosteriorARD(
+            a=hyper_priors.a_alpha + obs_params.y_dims / 2,
+            b=np.zeros((num_groups, obs_params.x_dim)),
+            mean=np.zeros((num_groups, obs_params.x_dim)),
+        )
+
+    _, _, C_moments = obs_params.C.get_groups(y_dims)
+
+    # Rate parameters
+    num_groups = len(y_dims)  # Number of observed groups
+    for group_idx in range(num_groups):
+        alpha.b[group_idx, :] = hyper_priors.b_alpha + 0.5 * np.diag(
+            np.sum(C_moments[group_idx], axis=0)
+        )
+
+    # Mean
+    alpha.compute_mean(in_place=True)
+
+    if not in_place:
+        return alpha
+    return None
 
 
 def infer_obs_mean():
