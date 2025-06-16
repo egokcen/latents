@@ -311,7 +311,7 @@ def infer_loadings(
     # Correlation matrix between latents and zero-centered observations
     if XY is None:
         Y0 = Y.data - obs_params.d.mean[:, np.newaxis, np.newaxis]
-        group_membership = np.repeat(np.arange(len(y_dims)), y_dims)
+        group_membership = np.repeat(np.arange(num_groups), y_dims)
         XY = np.einsum(
             "xytn,ytn->yx", state_params.X.mean[:, group_membership, :, :], Y0
         )
@@ -327,8 +327,7 @@ def infer_loadings(
             * state_params.X.moment[group_idx, :, :]
         )
     # Mean
-    phi_mean_expanded = obs_params.phi.mean[:, np.newaxis, np.newaxis]
-    phi_C_cov = phi_mean_expanded * obs_params.C.cov
+    phi_C_cov = obs_params.phi.mean[:, np.newaxis, np.newaxis] * obs_params.C.cov
     C.mean[:] = np.einsum("ijk,ik->ij", phi_C_cov, XY)
     # Second moment
     C.compute_moment(in_place=True)
@@ -446,7 +445,7 @@ def infer_obs_mean(
     d.cov[:] = 1 / (hyper_priors.d_beta + N * T * obs_params.phi.mean)
 
     # Calculate posterior mean for each group
-    group_membership = np.repeat(np.arange(len(y_dims)), y_dims)
+    group_membership = np.repeat(np.arange(num_groups), y_dims)
     for group_idx in range(num_groups):
         # Get indices for current group
         id_m = group_membership == group_idx
@@ -478,8 +477,11 @@ def infer_obs_prec(
     Parameters
     ----------
     Y
+        Observed time series data.
     params
+        mDLAG model parameters.
     hyper_priors
+        Hyperparameters of the mDLAG prior distributions.
     in_place
         If ``True``, update the posterior observation precisions in place.
         If ``False``, compute the posterior observation precisions and return as
