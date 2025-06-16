@@ -57,6 +57,7 @@ def init(
     hyper_priors: HyperPriorParams | None = None,
     random_seed: int | None = None,
     save_C_cov: bool = False,
+    save_X_cov: bool = False,
 ) -> mDLAGParams:
     """Initialize mDLAG model parameters for fitting.
 
@@ -76,6 +77,9 @@ def init(
         Set to ``True`` to save posterior covariance of :math:`C`. For large
         ``y_dim`` and ``x_dim``, these structures can use a lot of memory.
         Defaults to ``False``.
+    save_X_cov
+        Set to ``True`` to save posterior covariance of :math:`X`. For large
+        datasets, this matrix can use a lot of memory. Defaults to ``False``.
 
     Returns
     -------
@@ -113,6 +117,7 @@ def init(
     # Initialize mDLAG parameter object
     params = mDLAGParams(x_dim, y_dims, T, gp_params_init)
     obs_params = params.obs_params
+    state_params = params.state_params
 
     # Mean parameter
     obs_params.d.mean = np.mean(Y.data, axis=(1, 2))
@@ -156,12 +161,17 @@ def init(
             np.sum(C_moments[group_idx], axis=0)
         )
 
+    # If we're not saving X.cov, set it to None after initialization
+    if not save_X_cov:
+        state_params.X.cov = None
+
     return params
 
 
 def infer_latents(
     Y: ObsTimeSeries,
     params: mDLAGParams,
+    save_X_cov: bool = False,
     in_place: bool = True,
 ) -> PosteriorLatentDelayed | None:
     """Infer latent variables given mDLAG model parameters and observed data.
@@ -172,6 +182,9 @@ def infer_latents(
         Observed time series data.
     params
         mDLAG model parameters.
+    save_X_cov
+        Set to ``True`` to save posterior covariance of :math:`X`. For large
+        datasets, this matrix can use a lot of memory. Defaults to ``False``.
     in_place
         If ``True``, update the posterior latents in place.
         If ``False``, compute the posterior latents and return as a
@@ -245,6 +258,9 @@ def infer_latents(
     # Compute moment
     X.compute_moment(in_place=True)
     X.compute_moment_gp(in_place=True)
+
+    if not save_X_cov:
+        X.cov = None
 
     return None if in_place else X
 
