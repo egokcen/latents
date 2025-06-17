@@ -555,7 +555,7 @@ def infer_obs_prec(
     if XY is None:
         Y0 = Y.data - obs_params.d.mean[:, np.newaxis, np.newaxis]
         XY = np.einsum(
-            "xytn,ytn->yx", state_params.X.mean[:, group_membership, :, :], Y0
+            "xytn,ytn->xy", state_params.X.mean[:, group_membership, :, :], Y0
         )
 
     # Rate parameter
@@ -563,7 +563,7 @@ def infer_obs_prec(
         N * T * d_moment
         + Y2
         - 2 * np.sum(obs_params.d.mean[:, np.newaxis, np.newaxis] * Y.data, axis=(1, 2))
-        - 2 * np.sum(obs_params.C.mean * XY, axis=1)
+        - 2 * np.sum(obs_params.C.mean * XY.T, axis=1)
         + np.sum(
             obs_params.C.moment * state_params.X.moment[group_membership, :, :],
             axis=(1, 2),
