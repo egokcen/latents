@@ -329,7 +329,7 @@ def infer_loadings(
         Y0 = Y.data - obs_params.d.mean[:, np.newaxis, np.newaxis]
         group_membership = np.repeat(np.arange(num_groups), y_dims)
         XY = np.einsum(
-            "xytn,ytn->yx", state_params.X.mean[:, group_membership, :, :], Y0
+            "xytn,ytn->xy", state_params.X.mean[:, group_membership, :, :], Y0
         )
 
     # Get views of the loading matrices and precision parameters for each group
@@ -344,7 +344,7 @@ def infer_loadings(
         )
     # Mean
     phi_C_cov = obs_params.phi.mean[:, np.newaxis, np.newaxis] * obs_params.C.cov
-    C.mean[:] = np.einsum("ijk,ik->ij", phi_C_cov, XY)
+    C.mean[:] = np.einsum("ijk,ik->ij", phi_C_cov, XY.T)
     # Second moment
     C.compute_moment(in_place=True)
 
