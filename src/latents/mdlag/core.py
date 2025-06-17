@@ -355,6 +355,7 @@ def infer_ard(
     params: mDLAGParams,
     hyper_priors: HyperPriorParams,
     in_place: bool = True,
+    C_norm: np.ndarray | None = None,
 ) -> PosteriorARD | None:
     """
     Infer ARD parameters alpha given current params.
@@ -369,6 +370,11 @@ def infer_ard(
         If ``True``, update the posterior ARD parameters in place.
         If ``False``, compute the posterior ARD parameters and return as a
         new ``PosteriorARD`` without modifying ``params``. Defaults to ``True``.
+    C_norm
+        `ndarray` of `float`, shape ``(num_groups, x_dim)``.
+        ``C_norm[i,j]`` is the expected squared norm of column ``j`` of the
+        loading matrix :math:`C` for group ``i``. If not provided, it will be
+        computed from ``params.C``.
 
     Returns
     -------
@@ -394,14 +400,12 @@ def infer_ard(
             mean=np.zeros((num_groups, obs_params.x_dim)),
         )
 
-    _, _, C_moments = obs_params.C.get_groups(y_dims)
+    # Expected squared norm of each column of C
+    if C_norm is None:
+        C_norm = obs_params.C.compute_squared_norms(y_dims)
 
     # Rate parameters
-    num_groups = len(y_dims)  # Number of observed groups
-    for group_idx in range(num_groups):
-        alpha.b[group_idx, :] = hyper_priors.b_alpha + 0.5 * np.diag(
-            np.sum(C_moments[group_idx], axis=0)
-        )
+    alpha.b[:] = hyper_priors.b_alpha + 0.5 * C_norm
 
     # Mean
     alpha.compute_mean(in_place=True)
