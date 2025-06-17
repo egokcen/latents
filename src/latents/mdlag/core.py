@@ -224,14 +224,11 @@ def infer_latents(
             moment=np.zeros((num_groups, x_dim, x_dim)),
         )
     # Covariance
+    phi_means, _, _ = obs_params.phi.get_groups(y_dims)
+    C_means, _, C_moments = obs_params.C.get_groups(y_dims)
     CPhiC_diag = []
-    k = 0
-    for group_idx in range(num_groups):
-        CmPhimCm = np.zeros((x_dim, x_dim))
-        for i in range(y_dims[group_idx]):
-            CmPhimCm += obs_params.phi.mean[k] * obs_params.C.moment[k, :, :]
-            k += 1
-        CPhiC_diag.append(CmPhimCm)
+    for g in range(num_groups):
+        CPhiC_diag.append(phi_means[g][:, None, None] * C_moments[g])
 
     CPhiC = block_diag(*CPhiC_diag)
     CPhiC_big = block_diag(*[CPhiC] * T)
@@ -248,8 +245,7 @@ def infer_latents(
     X.cov[:] = np.reshape(SigX, (x_dim, num_groups, T, x_dim, num_groups, T), order="F")
 
     # Mean
-    C_means, _, _ = obs_params.C.get_groups(y_dims)
-    CPhi = block_diag(*C_means).T @ np.diag(obs_params.phi.mean)
+    CPhi = block_diag(*C_means).T * obs_params.phi.mean
     CPhi_big = block_diag(*[CPhi] * T)
     Y_centered = Y.data - obs_params.d.mean[:, None, None]
     muX = SigX @ CPhi_big @ Y_centered.reshape(-1, N, order="F")
