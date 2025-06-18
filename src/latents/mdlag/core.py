@@ -224,11 +224,11 @@ def infer_latents(
             moment=np.zeros((num_groups, x_dim, x_dim)),
         )
     # Covariance
-    phi_means, _, _ = obs_params.phi.get_groups(y_dims)
+    phi_means, _ = obs_params.phi.get_groups(y_dims)
     C_means, _, C_moments = obs_params.C.get_groups(y_dims)
     CPhiC_diag = []
     for g in range(num_groups):
-        CPhiC_diag.append(phi_means[g][:, None, None] * C_moments[g])
+        CPhiC_diag.append((phi_means[g][:, None, None] * C_moments[g]).sum(axis=0))
 
     CPhiC = block_diag(*CPhiC_diag)
     CPhiC_big = block_diag(*[CPhiC] * T)
