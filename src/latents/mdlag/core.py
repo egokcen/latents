@@ -461,18 +461,17 @@ def infer_obs_mean(
     d.cov[:] = 1 / (hyper_priors.d_beta + N * T * obs_params.phi.mean)
 
     # Calculate posterior mean for each group
-    group_membership = np.repeat(np.arange(num_groups), y_dims)
-    for group_idx in range(num_groups):
-        # Get indices for current group
-        id_m = group_membership == group_idx
+    Ys = Y.get_groups()
+    C_means, _, _ = obs_params.C.get_groups(y_dims)
+    phi_means, _ = obs_params.phi.get_groups(y_dims)
+    d_means, d_covs = d.get_groups(y_dims)
 
-        residual = Y.data[id_m, :, :].reshape(
-            y_dims[group_idx], -1
-        ) - obs_params.C.mean[id_m, :] @ (
-            state_params.X.mean[:, group_idx, :, :].reshape(x_dim, -1)
-        )
-        d.mean[id_m] = (
-            d.cov[id_m] * obs_params.phi.mean[id_m] * np.sum(residual, axis=1)
+    for group_idx in range(num_groups):
+        Y_reshaped = Ys[group_idx].reshape(y_dims[group_idx], -1)
+        X_reshaped = state_params.X.mean[:, group_idx, :, :].reshape(x_dim, -1)
+        residual = Y_reshaped - C_means[group_idx] @ X_reshaped
+        d_means[group_idx] = (
+            d_covs[group_idx] * phi_means[group_idx] * np.sum(residual, axis=1)
         )
 
     return None if in_place else d

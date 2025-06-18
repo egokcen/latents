@@ -2,18 +2,18 @@
 
 import numpy as np
 
+from latents.mdlag.core import (
+    infer_ard,
+    infer_latents,
+    infer_loadings,
+    infer_obs_mean,
+    infer_obs_prec,
+    init as init_mdlag,
+)
 from latents.mdlag.simulation import generate_latents, generate_observations
 from latents.observation_model.probabilistic import HyperPriorParams, ObsParamsARD
 from latents.state_model.gaussian_process import GPParams
 from latents.state_model.latents import StateParamsDelayed
-from latents.mdlag.core import (
-    init as init_mdlag,
-    infer_latents,
-    infer_obs_mean,
-    infer_loadings,
-    infer_obs_prec,
-    infer_ard,
-)
 
 
 def generate_params():
@@ -22,7 +22,7 @@ def generate_params():
     T = 25  # Number of samples per sequence
     y_dims = np.array([10, 11, 12])
     x_dim = 7
-    binWidth = 20
+    bin_width = 20
     snr = 10.0 * np.ones(len(y_dims))
 
     # Define hyperpriors
@@ -48,8 +48,8 @@ def generate_params():
     D = np.array(
         [[0, 0, 0, 0, 0, 0, 0], [15, -30, 0, 0, 0, 0, 0], [30, 0, -25, 40, 0, 0, 0]]
     )
-    D = D / binWidth
-    gamma = (binWidth / tau) ** 2
+    D = D / bin_width
+    gamma = (bin_width / tau) ** 2
 
     # Generate parameters
     obs_params = ObsParamsARD.generate(
