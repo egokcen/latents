@@ -1,1 +1,0 @@
-"""GP fit configuration."""
