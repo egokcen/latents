@@ -173,6 +173,9 @@ class PosteriorLatentDelayed(ArrayContainer):
     moment_gp
         `ndarray` of `float`, shape ``(x_dim, num_groups * T, num_groups * T)``.
         Posterior second moments for each latent GP.
+    logdet_SigX
+        `float`.
+        Log determinant of the posterior covariance of :math:`X`.
 
     Raises
     ------
@@ -258,8 +261,8 @@ class PosteriorLatentDelayed(ArrayContainer):
 
         The full posterior second moment of the latent variables is a
         (num_groups * x_dim * T, num_groups * x_dim * T) matrix.
-        Here, compute a (x_dim * num_groups, x_dim * num_groups) subset of that
-        larger matrix for each time point.
+        Here, compute a (x_dim, x_dim) subset of that
+        larger matrix for each group.
 
         Parameters
         ----------
