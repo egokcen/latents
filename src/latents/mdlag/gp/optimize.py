@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import jax
 import jax.numpy as jnp
-from jaxopt import LBFGSB
+from jax import value_and_grad
+from jaxopt import LBFGS
 
 from .fit_config import GPFitConfig
 from .kernels.base_kernel import GPKernelSpec
@@ -29,16 +30,18 @@ def run_gp_optimizer(
 
     x_dim = current_params.gamma.shape[0]
 
+    loss = 0
+
     for i in range(x_dim):
-        X_moment_i = X_moment[:, i, :]
+        X_moment_i = jnp.asarray(X_moment[i])
         objective_fn = kernel.get_objective_single_latent(
             current_params, i, X_moment_i, N, T
         )
         var_i = kernel.pack_params_single_latent(current_params, i)
 
-        val_and_grad_fn = jax.value_and_grad(objective_fn)
+        val_and_grad_fn = value_and_grad(objective_fn)
 
-        solver = LBFGSB(
+        solver = LBFGS(
             fun=lambda x: val_and_grad_fn(x)[0],
             value_and_grad=val_and_grad_fn,
             maxiter=cfg.max_iter,
@@ -46,12 +49,14 @@ def run_gp_optimizer(
             jit=True,
         )
 
-        var_i_opt = solver.run(var_i).params
-
+        res_i = solver.run(var_i)
+        var_i_opt = res_i.params
+        loss_i = -res_i.state.value
+        loss += loss_i
         current_params = kernel.update_params_from_variables(
             current_params, i, var_i_opt
         )
-    return GPKernelSpec(kernel=kernel, params=current_params)
+    return GPKernelSpec(kernel=kernel, params=current_params), loss
 
 
 def generic_gp_elbo(K_i: jnp.ndarray, X_moment_i: jnp.ndarray, N: int) -> float:

@@ -24,21 +24,38 @@ class RBFKernel(BaseKernel):
     # Core Math:
 
     def K_single_latent(
-        self, params_i: RBFParams, T: int, return_tensor: bool = False, order: str = "F"
+        self,
+        params_i: RBFParams | tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray],
+        T: int,
+        return_tensor: bool = False,
+        order: str = "F",
     ) -> jnp.ndarray:
         """Construct delayed kernel matrix for a single latent dimension.
 
         This function is written to be differentiable with respect to the parameters x.
+
+        Parameters
+        ----------
+        params_i : RBFParams or tuple
+            Either an RBFParams object or a tuple of (gamma_i, D_i, eps_i) as JAX arrays
         """
-        if not params_i.is_initialized():
-            msg = "Parameters not initialized"
-            raise ValueError(msg)
-        # Convert to jax arrays for mathematical operations
-        D_i = jnp.asarray(params_i.D)
-        gamma_i = jnp.asarray(
-            params_i.gamma[0] if params_i.gamma.ndim > 0 else params_i.gamma
-        )
-        eps_i = jnp.asarray(params_i.eps[0] if params_i.eps.ndim > 0 else params_i.eps)
+        # Handle both RBFParams objects and JAX array tuples
+        if isinstance(params_i, RBFParams):
+            if not params_i.is_initialized():
+                msg = "Parameters not initialized"
+                raise ValueError(msg)
+            # Convert to jax arrays for mathematical operations
+            D_i = jnp.asarray(params_i.D)
+            gamma_i = jnp.asarray(
+                params_i.gamma[0] if params_i.gamma.ndim > 0 else params_i.gamma
+            )
+            eps_i = jnp.asarray(
+                params_i.eps[0] if params_i.eps.ndim > 0 else params_i.eps
+            )
+        else:
+            # Assume it's a tuple of (gamma_i, D_i, eps_i)
+            gamma_i, D_i, eps_i = params_i
+
         M = D_i.shape[0]
         tgrid = jnp.arange(T)
         tdiff = tgrid[None, :] - tgrid[:, None]  # (T,T)
@@ -74,8 +91,8 @@ class RBFKernel(BaseKernel):
                 eps=np.array([eps[dim]]),
                 hyperparams=params.hyperparams,
             )
-            K[dim, :, :, dim, :, :] = self.K_single_latent(
-                params_i, T, return_tensor=True
+            K = K.at[dim, :, :, dim, :, :].set(
+                self.K_single_latent(params_i, T, return_tensor=True)
             )
         if return_tensor:
             return K
@@ -123,18 +140,23 @@ class RBFKernel(BaseKernel):
         def objective_fn(var_i: jnp.ndarray) -> float:
             var_i = var_i.astype(jnp.float64)
             gamma_i, D_i = self.unpack_params(var_i, hyperparams)
-            K_i = self.K_single_latent(
-                params_i=RBFParams(
-                    gamma=np.array([gamma_i]),
-                    eps=np.array([eps_i]),
-                    D=np.array(D_i.reshape(-1, 1)),
-                    hyperparams=hyperparams,
-                ),
-                T=T,
-            )
+            # Use the unified kernel computation with JAX arrays
+            K_i = self.K_single_latent((gamma_i, D_i, eps_i), T)
             return generic_gp_elbo(K_i, X_moment_i, N)
 
         return objective_fn
+
+    def compute_loss_all_latents(
+        self, params: RBFParams, X_moment: np.ndarray, N: int, T: int
+    ) -> float:
+        """Compute the objective function for all latent dimensions."""
+        L = 0
+        for i in range(params.x_dim):
+            X_moment_i = X_moment[i, :, :]
+            objective_fn = self.get_objective_single_latent(params, i, X_moment_i, N, T)
+            var_i = self.pack_params_single_latent(params, i)
+            L += objective_fn(var_i)
+        return L
 
     def update_params_from_variables(
         self,
