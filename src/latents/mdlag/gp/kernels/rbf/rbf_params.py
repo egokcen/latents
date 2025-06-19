@@ -2,11 +2,19 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import numpy as np
 
 from ..base_kernel import BaseParams
+
+
+@dataclass
+class RBFHyperParams:
+    """Hyperparameters for the RBF kernel."""
+
+    min_gamma: float = 1e-3
+    max_delay: float = 5.0
 
 
 @dataclass
@@ -49,12 +57,9 @@ class RBFParams(BaseParams):
     """
 
     gamma: np.ndarray | None = None
-    eps: np.ndarray | None = None
     D: np.ndarray | None = None
-
-    learn_gamma: bool = True
-    learn_D: bool = True
-    learn_eps: bool = False
+    eps: np.ndarray | None = None
+    hyperparams: RBFHyperParams = field(default_factory=RBFHyperParams)
 
     def __post_init__(self) -> None:
         """Validate dimensions and set derived attributes."""
