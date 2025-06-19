@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import numpy as np
 from scipy.linalg import block_diag, eigh
+from scipy.optimize import minimize
 from scipy.stats import gmean
 
 from latents.mdlag.data_types import mDLAGParams
@@ -115,7 +116,7 @@ def init(
     Y_covs = [np.cov(Y_m.reshape(Y_m.shape[0], -1)) for Y_m in Ys]
 
     # Initialize mDLAG parameter object
-    params = mDLAGParams(x_dim, y_dims, T, gp_params_init)
+    params = mDLAGParams(x_dim, y_dims, T, gp_params_init, save_X_cov, save_C_cov)
     obs_params = params.obs_params
     state_params = params.state_params
 
@@ -261,9 +262,148 @@ def infer_latents(
     return None if in_place else X
 
 
-def learn_gp_params():
+def GP_loss_per_latent(X_moment_j, N, D_non_zeros, eps, gamma, T):
+    """Calculate the GP loss function for optimization.
+
+    Args:
+        X_moment_j: Moment of X for dimension j
+        N: Number of trials
+        D_non_zeros: Non-zero delay values
+        eps: Epsilon parameter
+        gamma: Gamma parameter
+        T: Time points
+
+    Returns
+    -------
+        float: Calculated loss value
+    """
+    num_groups = len(D_non_zeros) + 1
+    D = np.zeros(num_groups)
+    D[1:] = D_non_zeros
+
+    Kj = np.zeros((num_groups, T, num_groups, T))
+    for m1 in range(num_groups):
+        for m2 in range(num_groups):
+            t = np.arange(T)
+            t2_minus_t1 = t[np.newaxis, :] - t[:, np.newaxis]
+            diff = t2_minus_t1 - (D[m2] - D[m1])
+            Kj[m1, :, m2, :] = (1 - eps) * np.exp(-0.5 * gamma * diff**2)
+
+            if m1 == m2:
+                Kj[m1, :, m2, :] += eps * np.eye(T)
+
+    Kj_flat = Kj.reshape(num_groups * T, num_groups * T, order="F")
+    # Define Loss using Kj
+    f_gp = 0
+    f_gp += -N / 2 * np.linalg.slogdet(Kj_flat)[1]
+    Kj_inv = np.linalg.inv(Kj_flat)
+    f_gp += -1 / 2 * np.trace(Kj_inv @ X_moment_j)
+    return f_gp
+
+
+def GP_loss_wrapper(x, X_moment_j, N, num_groups, T):
+    """Optimize GP loss using wrapped parameters.
+
+    Args:
+        x: Parameter vector
+        X_moment_j: Moment of X for dimension j
+        N: Number of trials
+        num_groups: Number of groups
+        T: Time points
+
+    Returns
+    -------
+        float: Loss value
+    """
+    # Unpack parameters from flattened array
+    D_non_zeros = x[: num_groups - 1]  # First num_groups elements are delays
+    gamma = x[num_groups - 1]  # Next element is gamma
+    eps = x[num_groups]  # Last element is eps
+    # Compute loss
+    loss = GP_loss_per_latent(X_moment_j, N, D_non_zeros, eps, gamma, T)
+    # Return negative loss since we want to minimize
+    return -loss
+
+
+def learn_gp_params(state_params, state_params_gp, obs_params):
     """Learn Gaussian process parameters given mDLAG model parameters and latents."""
-    pass
+    x_dim = state_params.x_dim
+    num_groups = len(obs_params.y_dims)
+    T = state_params.T
+    N = state_params.X.mean.shape[-1]
+    X_moment_GP = state_params.X.compute_moment_gp(in_place=False)
+
+    D = np.array(state_params_gp.D, dtype=np.float64)
+    gamma = np.array(state_params_gp.gamma, dtype=np.float64)
+    eps = np.array(state_params_gp.eps, dtype=np.float64)
+
+    l_gp = 0
+
+    for j in range(x_dim):
+        x0 = np.zeros(num_groups + 1)
+        x0[: num_groups - 1] = D[1:, j]
+        x0[num_groups - 1] = gamma[j]
+        x0[num_groups] = eps[j]
+
+        bounds = []
+        bounds.extend([(-10, 10) for _ in range(num_groups - 1)])
+        bounds.append((1e-6, 100))
+        bounds.append((1e-6, 1e-2))
+
+        result = minimize(
+            GP_loss_wrapper,
+            x0,
+            args=(X_moment_GP[j], N, num_groups, T),
+            method="L-BFGS-B",
+            bounds=bounds,
+            options={
+                "maxiter": 10,
+                "ftol": 1e-9,
+                "gtol": 1e-7,
+                "maxcor": 50,
+            },
+        )
+
+        for i in range(num_groups - 1):
+            D[i + 1, j] = result.x[i]
+
+        gamma[j] = result.x[num_groups - 1]
+        eps[j] = result.x[num_groups]
+        l_gp += result.fun
+
+    return D, gamma, eps, l_gp
+
+
+def GP_loss(X, gp_params):
+    """Compute the total GP loss across all latent dimensions.
+
+    Parameters
+    ----------
+    X : PosteriorLatentDelayed
+        Posterior estimates of time-delayed latent variables.
+    gp_params : GPParams
+        Gaussian process parameters.
+
+    Returns
+    -------
+    float
+        Total GP loss value.
+    """
+    # Compute loss:
+    x_dim = X.mean.shape[0]
+    N = X.mean.shape[3]
+    T = X.mean.shape[2]
+    f_gp = 0
+    for j in range(x_dim):
+        f_gp += GP_loss_per_latent(
+            X.moment_gp[j],
+            N,
+            gp_params.D[1:, j],
+            gp_params.eps[j],
+            gp_params.gamma[j],
+            T,
+        )
+    return f_gp
 
 
 def infer_loadings(

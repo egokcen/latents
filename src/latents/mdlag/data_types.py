@@ -34,6 +34,11 @@ class mDLAGParams:
     gp_params_init
         Initial Gaussian process parameters. If not provided, an empty GPParams
         object will be created. Defaults to ``None``.
+    save_X_cov
+        Whether to save the covariance of the latent variables. Defaults to ``False``.
+    save_C_cov
+        Whether to save the covariance of the observation model parameters.
+        Defaults to ``False``.
 
     Attributes
     ----------
@@ -45,6 +50,10 @@ class mDLAGParams:
         Gaussian process parameters.
     T
         Number of timepoints.
+    save_X_cov
+        Whether to save the covariance of the latent variables.
+    save_C_cov
+        Whether to save the covariance of the observation model parameters.
 
     Raises
     ------
@@ -58,9 +67,9 @@ class mDLAGParams:
         y_dims: np.ndarray | None = None,
         T: int | None = None,
         gp_params_init: GPParams | None = None,
+        save_X_cov: bool = False,
+        save_C_cov: bool = False,
     ):
-        num_groups = len(y_dims)
-
         # Latent dimensionality
         if x_dim is not None and not isinstance(x_dim, int):
             msg = "x_dim must be an integer."
@@ -70,6 +79,9 @@ class mDLAGParams:
         if y_dims is not None and not isinstance(y_dims, np.ndarray):
             msg = "y_dims must be a numpy.ndarray of integers."
             raise TypeError(msg)
+
+        # Calculate number of groups
+        num_groups = len(y_dims) if y_dims is not None else 0
 
         # Observation model parameters:
         self.obs_params = ObsParamsARD(x_dim=x_dim, y_dims=y_dims)
@@ -84,6 +96,8 @@ class mDLAGParams:
             self.gp_params = gp_params_init
 
         self.T = T
+        self.save_X_cov = save_X_cov
+        self.save_C_cov = save_C_cov
 
     def __repr__(self) -> str:
         return (
