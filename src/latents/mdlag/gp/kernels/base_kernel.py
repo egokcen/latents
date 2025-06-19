@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Callable
 
-import numpy as np
+import jax.numpy as jnp
 
 
 @dataclass
@@ -25,38 +26,34 @@ class BaseKernel:
     """Base class for kernels."""
 
     @classmethod
-    def initialize(cls, hyperparams, x_dim: int, num_groups: int) -> GPKernelSpec:
+    def initialize(cls, x_dim: int, num_groups: int) -> GPKernelSpec:
         """Create a fully configured GPKernelSpec."""
         raise NotImplementedError
 
-    def fit(self) -> None:
-        """Learn the kernel's parameters."""
+    def K_single_latent(
+        self, params_i, T: int, return_tensor: bool = False, order: str = "F"
+    ) -> jnp.ndarray:
+        """Construct delayed kernel matrix for a single latent dimension."""
         raise NotImplementedError
 
-    def K_single(self) -> np.ndarray:
-        """Compute the covariance matrix for a single group."""
+    def K_full(
+        self, params, T: int, return_tensor: bool = False, order: str = "F"
+    ) -> jnp.ndarray:
+        """Construct full delayed kernel matrix across all dimensions."""
         raise NotImplementedError
 
-    def K_full(self) -> np.ndarray:
-        """Compute the covariance matrix for all groups."""
-        raise NotImplementedError
-
-    def pack_params(self) -> np.ndarray:
-        """Pack the kernel parameters into a numpy array."""
-        raise NotImplementedError
-
-    def unpack_params(self, params: np.ndarray) -> BaseParams:
+    def unpack_params(self, variables: jnp.ndarray, hyperparams) -> tuple:
         """Unpack the kernel parameters from a numpy array."""
         raise NotImplementedError
 
-    def get_params_for_latent(self, i: int) -> BaseParams:
-        """Get the kernel parameters for a specific latent."""
+    def get_objective_single_latent(
+        self, params, i: int, X_moment_i: jnp.ndarray, N: int, T: int
+    ) -> Callable:
+        """Return a function to compute the ELBO term for a single latent GP."""
         raise NotImplementedError
 
-    def update_params_for_latent(self, i: int, params: BaseParams) -> None:
-        """Update the kernel parameters for a specific latent."""
-        raise NotImplementedError
-
-    def grad_log_mll(self, params_single: BaseParams, T: int) -> np.ndarray:
-        """Compute the gradient of loss with respect to the kernel parameters."""
+    def update_params_from_variables(
+        self, params, i: int, variables_i_opt: jnp.ndarray
+    ):
+        """Update the parameters from the i-th variables."""
         raise NotImplementedError
