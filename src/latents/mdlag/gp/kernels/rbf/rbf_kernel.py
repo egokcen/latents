@@ -1,181 +1,199 @@
-"""RBF kernel."""
+"""RBF kernel implementation."""
 
 from __future__ import annotations
 
-from typing import Callable
-
 import jax.numpy as jnp
 import numpy as np
+import jax
+from jax import jit
+from functools import partial
+from ..base_kernel import BaseDelayedGP, DelayedGPHyperParams
 
-from ...optimize import generic_gp_elbo
-from ..base_kernel import BaseKernel, GPKernelSpec
-from .rbf_params import RBFHyperParams, RBFParams
+# Ensure 64-bit precision, critical for numerical stability in GP models
+jax.config.update("jax_enable_x64", True)
 
 
-class RBFKernel(BaseKernel):
-    """RBF (Radial Basis Function) kernel implementation."""
+@partial(jax.jit, static_argnums=(2, 3))
+def build_rbf_kernel(gamma, D, eps, T: int):
+    """Vectorized kernel construction."""
+    M = D.shape[0]
+    current_dtype = D.dtype
 
-    @classmethod
-    def initialize(cls, x_dim: int, num_groups: int) -> GPKernelSpec:
-        """Create a GPKernelSpec by delegating to RBFParams.generate."""
-        initial_params = RBFParams.generate(x_dim, num_groups)
-        return GPKernelSpec(kernel=cls(), params=initial_params)
+    tgrid = jnp.arange(T, dtype=current_dtype)
+    tdiff_TT = tgrid[None, :] - tgrid[:, None]  # (T,T)
 
-    # Core Math:
+    delay_offset_MM = D[None, :] - D[:, None]  # (M,M), D[m2]-D[m1]
 
-    def K_single_latent(
-        self,
-        params_i: RBFParams | tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray],
-        T: int,
-        return_tensor: bool = False,
-        order: str = "F",
-    ) -> jnp.ndarray:
-        """Construct delayed kernel matrix for a single latent dimension.
+    effective_deltaT_MMTT = (
+        tdiff_TT[None, None, :, :] - delay_offset_MM[:, :, None, None]
+    )  # (M,M,T,T)
 
-        This function is written to be differentiable with respect to the parameters x.
+    # Kj_MMTT[m1, m2, t_row, t_col] is the (t_row, t_col) element of the block between stream m1 and m2
+    Kj_no_eps_MMTT = (1.0 - eps) * jnp.exp(
+        -0.5 * gamma * effective_deltaT_MMTT**2
+    )  # (M,M,T,T)
 
-        Parameters
-        ----------
-        params_i : RBFParams or tuple
-            Either an RBFParams object or a tuple of (gamma_i, D_i, eps_i) as JAX arrays
-        """
-        # Handle both RBFParams objects and JAX array tuples
-        if isinstance(params_i, RBFParams):
-            if not params_i.is_initialized():
-                msg = "Parameters not initialized"
-                raise ValueError(msg)
-            # Convert to jax arrays for mathematical operations
-            D_i = jnp.asarray(params_i.D)
-            gamma_i = jnp.asarray(
-                params_i.gamma[0] if params_i.gamma.ndim > 0 else params_i.gamma
-            )
-            eps_i = jnp.asarray(
-                params_i.eps[0] if params_i.eps.ndim > 0 else params_i.eps
-            )
-        else:
-            # Assume it's a tuple of (gamma_i, D_i, eps_i)
-            gamma_i, D_i, eps_i = params_i
+    m_diag_mask_MM = jnp.eye(M, dtype=current_dtype)
+    eye_T_TT = jnp.eye(T, dtype=current_dtype)
+    eps_term_MMTT = eps * m_diag_mask_MM[:, :, None, None] * eye_T_TT[None, None, :, :]
 
-        M = D_i.shape[0]
-        tgrid = jnp.arange(T)
-        tdiff = tgrid[None, :] - tgrid[:, None]  # (T,T)
-        Ki = jnp.zeros((M, T, M, T), dtype=jnp.float64)
+    Kj_MMTT = Kj_no_eps_MMTT + eps_term_MMTT  # Shape (M,M,T,T)
 
-        for m1 in range(M):
-            for m2 in range(M):
-                diff = tdiff - (D_i[m2] - D_i[m1])
-                block = (1.0 - eps_i) * jnp.exp(-0.5 * gamma_i * diff**2)
-                if m1 == m2:
-                    block += eps_i * jnp.eye(T, dtype=jnp.float64)
-                Ki = Ki.at[m1, :, m2, :].set(block)
-        if return_tensor:
-            return Ki
-        return Ki.reshape(M * T, M * T, order=order)
+    # To match the original code's reshape from an (M,T,M,T) tensor using order="F",
+    # we need to transpose Kj_MMTT from (m1,m2,t_row,t_col) to (m1,t_row,m2,t_col).
+    Kj_equiv_for_reshape = Kj_MMTT.transpose(0, 2, 1, 3)  # Shape (M,T,M,T)
+    # Now, Kj_equiv_for_reshape[m1, t_row, m2, t_col] is the element.
+    # This matches the indexing of the original `Kj` variable.
+    return Kj_equiv_for_reshape.reshape(M * T, M * T, order="F")
 
-    def K_full(
-        self, params: RBFParams, T: int, return_tensor: bool = False, order: str = "F"
-    ) -> jnp.ndarray:
-        """Construct full delayed kernel matrix across all dimensions."""
-        # Convert to jax arrays for mathematical operations
-        D = jnp.asarray(params.D)
-        gamma = jnp.asarray(params.gamma)
-        eps = jnp.asarray(params.eps)
 
-        num_groups = D.shape[0]
-        x_dim = D.shape[1]
-        K = jnp.zeros((x_dim, num_groups, T, x_dim, num_groups, T), dtype=jnp.float64)
-        for dim in range(x_dim):
-            params_i = RBFParams(
-                gamma=np.array([gamma[dim]]),
-                D=np.array(D[:, dim].reshape(-1, 1)),
-                eps=np.array([eps[dim]]),
-                hyperparams=params.hyperparams,
-            )
-            K = K.at[dim, :, :, dim, :, :].set(
-                self.K_single_latent(params_i, T, return_tensor=True)
-            )
-        if return_tensor:
-            return K
-        return K.reshape(x_dim * num_groups * T, x_dim * num_groups * T, order=order)
+@partial(jax.jit, static_argnums=(2, 3, 4, 5))
+def lower_bound(var, X, N: int, T: int, eps, hyper_params):
+    """ELBO term (target for maximization, or its negative for minimization) – autodiff friendly."""
+    var = var.astype(jnp.float64)
+    X = X.astype(jnp.float64)
 
-    def pack_params_single_latent(self, params: RBFParams, i: int) -> jnp.ndarray:
-        """Pack the kernel parameters for a single latent dimension."""
-        if not params.is_initialized():
-            msg = "Parameters not initialized"
-            raise ValueError(msg)
-        hyperparams = params.hyperparams
-        # Convert to jax arrays for mathematical operations
-        gamma_i = jnp.asarray(params.gamma[i])
-        D_i = jnp.asarray(params.D[:, i])
-        max_delay, min_gamma = hyperparams.max_delay, hyperparams.min_gamma
-        log_gamma = jnp.log(gamma_i - min_gamma)
-        delay = jnp.log(max_delay + D_i[1:]) - jnp.log(max_delay - D_i[1:])
+    gamma, D_params = BaseDelayedGP.unpack_params(var, hyper_params)
 
-        return jnp.concatenate(
-            (jnp.array([log_gamma], jnp.float64), delay.astype(jnp.float64))
-        )
+    K = build_rbf_kernel(gamma, D_params, eps, T)
 
-    def unpack_params(
-        self, var_i: jnp.ndarray, hyperparams: RBFHyperParams
-    ) -> tuple[jnp.ndarray, jnp.ndarray]:
-        """Unpack the kernel parameters from a numpy array."""
-        gamma = hyperparams.min_gamma + jnp.exp(var_i[0])
-        beta = jnp.concatenate((jnp.zeros(1, var_i.dtype), var_i[1:]))
-        D = hyperparams.max_delay * jnp.tanh(beta / 2.0)
-        return gamma, D
+    L_chol = jnp.linalg.cholesky(K)
+    diag_L_chol = jnp.diag(L_chol)
+    # Add a small epsilon inside log for stability, though Cholesky should ensure positive diag
+    logdet_val = 2.0 * jnp.sum(jnp.log(jnp.maximum(diag_L_chol, 1e-30)))
 
-    def get_objective_single_latent(
-        self,
-        params: RBFParams,
-        i: int,
-        X_moment_i: jnp.ndarray,
-        N: int,
-        T: int,
-    ) -> Callable[[jnp.ndarray], float]:
-        """Return a function to compute the ELBO term for a single latent GP."""
-        hyperparams = params.hyperparams
-        # Convert to jax array for mathematical operations
-        eps_i = jnp.asarray(params.eps[i])
+    Kinv_X = jnp.linalg.solve(L_chol.T, jnp.linalg.solve(L_chol, X))
+    trace_term_val = jnp.trace(Kinv_X)
 
-        def objective_fn(var_i: jnp.ndarray) -> float:
-            var_i = var_i.astype(jnp.float64)
-            gamma_i, D_i = self.unpack_params(var_i, hyperparams)
-            # Use the unified kernel computation with JAX arrays
-            K_i = self.K_single_latent((gamma_i, D_i, eps_i), T)
-            return generic_gp_elbo(K_i, X_moment_i, N)
+    elbo_like_value = -0.5 * N * logdet_val - 0.5 * trace_term_val
 
-        return objective_fn
+    # Returns -L_obj, suitable for minimization if L_obj is to be maximized
+    return -elbo_like_value
 
-    def compute_loss_all_latents(
-        self, params: RBFParams, X_moment: np.ndarray, N: int, T: int
-    ) -> float:
-        """Compute the objective function for all latent dimensions."""
-        L = 0
-        for i in range(params.x_dim):
-            X_moment_i = X_moment[i, :, :]
-            objective_fn = self.get_objective_single_latent(params, i, X_moment_i, N, T)
-            var_i = self.pack_params_single_latent(params, i)
-            L += objective_fn(var_i)
-        return L
 
-    def update_params_from_variables(
-        self,
-        params: RBFParams,
-        i: int,
-        var_i_opt: jnp.ndarray,
-    ) -> RBFParams:
-        """Update the parameters from the i-th variables."""
-        gamma_i_opt, D_i_opt = self.unpack_params(var_i_opt, params.hyperparams)
-        # Convert to jax arrays for mathematical operations
-        new_gamma = params.gamma.copy()
-        new_gamma[i] = gamma_i_opt
+@partial(jax.jit, static_argnums=(2, 3, 4, 5))
+def value_and_grad_kernel(var, X, N: int, T: int, eps, hyper_params):
+    """Return (value, grad) via autodiff."""
+    return jax.value_and_grad(lower_bound, argnums=0)(var, X, N, T, eps, hyper_params)
 
-        new_D = params.D.copy()
-        new_D[:, i] = D_i_opt
 
-        return RBFParams(
-            gamma=new_gamma,
-            eps=params.eps,
-            D=new_D,
-            hyperparams=params.hyperparams,
-        )
+@partial(jax.jit, static_argnums=(2, 3, 4, 5))
+def lower_bound_manual_grad(var, X, N: int, T: int, eps, hyper_params):
+    """Return (value, grad) using closed‑form derivatives, vectorized."""
+    current_dtype = jnp.float64
+    var = var.astype(current_dtype)
+    X = X.astype(current_dtype)
+
+    gamma, D_params = BaseDelayedGP.unpack_params(var, hyper_params)
+    M = D_params.shape[0]
+    MT = M * T
+
+    # --- Construct K and helper derivative terms (Vectorized) ---
+    # K construction now matches the fixed _kernel
+    t_grid = jnp.arange(T, dtype=current_dtype)
+    tdiff_TT = t_grid[None, :] - t_grid[:, None]
+    delay_offset_MM = D_params[None, :] - D_params[:, None]
+
+    effective_deltaT_MMTT = (
+        tdiff_TT[None, None, :, :] - delay_offset_MM[:, :, None, None]
+    )  # (M,M,T,T)
+    Kj_temp_values_no_eps_MMTT = (1.0 - eps) * jnp.exp(
+        -0.5 * gamma * effective_deltaT_MMTT**2
+    )
+
+    m_diag_mask_MM = jnp.eye(M, dtype=current_dtype)
+    eye_T_TT = jnp.eye(T, dtype=current_dtype)
+    eps_term_MMTT = eps * m_diag_mask_MM[:, :, None, None] * eye_T_TT[None, None, :, :]
+
+    Kj_MMTT = Kj_temp_values_no_eps_MMTT + eps_term_MMTT  # (M,M,T,T)
+
+    Kj_equiv_for_reshape = Kj_MMTT.transpose(0, 2, 1, 3)  # Shape (M,T,M,T)
+    K = Kj_equiv_for_reshape.reshape(MT, MT, order="F")
+
+    # For derivatives, we need effective_deltaT and effective_temp_no_eps
+    # reshaped consistently with K.
+    # effective_deltaT_MMTT was (m1,m2,t_row,t_col)
+    # effective_temp_no_eps_MMTT was (m1,m2,t_row,t_col)
+    # So, they need the same transpose and reshape as Kj_MMTT to align with K.
+    effective_deltaT_for_K = effective_deltaT_MMTT.transpose(0, 2, 1, 3).reshape(
+        MT, MT, order="F"
+    )
+    effective_temp_no_eps_for_K = Kj_temp_values_no_eps_MMTT.transpose(
+        0, 2, 1, 3
+    ).reshape(MT, MT, order="F")
+
+    # --- End K and helper construction ---
+
+    L_chol = jnp.linalg.cholesky(K)
+    diag_L_chol = jnp.diag(L_chol)
+    # Add a small epsilon inside log for stability
+    logdet_K = 2.0 * jnp.sum(jnp.log(jnp.maximum(diag_L_chol, 1e-30)))
+
+    Kinv_X = jnp.linalg.solve(L_chol.T, jnp.linalg.solve(L_chol, X))
+    val_L_obj = -0.5 * N * logdet_K - 0.5 * jnp.trace(Kinv_X)  # This is L_obj
+
+    # Gradient d(L_obj)/dK (A_grad_Lobj_dK)
+    Linv_eye = jnp.linalg.solve(L_chol, jnp.eye(MT, dtype=current_dtype))
+    Kinv_mat = Linv_eye.T @ Linv_eye
+
+    Kinv_X_Kinv = Kinv_X @ Kinv_mat
+    A_grad_Lobj_dK = -0.5 * (N * Kinv_mat - Kinv_X_Kinv)
+
+    # d(L_obj)/dgamma
+    dK_dgamma_matrix = effective_temp_no_eps_for_K * (-0.5 * effective_deltaT_for_K**2)
+    dLobj_dgamma = jnp.sum(A_grad_Lobj_dK * dK_dgamma_matrix)
+
+    # d(L_obj)/dBeta_k (for k corresponding to theta[1:])
+    beta_params = var[1:]
+    tanh_val = jnp.tanh(beta_params / 2.0)
+    dD_dthetaBeta = (hyper_params.max_delay * 0.5 * (1.0 - tanh_val**2)).astype(
+        current_dtype
+    )
+
+    # The m1_map and m2_map need to correctly identify which original m1, m2 block indices
+    # contributed to K[r,c] given the (M,T,M,T) source and order="F" reshape.
+    # K[r,c] = Source_MTMT[r_idx, t_idx_in_r_block, c_idx, t_idx_in_c_block]
+    # where Source_MTMT is Kj_equiv_for_reshape (shape M,T,M,T)
+    # Fortran unraveling: K_flat[k] = Source_MTMT[k%M, (k//M)%T, (k//(M*T))%M, k//(M*T*M)]
+    # K[r,c] = K_flat[r + c*MT]
+    # So, for K[glob_r, glob_c], the linear Fortran index into Source_MTMT is `glob_r + glob_c * MT`.
+    # Let flat_idx = glob_r_coords + glob_c_coords * MT
+    # m1_map (block row index for Source_MTMT) = flat_idx % M
+    # m2_map (block col index for Source_MTMT) = (flat_idx // (M*T)) % M
+    # These mappings seem consistent with the corrected kernel structure.
+    glob_r_coords = jnp.arange(MT, dtype=jnp.int32)[:, None]
+    glob_c_coords = jnp.arange(MT, dtype=jnp.int32)[None, :]
+    flat_idx = glob_r_coords + glob_c_coords * MT  # Using MT, not M*T*M*T
+
+    m1_map_for_K = flat_idx % M
+    m2_map_for_K = (flat_idx // (M * T)) % M
+
+    deriv_temp_wrt_eff_deltaT = effective_temp_no_eps_for_K * (
+        -gamma * effective_deltaT_for_K
+    )
+
+    k_param_indices = jnp.arange(1, M, dtype=jnp.int32)
+
+    m1_is_k_param_stack = m1_map_for_K[None, :, :] == k_param_indices[:, None, None]
+    m2_is_k_param_stack = m2_map_for_K[None, :, :] == k_param_indices[:, None, None]
+
+    d_eff_deltaT_dDk_stack = -(
+        m2_is_k_param_stack.astype(current_dtype)
+        - m1_is_k_param_stack.astype(current_dtype)
+    )
+
+    dK_dDk_stack = deriv_temp_wrt_eff_deltaT[None, :, :] * d_eff_deltaT_dDk_stack
+
+    dLobj_dD_all_k = jnp.sum(A_grad_Lobj_dK[None, :, :] * dK_dDk_stack, axis=(1, 2))
+
+    grads_Lobj_theta_beta = dLobj_dD_all_k * dD_dthetaBeta
+
+    grad_Lobj_theta_gamma_part = dLobj_dgamma * jnp.exp(var[0])
+
+    grad_Lobj_theta = jnp.concatenate(
+        [
+            jnp.array([grad_Lobj_theta_gamma_part], dtype=current_dtype),
+            grads_Lobj_theta_beta.astype(current_dtype),
+        ]
+    )
+    return -val_L_obj, -grad_Lobj_theta

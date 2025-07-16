@@ -5,8 +5,8 @@ from dataclasses import dataclass
 
 @dataclass
 class GPFitConfig:
-    """Configuration settings for the GP parameter optimizer."""
+    """Configuration for the GP optimizer."""
 
-    grad_mode: str = "autodiff"  # "autodiff" or "manual"
-    max_iter: int = 50
+    max_iter: int = 10
     tol: float = 1e-6
+    grad_mode: str = "autodiff"  # "autodiff" | "manual"

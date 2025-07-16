@@ -25,6 +25,7 @@ from __future__ import annotations
 import numpy as np
 from scipy.linalg import block_diag, eigh
 from scipy.optimize import minimize
+from scipy.special import gammaln, psi
 from scipy.stats import gmean
 
 from latents.mdlag.data_types import mDLAGParams
@@ -172,7 +173,6 @@ def init(
 def infer_latents(
     Y: ObsTimeSeries,
     params: mDLAGParams,
-    save_X_cov: bool = False,
     in_place: bool = True,
 ) -> PosteriorLatentDelayed | None:
     """Infer latent variables given mDLAG model parameters and observed data.
@@ -183,9 +183,6 @@ def infer_latents(
         Observed time series data.
     params
         mDLAG model parameters.
-    save_X_cov
-        Set to ``True`` to save posterior covariance of :math:`X`. For large
-        datasets, this matrix can use a lot of memory. Defaults to ``False``.
     in_place
         If ``True``, update the posterior latents in place.
         If ``False``, compute the posterior latents and return as a
@@ -256,7 +253,7 @@ def infer_latents(
     X.compute_moment(in_place=True)
     X.compute_moment_gp(in_place=True)
 
-    if not save_X_cov:
+    if not params.save_X_cov:
         X.cov = None
 
     return None if in_place else X
@@ -715,14 +712,223 @@ def infer_obs_prec(
     return None if in_place else phi
 
 
-def compute_lower_bound():
-    """Compute the variational lower bound for a mDLAG model on observed data."""
-    pass
+def compute_lower_bound(
+    Y: ObsTimeSeries,
+    params: mDLAGParams,
+    hyper_priors: HyperPriorParams,
+    consts: float | None = None,
+    gp_loss: float | None = None,
+    logdet_C: float | None = None,
+    C_norm: np.ndarray | None = None,
+    d_moment: np.ndarray | None = None,
+) -> float:
+    """Compute the variational lower bound for a mDLAG model on observed data.
+
+    Parameters
+    ----------
+    Y
+        Observed data.
+    params
+        mDLAG model parameters.
+    hyper_priors
+        Hyperparameters of the mDLAG prior distributions.
+    consts
+        Constant factors in the lower bound. If not provided, they will be
+        computed. See :func:`compute_lower_bound_constants` for details.
+    logdet_C
+        Log-determinant of the covariance of the loading matrices. If not
+        provided, it will be computed from ``params.C``.
+    C_norm
+        `ndarray` of `float`, shape ``(num_groups, x_dim)``.
+        ``C_norm[i,j]`` is the expected squared norm of column ``j`` of the
+        loading matrix C for group ``i``. If not provided, it will be computed
+        from ``params.C``.
+    d_moment
+        `ndarray` of `float`, shape ``(y_dim,)``.
+        Second moment of the observation mean parameter. If not provided,
+        it will be computed from ``params.d``.
+
+    Returns
+    -------
+    float
+        Variational lower bound.
+    """
+    obs_params = params.obs_params
+    y_dims = obs_params.y_dims  # Dimensionality of each group
+    y_dim = y_dims.sum()  # Total number of observed dimensions
+    x_dim = obs_params.x_dim  # Number of latent dimensions
+    num_groups = len(obs_params.y_dims)  # Number of observed groups
+    N = Y.data.shape[2]  # Number of samples
+    T = Y.T
+
+    # Constant factors in the lower bound
+    if consts is None:
+        consts = compute_lower_bound_constants(N, params, hyper_priors)
+
+    (
+        const_lik,
+        const_d,
+        alogb_phi,
+        loggamma_a_phi_prior,
+        loggamma_a_phi_post,
+        digamma_a_phi,
+        alogb_alpha,
+        loggamma_a_alpha_prior,
+        loggamma_a_alpha_post,
+        digamma_a_alpha,
+        const_gp,
+    ) = consts
+
+    # Other pre-computations
+    if logdet_C is None:
+        logdet_C = np.sum(np.linalg.slogdet(obs_params.C.cov)[1])
+    if C_norm is None:
+        C_norm = obs_params.C.compute_squared_norms(y_dims)
+    if d_moment is None:
+        d_moment = obs_params.d.cov + obs_params.d.mean**2
+    if gp_loss is None:
+        gp_loss = GP_loss(params.state_params.X, params.gp_params)
+
+    # Likelihood term
+    log_phi = digamma_a_phi - np.log(obs_params.phi.b)  # (y_dim x 1) array
+    lb_lik = (
+        const_lik
+        + 0.5 * N * T * np.sum(log_phi)
+        - np.sum(obs_params.phi.mean * (obs_params.phi.b - hyper_priors.b_phi))
+    )
+
+    # X KL term
+    lb_x = const_gp + gp_loss + 0.5 * N * params.state_params.X.logdet_SigX
+
+    # C KL term
+    log_alpha = np.zeros((num_groups, x_dim))
+    for group_idx in range(num_groups):
+        log_alpha[group_idx, :] = digamma_a_alpha[group_idx] - np.log(
+            obs_params.alpha.b[group_idx, :]
+        )
+
+    lb_C = 0.5 * (
+        x_dim * y_dim
+        + logdet_C
+        + np.sum(y_dims[:, np.newaxis] * log_alpha - obs_params.alpha.mean * C_norm)
+    )
+
+    # alpha KL term
+    val = 0
+    temp1 = num_groups * x_dim * (alogb_alpha - loggamma_a_alpha_prior)
+    val += temp1
+    for group_idx in range(num_groups):
+        temp2 = np.sum(
+            -obs_params.alpha.a[group_idx] * np.log(obs_params.alpha.b[group_idx, :])
+            - hyper_priors.b_alpha * obs_params.alpha.mean[group_idx, :]
+            + (hyper_priors.a_alpha - obs_params.alpha.a[group_idx])
+            * log_alpha[group_idx]
+        )
+        val += temp2
+        temp3 = x_dim * (
+            loggamma_a_alpha_post[group_idx] + obs_params.alpha.a[group_idx]
+        )
+        val += temp3
+
+    lb_alpha = val
+
+    # phi KL term
+    lb_phi = y_dim * (
+        alogb_phi + loggamma_a_phi_post - loggamma_a_phi_prior + obs_params.phi.a
+    ) + np.sum(
+        -obs_params.phi.a * np.log(obs_params.phi.b)
+        + hyper_priors.b_phi * obs_params.phi.mean
+        + (hyper_priors.a_phi - obs_params.phi.a) * log_phi
+    )
+
+    # d KL term
+    lb_d = const_d + 0.5 * (
+        np.sum(np.log(obs_params.d.cov)) - hyper_priors.d_beta * np.sum(d_moment)
+    )
+
+    return lb_lik, lb_x, lb_C, lb_alpha, lb_phi, lb_d
 
 
-def compute_lower_bound_constants():
-    """Compute constant factors in the variational lower bound."""
-    pass
+def compute_lower_bound_constants(
+    N: int,
+    params: mDLAGParams,
+    hyper_priors: HyperPriorParams,
+) -> tuple[
+    float, float, float, float, float, float, float, float, np.ndarray, np.ndarray
+]:
+    """
+    Compute constant factors in the variational lower bound.
+
+    Parameters
+    ----------
+    N
+        Number of samples in the observed data.
+    params
+        GFA model parameters.
+    hyper_priors
+        Hyperparameters of the GFA prior distributions.
+
+    Returns
+    -------
+    const_lik : float
+        Constant factor related to the likelihood.
+    const_d : float
+        Constant factor related to the observation mean parameters.
+    alogb_phi : float
+        Constant factor related to the observation precision parameters.
+    loggamma_a_phi_prior : float
+        Constant factor related to the observation precision parameters.
+    loggamma_a_phi_post : float
+        Constant factor related to the observation precision parameters.
+    digamma_a_phi : float
+        Constant factor related to the observation precision parameters.
+    alogb_alpha : float
+        Constant factor related to the ARD parameters.
+    loggamma_a_alpha_prior : float
+        Constant factor related to the ARD parameters.
+    loggamma_a_alpha_post : ndarray, shape ``(num_groups,)``
+        Constant factor related to the ARD parameters.
+    digamma_a_alpha : ndarray, shape ``(num_groups,)``
+        Constant factor related to the ARD parameters.
+    """
+    obs_params = params.obs_params
+    y_dim = obs_params.y_dims.sum()  # Total number of observed dimensions
+    num_groups = len(obs_params.y_dims)  # Number of observed groups
+    x_dim = params.state_params.x_dim  # Number of latent dimensions
+    T = params.T  # Number of time points
+
+    # Constant factors in the lower bound
+    # Related to the likelihood
+    const_lik = -(y_dim * N * T / 2) * np.log(2 * np.pi)
+    # Related to observation mean parameters
+    const_d = 0.5 * y_dim + 0.5 * y_dim * np.log(hyper_priors.d_beta)
+    # Related to observation precision parameters
+    alogb_phi = hyper_priors.a_phi * np.log(hyper_priors.b_phi)
+    loggamma_a_phi_prior = gammaln(hyper_priors.a_phi)
+    loggamma_a_phi_post = gammaln(obs_params.phi.a)
+    digamma_a_phi = psi(obs_params.phi.a)
+    # Related to ARD parameters
+    alogb_alpha = float(hyper_priors.a_alpha) * np.log(float(hyper_priors.b_alpha))
+    loggamma_a_alpha_prior = gammaln(float(hyper_priors.a_alpha))
+    loggamma_a_alpha_post = gammaln(obs_params.alpha.a)
+    digamma_a_alpha = psi(obs_params.alpha.a)
+
+    # Related to GP:
+    const_gp = num_groups * x_dim * N * T / 2
+
+    return (
+        const_lik,
+        const_d,
+        alogb_phi,
+        loggamma_a_phi_prior,
+        loggamma_a_phi_post,
+        digamma_a_phi,
+        alogb_alpha,
+        loggamma_a_alpha_prior,
+        loggamma_a_alpha_post,
+        digamma_a_alpha,
+        const_gp,
+    )
 
 
 class mDLAGModel:
