@@ -1,93 +1,131 @@
-"""Generic optimization for GP, highly optimized version with modular structure."""
+"""Generic optimization for multi-group GP kernels in mDLAG."""
 
 from __future__ import annotations
-from dataclasses import dataclass
-from functools import partial
-from typing import Tuple
-
-import numpy as np
 
 import jax.numpy as jnp
-from jax import value_and_grad
-from jaxopt import LBFGS
-import jax
-
-# from latents.mdlag.data_types import GPParams
-# from .kernels.base_kernel import BaseKernel, GPKernelSpec, BaseGPParams
+import numpy as np
+from scipy.optimize import fmin_l_bfgs_b
 
 from .fit_config import GPFitConfig
-from .kernels.base_kernel import BaseDelayedGP, DelayedGPHyperParams
-from .kernels.rbf.rbf_kernel import build_rbf_kernel, lower_bound
-from .kernels.rbf.rbf_kernel import value_and_grad_kernel, lower_bound_manual_grad
+from .kernels.multigroup_kernel import MultiGroupGPKernel
+from .multigroup_params import MultiGroupGPHyperParams, MultiGroupGPParams
 
 
 def run_gp_optimizer(
-    delayed_gp: BaseDelayedGP, X_moment: jnp.ndarray, N: int, T: int, cfg: GPFitConfig
-) -> tuple[BaseDelayedGP, float]:
-    """Run the GP optimizer with class-based approach using the integrated math."""
+    params: MultiGroupGPParams,
+    kernel: MultiGroupGPKernel,
+    X_moment: jnp.ndarray,
+    N: int,
+    T: int,
+    cfg: GPFitConfig,
+    hyper_params: MultiGroupGPHyperParams,
+) -> tuple[MultiGroupGPParams, float]:
+    """Run the GP optimizer with the new multi-group kernel structure.
 
-    if not delayed_gp.is_initialized():
+    Parameters
+    ----------
+    params : MultiGroupGPParams
+        Initial GP parameters.
+    kernel : MultiGroupGPKernel
+        Kernel instance (e.g., RBFKernel).
+    X_moment : jnp.ndarray
+        Moment data, shape (x_dim, num_groups*T, num_groups*T).
+    N : int
+        Number of samples.
+    T : int
+        Number of time points.
+    cfg : GPFitConfig
+        Optimization configuration.
+    hyper_params : MultiGroupGPHyperParams
+        Hyperparameters for parameter constraints.
+
+    Returns
+    -------
+    tuple[MultiGroupGPParams, float]
+        Updated parameters and total loss.
+    """
+    if not params.is_initialized():
         msg = "GP parameters must be initialized before optimization"
         raise ValueError(msg)
 
-    x_dim = delayed_gp.x_dim
+    x_dim = params.x_dim
     total_loss = 0.0
 
-    # Define return:
-    updated_delayed_gp = BaseDelayedGP(
-        gamma=np.copy(delayed_gp.gamma),
-        delays=np.copy(delayed_gp.delays),
-        eps=np.copy(delayed_gp.eps),
-        hyper_params=delayed_gp.hyper_params,
+    # Create a copy of parameters to update
+    updated_params = MultiGroupGPParams(
+        gamma=jnp.array(params.gamma),
+        delays=jnp.array(params.delays),
+        eps=jnp.array(params.eps),
     )
-
-    hyper_params = delayed_gp.hyper_params
 
     for i in range(x_dim):
         # Extract data for this latent dimension
         X_moment_i = X_moment[i, :, :]
 
         # Get initial parameters for this latent
-        var_i = delayed_gp.pack_params_single_latent(
-            delayed_gp.gamma, delayed_gp.delays, delayed_gp.hyper_params, i
+        var_i = MultiGroupGPParams.pack_params_single_latent(
+            params.gamma, params.delays, hyper_params, i
         )
-        eps = delayed_gp.eps[i]
+        eps = params.eps[i]
 
         # Create value-and-gradient function
-        if cfg.grad_mode == "autodiff":
-            val_and_grad = lambda var_i: value_and_grad_kernel(
-                var_i, X_moment_i, N, T, eps, hyper_params
-            )
-        else:
-            val_and_grad = lambda var_i: lower_bound_manual_grad(
-                var_i, X_moment_i, N, T, eps, hyper_params
+        use_autodiff = cfg.grad_mode == "autodiff"
+
+        def val_and_grad(var_i):
+            return kernel.compute_objective_and_gradient(
+                var_i, X_moment_i, N, T, eps, hyper_params, use_autodiff
             )
 
         # Compute initial loss for display
         f0, g0 = val_and_grad(var_i)
         print(f"  Initial loss: {f0:.6f}")
-        print(f"  Initial gradient: {g0}")
 
-        # Optimize
-        solver = LBFGS(
-            fun=lambda var_i: val_and_grad(var_i)[0],
-            value_and_grad=val_and_grad,
+        def objective_func(var_i):
+            return val_and_grad(var_i)[0]
+
+        def gradient_func(var_i):
+            return val_and_grad(var_i)[1]
+
+        var_i_np = np.array(var_i)
+
+        result = fmin_l_bfgs_b(
+            func=objective_func,
+            x0=var_i_np,
+            fprime=gradient_func,
+            maxiter=1500,  # Allow more iterations
+            maxfun=15000,  # SIGNIFICANTLY increase function evaluations
+            factr=1e7,  # You can start with a slightly looser tolerance
+            pgtol=1e-5,
+            m=15,
+            # epsilon is ignored when fprime is provided
+        )
+        """
+        result = fmin_l_bfgs_b(
+            func=objective_func,
+            x0=var_i_np,
+            fprime=gradient_func,
             maxiter=cfg.max_iter,
-            tol=cfg.tol,
-            # maxls=10,
-            # linesearch="hager-zhang",
-            jit=True,
+            maxfun=1500,        # More function evaluations for better convergence
+            factr=1e6,        # Tighter convergence tolerance
+            pgtol=1e-5,       # Better gradient tolerance
+            m=15,             # More memory for better convergence
+            epsilon=1e-8,     # Step size for finite differences
         )
+        """
+        var_i_opt = result[0]
+        f_opt = result[1]
 
-        res_i = solver.run(var_i)
-        total_loss += res_i.state.value
+        # Display loss improvement
+        loss_improvement = f0 - f_opt
+        print(f"  Final loss: {f_opt:.6f}")
+        print(f"  Loss improvement: {loss_improvement:.6f}")
 
-        gamma_opt, delays_opt = delayed_gp.unpack_params(
-            res_i.params, delayed_gp.hyper_params
-        )
+        var_i_opt = jnp.array(var_i_opt)
+        total_loss += f_opt
 
         # Update the parameters object
-        updated_delayed_gp.gamma[i] = gamma_opt
-        updated_delayed_gp.delays[:, i] = delays_opt
+        updated_params = updated_params.update_params_from_variables(
+            i, var_i_opt, hyper_params
+        )
 
-    return updated_delayed_gp, total_loss
+    return updated_params, total_loss
