@@ -130,6 +130,73 @@ class mDLAGGP:
             hyper_params=hyper_params,
         )
 
+    @classmethod
+    def initialize_with_defaults(
+        cls,
+        T: int,
+        x_dim: int,
+        num_groups: int,
+        bin_width: float,
+        kernel: MultiGroupGPKernel | None = None,
+    ):
+        """Initialize mDLAGGP from sequence data using MATLAB-style logic.
+
+        Parameters
+        ----------
+        T : int
+            Sequence length.
+        x_dim : int
+            Number of latent dimensions.
+        num_groups : int
+            Number of groups.
+        bin_width : float
+            Time step size.
+        kernel : MultiGroupGPKernel, optional
+            Kernel instance. Defaults to RBFKernel().
+
+        Returns
+        -------
+        mDLAGGP
+            New mDLAGGP instance with initialized parameters.
+        """
+        # Default fractions
+        max_delay_frac = 0.5
+        max_tau_frac = 1.0
+
+        # Default values
+        start_tau = 2 * bin_width
+        start_eps = 1e-3
+
+        # Initialize delay matrix to zeros
+        delays = np.zeros((num_groups, x_dim), dtype=np.float64)
+
+        # GP timescale: params.gamma = (binWidth ./ startTau).^2 .* ones(1, xDim)
+        gamma = (bin_width / start_tau) ** 2 * np.ones(x_dim, dtype=np.float64)
+
+        # GP noise variance: params.eps = startEps .* ones(1, xDim)
+        eps = start_eps * np.ones(x_dim, dtype=np.float64)
+
+        # Calculate constraints based on sequence length
+        # Convert maxDelayFrac to units of "time steps"
+        max_delay = max_delay_frac * T
+
+        # Convert maxTauFrac to unitless quantity 'gamma'
+        min_gamma = 1 / (max_tau_frac * T) ** 2
+
+        # Create hyperparameters with calculated constraints
+        hyper_params = MultiGroupGPHyperParams(
+            min_gamma=min_gamma,
+            max_delay=max_delay,
+        )
+
+        return cls(
+            gamma=gamma,
+            delays=delays,
+            eps=eps,
+            kernel=kernel,
+            hyper_params=hyper_params,
+        )
+
     def build_kernel_matrix(
         self, T: int, return_tensor: bool = False, order: str = "F"
     ) -> np.ndarray:
