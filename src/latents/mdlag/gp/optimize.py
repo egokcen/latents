@@ -66,7 +66,7 @@ def run_gp_optimizer(
         var_i = MultiGroupGPParams.pack_params_single_latent(
             params.gamma, params.delays, hyper_params, i
         )
-        eps = params.eps[i]
+        eps = float(params.eps[i])
 
         # Create value-and-gradient function
         use_autodiff = cfg.grad_mode == "autodiff"
@@ -92,26 +92,12 @@ def run_gp_optimizer(
             func=objective_func,
             x0=var_i_np,
             fprime=gradient_func,
-            maxiter=1500,  # Allow more iterations
-            maxfun=15000,  # SIGNIFICANTLY increase function evaluations
-            factr=1e7,  # You can start with a slightly looser tolerance
+            maxiter=1500,
+            maxfun=15000,
+            factr=1e7,
             pgtol=1e-5,
             m=15,
-            # epsilon is ignored when fprime is provided
         )
-        """
-        result = fmin_l_bfgs_b(
-            func=objective_func,
-            x0=var_i_np,
-            fprime=gradient_func,
-            maxiter=cfg.max_iter,
-            maxfun=1500,        # More function evaluations for better convergence
-            factr=1e6,        # Tighter convergence tolerance
-            pgtol=1e-5,       # Better gradient tolerance
-            m=15,             # More memory for better convergence
-            epsilon=1e-8,     # Step size for finite differences
-        )
-        """
         var_i_opt = result[0]
         f_opt = result[1]
 

@@ -13,12 +13,9 @@ from __future__ import annotations
 
 import numpy as np
 
+from latents.mdlag.gp.gp_model import mDLAGGP
 from latents.observation_model.observations import ObsTimeSeries
 from latents.observation_model.probabilistic import HyperPriorParams, ObsParamsARD
-from latents.state_model.gaussian_process import (
-    GPParams,
-    construct_gp_covariance_matrix,
-)
 
 
 def simulate(
@@ -28,7 +25,7 @@ def simulate(
     x_dim: int,
     hyper_priors: HyperPriorParams,
     snr: np.ndarray,
-    gp_params: GPParams | None = None,
+    gp_params: mDLAGGP | None = None,
     gamma_lim: tuple[float, float] | None = None,
     eps_lim: tuple[float, float] | None = None,
     delay_lim: tuple[float, float] | None = None,
@@ -56,7 +53,7 @@ def simulate(
         of shape ``(num_groups, x_dim)``.
     snr : ndarray
         Signal-to-noise ratio for each group.
-    gp_params : GPParams | None, optional
+    gp_params : mDLAGGP | None, optional
         Parameters of the Gaussian Process. If None, will be generated.
     gamma_lim : tuple[float, float] | None, optional
         (min, max) limits for generating gamma parameters if gp_params is None.
@@ -83,8 +80,8 @@ def simulate(
     # Generate GP parameters:
     num_groups = len(y_dims)
     if gp_params is None:
-        gp_params = GPParams.generate(
-            x_dim, num_groups, gamma_lim, eps_lim, delay_lim, rng
+        gp_params = mDLAGGP.generate(
+            x_dim, num_groups, delay_lim, eps_lim, gamma_lim, rng
         )
 
     # Generate latent variables
@@ -98,7 +95,7 @@ def simulate(
 
 
 def generate_latents(
-    gp_params: GPParams,
+    gp_params: mDLAGGP,
     T: int,
     N: int,
     rng: np.random.Generator,
@@ -108,7 +105,7 @@ def generate_latents(
 
     Parameters
     ----------
-    gp_params : GPParams
+    gp_params : mDLAGGP
         Parameters of the Gaussian Process.
     T : int
         Number of time points per sequence.
@@ -127,10 +124,10 @@ def generate_latents(
         - T: number of time points per sequence
         - N: number of sequences
     """
-    num_groups = gp_params.num_groups
-    x_dim = gp_params.x_dim
+    num_groups = gp_params.params.num_groups
+    x_dim = gp_params.params.x_dim
 
-    K = construct_gp_covariance_matrix(gp_params, T, return_tensor=False, order="F")
+    K = gp_params.build_kernel_matrix(T, return_tensor=False, order="F")
     latents = rng.multivariate_normal(np.zeros(K.shape[0]), K, size=N)
     latents = latents.reshape((N, x_dim, num_groups, T), order="F")
 

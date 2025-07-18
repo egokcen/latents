@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
 
 import jax.numpy as jnp
 
@@ -57,47 +56,6 @@ class MultiGroupGPParams:
                 raise ValueError(msg)
             self.num_groups = self.delays.shape[0]
             self.x_dim = self.delays.shape[1]
-
-    @classmethod
-    def generate(
-        cls,
-        x_dim: int,
-        num_groups: int,
-        delay_lim: tuple[float, float] = (-5.0, 5.0),
-        eps_lim: tuple[float, float] = (0.001, 0.001),  # Default to 0.001
-        gamma_lim: tuple[float, float] = (0.01, 0.5),
-        rng: Any = None,
-        hyper_params: MultiGroupGPHyperParams | None = None,
-    ) -> MultiGroupGPParams:
-        """Generate random multi-group GP parameters."""
-        import numpy as np
-
-        if rng is None:
-            rng = np.random.default_rng()
-
-        # Use hyper_params limits if provided
-        if hyper_params is not None:
-            gamma_lim = (
-                hyper_params.min_gamma,
-                gamma_lim[1],
-            )  # Use min_gamma from hyper_params
-            delay_lim = (
-                -hyper_params.max_delay,
-                hyper_params.max_delay,
-            )  # Use max_delay from hyper_params
-
-        gamma = jnp.array(
-            rng.uniform(gamma_lim[0], gamma_lim[1], size=x_dim), dtype=jnp.float64
-        )
-        eps = jnp.array(
-            rng.uniform(eps_lim[0], eps_lim[1], size=x_dim), dtype=jnp.float64
-        )
-        delays = jnp.array(
-            rng.uniform(delay_lim[0], delay_lim[1], size=(num_groups, x_dim)),
-            dtype=jnp.float64,
-        )
-        delays = delays.at[0, :].set(0)
-        return cls(gamma=gamma, eps=eps, delays=delays)
 
     @staticmethod
     def pack_params_single_latent(

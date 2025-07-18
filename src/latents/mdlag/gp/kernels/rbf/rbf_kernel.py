@@ -15,7 +15,7 @@ jax.config.update("jax_enable_x64", True)
 class RBFKernel(MultiGroupGPKernel):
     """RBF kernel for multi-group temporal modeling in mDLAG."""
 
-    @partial(jax.jit, static_argnums=(0, 3, 4, 5, 6))
+    @partial(jax.jit, static_argnums=(0, 3, 4, 5))
     def build_single_latent_kernel(
         self,
         gamma: jnp.ndarray,

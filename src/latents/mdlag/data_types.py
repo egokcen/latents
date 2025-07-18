@@ -14,8 +14,8 @@ from __future__ import annotations
 
 import numpy as np
 
+from latents.mdlag.gp.gp_model import mDLAGGP
 from latents.observation_model.probabilistic import ObsParamsARD
-from latents.state_model.gaussian_process import GPParams
 from latents.state_model.latents import StateParamsDelayed
 
 
@@ -32,7 +32,7 @@ class mDLAGParams:
     T
         Number of timepoints. Defaults to ``None``.
     gp_params_init
-        Initial Gaussian process parameters. If not provided, an empty GPParams
+        Initial Gaussian process parameters. If not provided, an empty mDLAGGP
         object will be created. Defaults to ``None``.
     save_X_cov
         Whether to save the covariance of the latent variables. Defaults to ``False``.
@@ -66,7 +66,7 @@ class mDLAGParams:
         x_dim: int | None = None,
         y_dims: np.ndarray | None = None,
         T: int | None = None,
-        gp_params_init: GPParams | None = None,
+        gp_params_init: mDLAGGP | None = None,
         save_X_cov: bool = False,
         save_C_cov: bool = False,
     ):
@@ -91,7 +91,9 @@ class mDLAGParams:
 
         # GP parameters:
         if gp_params_init is None:
-            self.gp_params = GPParams(gamma=None, eps=None, D=None)
+            # Create empty mDLAGGP with default parameters
+            # We'll create a placeholder that will be properly initialized later
+            self.gp_params = None
         else:
             self.gp_params = gp_params_init
 
@@ -117,7 +119,7 @@ class mDLAGParams:
         return (
             self.obs_params.is_initialized()
             and self.state_params.is_initialized()
-            and self.gp_params.is_initialized()
+            and (self.gp_params is not None and self.gp_params.params.is_initialized())
         )
 
     def get_subset_dims(

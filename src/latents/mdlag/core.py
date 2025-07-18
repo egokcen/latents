@@ -6,7 +6,7 @@ Core utilities to fit a delayed latents across multiple groups (mDLAG) model to 
 - :func:`fit` -- Fit a mDLAG model to data.
 - :func:`init` -- Initialize mDLAG model parameters to data prior to fitting.
 - :func:`infer_latents` -- Infer latent variables.
-- :func:`learn_gp_params` -- Learn Gaussian process parameters.
+- :func:`learn_gp_params` -- Learn Gaussian process parameters using mDLAGGP.
 - :func:`infer_loadings` -- Infer loading matrices.
 - :func:`infer_ard` -- Infer ARD parameters.
 - :func:`infer_obs_mean` -- Infer observation mean parameter.
@@ -24,11 +24,12 @@ from __future__ import annotations
 
 import numpy as np
 from scipy.linalg import block_diag, eigh
-from scipy.optimize import minimize
 from scipy.special import gammaln, psi
 from scipy.stats import gmean
 
 from latents.mdlag.data_types import mDLAGParams
+from latents.mdlag.gp.fit_config import GPFitConfig
+from latents.mdlag.gp.gp_model import mDLAGGP
 from latents.observation_model.observations import ObsTimeSeries
 from latents.observation_model.probabilistic import (
     HyperPriorParams,
@@ -36,10 +37,6 @@ from latents.observation_model.probabilistic import (
     PosteriorLoading,
     PosteriorObsMean,
     PosteriorObsPrec,
-)
-from latents.state_model.gaussian_process import (
-    GPParams,
-    construct_gp_covariance_matrix,
 )
 from latents.state_model.latents import PosteriorLatentDelayed
 
@@ -55,7 +52,7 @@ def fit():
 
 def init(
     Y: ObsTimeSeries,
-    gp_params_init: GPParams,
+    gp_params_init: mDLAGGP,
     hyper_priors: HyperPriorParams | None = None,
     random_seed: int | None = None,
     save_C_cov: bool = False,
@@ -109,7 +106,7 @@ def init(
     num_groups = len(y_dims)  # Number of observed groups
     N = Y.data.shape[2]  # Number of samples
     T = Y.T  # Number of time point
-    x_dim = gp_params_init.x_dim  # Number of latent dimensions
+    x_dim = gp_params_init.params.x_dim  # Number of latent dimensions
 
     # Get views of the observed data for each group
     Ys = Y.get_groups()
@@ -199,12 +196,17 @@ def infer_latents(
     state_params = params.state_params
     gp_params = params.gp_params
 
+    # Check if gp_params is initialized
+    if gp_params is None:
+        error_msg = "GP parameters must be initialized before inferring latents"
+        raise ValueError(error_msg)
+
     x_dim = state_params.x_dim
     y_dims = obs_params.y_dims
     num_groups = len(obs_params.y_dims)
     T = params.T
     N = Y.data.shape[2]
-    K_big = construct_gp_covariance_matrix(gp_params, T, return_tensor=False)
+    K_big = gp_params.build_kernel_matrix(T, return_tensor=False)
 
     # Initialize X, if needed
     if in_place:
@@ -259,148 +261,32 @@ def infer_latents(
     return None if in_place else X
 
 
-def GP_loss_per_latent(X_moment_j, N, D_non_zeros, eps, gamma, T):
-    """Calculate the GP loss function for optimization.
+def learn_gp_params(state_params, gp_params):
+    """Learn Gaussian process parameters given mDLAG model parameters and latents.
 
-    Args:
-        X_moment_j: Moment of X for dimension j
-        N: Number of trials
-        D_non_zeros: Non-zero delay values
-        eps: Epsilon parameter
-        gamma: Gamma parameter
-        T: Time points
+    This function uses the new mDLAGGP model's built-in optimization capabilities.
 
-    Returns
-    -------
-        float: Calculated loss value
-    """
-    num_groups = len(D_non_zeros) + 1
-    D = np.zeros(num_groups)
-    D[1:] = D_non_zeros
-
-    Kj = np.zeros((num_groups, T, num_groups, T))
-    for m1 in range(num_groups):
-        for m2 in range(num_groups):
-            t = np.arange(T)
-            t2_minus_t1 = t[np.newaxis, :] - t[:, np.newaxis]
-            diff = t2_minus_t1 - (D[m2] - D[m1])
-            Kj[m1, :, m2, :] = (1 - eps) * np.exp(-0.5 * gamma * diff**2)
-
-            if m1 == m2:
-                Kj[m1, :, m2, :] += eps * np.eye(T)
-
-    Kj_flat = Kj.reshape(num_groups * T, num_groups * T, order="F")
-    # Define Loss using Kj
-    f_gp = 0
-    f_gp += -N / 2 * np.linalg.slogdet(Kj_flat)[1]
-    Kj_inv = np.linalg.inv(Kj_flat)
-    f_gp += -1 / 2 * np.trace(Kj_inv @ X_moment_j)
-    return f_gp
-
-
-def GP_loss_wrapper(x, X_moment_j, N, num_groups, T):
-    """Optimize GP loss using wrapped parameters.
-
-    Args:
-        x: Parameter vector
-        X_moment_j: Moment of X for dimension j
-        N: Number of trials
-        num_groups: Number of groups
-        T: Time points
+    Parameters
+    ----------
+    state_params
+        State model parameters containing latent variables.
+    gp_params : mDLAGGP
+        Gaussian process parameters to be optimized.
 
     Returns
     -------
-        float: Loss value
+    tuple
+        Updated GP parameters and total loss.
     """
-    # Unpack parameters from flattened array
-    D_non_zeros = x[: num_groups - 1]  # First num_groups elements are delays
-    gamma = x[num_groups - 1]  # Next element is gamma
-    eps = x[num_groups]  # Last element is eps
-    # Compute loss
-    loss = GP_loss_per_latent(X_moment_j, N, D_non_zeros, eps, gamma, T)
-    # Return negative loss since we want to minimize
-    return -loss
-
-
-def learn_gp_params(state_params, state_params_gp, obs_params):
-    """Learn Gaussian process parameters given mDLAG model parameters and latents."""
-    x_dim = state_params.x_dim
-    num_groups = len(obs_params.y_dims)
     T = state_params.T
     N = state_params.X.mean.shape[-1]
     X_moment_GP = state_params.X.compute_moment_gp(in_place=False)
 
-    D = np.array(state_params_gp.D, dtype=np.float64)
-    gamma = np.array(state_params_gp.gamma, dtype=np.float64)
-    eps = np.array(state_params_gp.eps, dtype=np.float64)
+    # Use the mDLAGGP's built-in fit method
+    config = GPFitConfig(max_iter=10, tol=1e-8, grad_mode="autodiff", verbose=False)
+    updated_gp, total_loss = gp_params.fit(X_moment_GP, N, T, config)
 
-    l_gp = 0
-
-    for j in range(x_dim):
-        x0 = np.zeros(num_groups + 1)
-        x0[: num_groups - 1] = D[1:, j]
-        x0[num_groups - 1] = gamma[j]
-        x0[num_groups] = eps[j]
-
-        bounds = []
-        bounds.extend([(-10, 10) for _ in range(num_groups - 1)])
-        bounds.append((1e-6, 100))
-        bounds.append((1e-6, 1e-2))
-
-        result = minimize(
-            GP_loss_wrapper,
-            x0,
-            args=(X_moment_GP[j], N, num_groups, T),
-            method="L-BFGS-B",
-            bounds=bounds,
-            options={
-                "maxiter": 10,
-                "ftol": 1e-9,
-                "gtol": 1e-7,
-                "maxcor": 50,
-            },
-        )
-
-        for i in range(num_groups - 1):
-            D[i + 1, j] = result.x[i]
-
-        gamma[j] = result.x[num_groups - 1]
-        eps[j] = result.x[num_groups]
-        l_gp += result.fun
-
-    return D, gamma, eps, l_gp
-
-
-def GP_loss(X, gp_params):
-    """Compute the total GP loss across all latent dimensions.
-
-    Parameters
-    ----------
-    X : PosteriorLatentDelayed
-        Posterior estimates of time-delayed latent variables.
-    gp_params : GPParams
-        Gaussian process parameters.
-
-    Returns
-    -------
-    float
-        Total GP loss value.
-    """
-    # Compute loss:
-    x_dim = X.mean.shape[0]
-    N = X.mean.shape[3]
-    T = X.mean.shape[2]
-    f_gp = 0
-    for j in range(x_dim):
-        f_gp += GP_loss_per_latent(
-            X.moment_gp[j],
-            N,
-            gp_params.D[1:, j],
-            gp_params.eps[j],
-            gp_params.gamma[j],
-            T,
-        )
-    return f_gp
+    return updated_gp, total_loss
 
 
 def infer_loadings(
@@ -787,7 +673,11 @@ def compute_lower_bound(
     if d_moment is None:
         d_moment = obs_params.d.cov + obs_params.d.mean**2
     if gp_loss is None:
-        gp_loss = GP_loss(params.state_params.X, params.gp_params)
+        # Use the mDLAGGP's built-in loss computation
+        X_moment_GP = params.state_params.X.compute_moment_gp(in_place=False)
+        N = params.state_params.X.mean.shape[3]
+        T = params.state_params.X.mean.shape[2]
+        gp_loss = params.gp_params.compute_loss(X_moment_GP, N, T)
 
     # Likelihood term
     log_phi = digamma_a_phi - np.log(obs_params.phi.b)  # (y_dim x 1) array

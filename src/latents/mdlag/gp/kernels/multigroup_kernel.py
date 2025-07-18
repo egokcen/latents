@@ -46,7 +46,8 @@ class MultiGroupGPKernel:
         for i in range(x_dim):
             gamma_i = params.gamma[i]
             delays_i = params.delays[:, i]
-            eps_i = params.eps[i]
+            # Convert JAX scalar to Python float for hashability in JIT
+            eps_i = float(params.eps[i])
 
             K_i = self.build_single_latent_kernel(
                 gamma_i, delays_i, eps_i, T, return_tensor=True

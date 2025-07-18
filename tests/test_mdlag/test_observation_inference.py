@@ -12,7 +12,7 @@ from latents.mdlag.core import (
 )
 from latents.mdlag.simulation import generate_latents, generate_observations
 from latents.observation_model.probabilistic import HyperPriorParams, ObsParamsARD
-from latents.state_model.gaussian_process import GPParams
+from latents.mdlag.gp.gp_model import mDLAGGP
 from latents.state_model.latents import StateParamsDelayed
 
 
@@ -55,7 +55,7 @@ def generate_params():
     obs_params = ObsParamsARD.generate(
         y_dims, x_dim, hyper_priors, snr, np.random.default_rng(seed=42)
     )
-    gp_params = GPParams(gamma=gamma, eps=eps, D=D)
+    gp_params = mDLAGGP(gamma=gamma, delays=D, eps=eps)
     state_params = StateParamsDelayed(x_dim, len(y_dims), T)
 
     return gp_params, state_params, obs_params
