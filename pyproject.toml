@@ -48,7 +48,6 @@ dependencies = [
     "notebook",
     "pandas",
     "jax",
-    "jaxlib",
 ]
 
 [project.urls]
