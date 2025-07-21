@@ -52,7 +52,7 @@ def fit():
 
 def init(
     Y: ObsTimeSeries,
-    gp_params_init: mDLAGGP,
+    gp_init: mDLAGGP,
     hyper_priors: HyperPriorParams | None = None,
     random_seed: int | None = None,
     save_C_cov: bool = False,
@@ -64,7 +64,7 @@ def init(
     ----------
     Y
         Observed time series data.
-    gp_params_init
+    gp_init
         Initial Gaussian process parameters.
     hyper_priors
         Hyperparameters of the mDLAG prior distributions. If not provided,
@@ -106,7 +106,7 @@ def init(
     num_groups = len(y_dims)  # Number of observed groups
     N = Y.data.shape[2]  # Number of samples
     T = Y.T  # Number of time point
-    x_dim = gp_params_init.params.x_dim  # Number of latent dimensions
+    x_dim = gp_init.params.x_dim  # Number of latent dimensions
 
     # Get views of the observed data for each group
     Ys = Y.get_groups()
@@ -114,7 +114,7 @@ def init(
     Y_covs = [np.cov(Y_m.reshape(Y_m.shape[0], -1)) for Y_m in Ys]
 
     # Initialize mDLAG parameter object
-    params = mDLAGParams(x_dim, y_dims, T, gp_params_init, save_X_cov, save_C_cov)
+    params = mDLAGParams(x_dim, y_dims, T, gp_init, save_X_cov, save_C_cov)
     obs_params = params.obs_params
     state_params = params.state_params
 
@@ -194,10 +194,10 @@ def infer_latents(
     """
     obs_params = params.obs_params
     state_params = params.state_params
-    gp_params = params.gp_params
+    gp = params.gp
 
     # Check if gp_params is initialized
-    if gp_params is None:
+    if gp is None:
         error_msg = "GP parameters must be initialized before inferring latents"
         raise ValueError(error_msg)
 
@@ -206,7 +206,7 @@ def infer_latents(
     num_groups = len(obs_params.y_dims)
     T = params.T
     N = Y.data.shape[2]
-    K_big = gp_params.build_kernel_matrix(T, return_tensor=False)
+    K_big = gp.build_kernel_matrix(T, return_tensor=False)
 
     # Initialize X, if needed
     if in_place:
@@ -261,7 +261,7 @@ def infer_latents(
     return None if in_place else X
 
 
-def learn_gp_params(state_params, gp_params):
+def learn_gp_params(state_params, gp):
     """Learn Gaussian process parameters given mDLAG model parameters and latents.
 
     This function uses the new mDLAGGP model's built-in optimization capabilities.
@@ -270,7 +270,7 @@ def learn_gp_params(state_params, gp_params):
     ----------
     state_params
         State model parameters containing latent variables.
-    gp_params : mDLAGGP
+    gp : mDLAGGP
         Gaussian process parameters to be optimized.
 
     Returns
@@ -284,7 +284,7 @@ def learn_gp_params(state_params, gp_params):
 
     # Use the mDLAGGP's built-in fit method
     config = GPFitConfig(max_iter=10, tol=1e-8, grad_mode="autodiff", verbose=False)
-    updated_gp, total_loss = gp_params.fit(X_moment_GP, N, T, config)
+    updated_gp, total_loss = gp.fit(X_moment_GP, N, T, config)
 
     return updated_gp, total_loss
 
@@ -677,7 +677,7 @@ def compute_lower_bound(
         X_moment_GP = params.state_params.X.compute_moment_gp(in_place=False)
         N = params.state_params.X.mean.shape[3]
         T = params.state_params.X.mean.shape[2]
-        gp_loss = params.gp_params.compute_loss(X_moment_GP, N, T)
+        gp_loss = params.gp.compute_loss(X_moment_GP, N, T)
 
     # Likelihood term
     log_phi = digamma_a_phi - np.log(obs_params.phi.b)  # (y_dim x 1) array

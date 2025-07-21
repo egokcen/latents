@@ -25,7 +25,7 @@ def simulate(
     x_dim: int,
     hyper_priors: HyperPriorParams,
     snr: np.ndarray,
-    gp_params: mDLAGGP | None = None,
+    gp: mDLAGGP | None = None,
     gamma_lim: tuple[float, float] | None = None,
     eps_lim: tuple[float, float] | None = None,
     delay_lim: tuple[float, float] | None = None,
@@ -53,14 +53,14 @@ def simulate(
         of shape ``(num_groups, x_dim)``.
     snr : ndarray
         Signal-to-noise ratio for each group.
-    gp_params : mDLAGGP | None, optional
+    gp : mDLAGGP | None, optional
         Parameters of the Gaussian Process. If None, will be generated.
     gamma_lim : tuple[float, float] | None, optional
-        (min, max) limits for generating gamma parameters if gp_params is None.
+        (min, max) limits for generating gamma parameters if gp is None.
     eps_lim : tuple[float, float] | None, optional
-        (min, max) limits for generating epsilon parameters if gp_params is None.
+        (min, max) limits for generating epsilon parameters if gp is None.
     delay_lim : tuple[float, float] | None, optional
-        (min, max) limits for generating delay parameters if gp_params is None.
+        (min, max) limits for generating delay parameters if gp is None.
     random_seed : int | None, optional
         Random seed for reproducibility.
 
@@ -79,13 +79,11 @@ def simulate(
 
     # Generate GP parameters:
     num_groups = len(y_dims)
-    if gp_params is None:
-        gp_params = mDLAGGP.generate(
-            x_dim, num_groups, delay_lim, eps_lim, gamma_lim, rng
-        )
+    if gp is None:
+        gp = mDLAGGP.generate(x_dim, num_groups, delay_lim, eps_lim, gamma_lim, rng)
 
     # Generate latent variables
-    X = generate_latents(gp_params, T, N, rng)
+    X = generate_latents(gp, T, N, rng)
 
     # Generate observations
 
@@ -95,7 +93,7 @@ def simulate(
 
 
 def generate_latents(
-    gp_params: mDLAGGP,
+    gp: mDLAGGP,
     T: int,
     N: int,
     rng: np.random.Generator,
@@ -105,7 +103,7 @@ def generate_latents(
 
     Parameters
     ----------
-    gp_params : mDLAGGP
+    gp : mDLAGGP
         Parameters of the Gaussian Process.
     T : int
         Number of time points per sequence.
@@ -124,10 +122,10 @@ def generate_latents(
         - T: number of time points per sequence
         - N: number of sequences
     """
-    num_groups = gp_params.params.num_groups
-    x_dim = gp_params.params.x_dim
+    num_groups = gp.params.num_groups
+    x_dim = gp.params.x_dim
 
-    K = gp_params.build_kernel_matrix(T, return_tensor=False, order="F")
+    K = gp.build_kernel_matrix(T, return_tensor=False, order="F")
     latents = rng.multivariate_normal(np.zeros(K.shape[0]), K, size=N)
     latents = latents.reshape((N, x_dim, num_groups, T), order="F")
 

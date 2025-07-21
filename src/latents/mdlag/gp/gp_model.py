@@ -138,6 +138,7 @@ class mDLAGGP:
         num_groups: int,
         bin_width: float,
         kernel: MultiGroupGPKernel | None = None,
+        eps: float = 1e-3,
     ):
         """Initialize mDLAGGP from sequence data using MATLAB-style logic.
 
@@ -165,16 +166,12 @@ class mDLAGGP:
 
         # Default values
         start_tau = 2 * bin_width
-        start_eps = 1e-3
 
         # Initialize delay matrix to zeros
         delays = np.zeros((num_groups, x_dim), dtype=np.float64)
 
         # GP timescale: params.gamma = (binWidth ./ startTau).^2 .* ones(1, xDim)
         gamma = (bin_width / start_tau) ** 2 * np.ones(x_dim, dtype=np.float64)
-
-        # GP noise variance: params.eps = startEps .* ones(1, xDim)
-        eps = start_eps * np.ones(x_dim, dtype=np.float64)
 
         # Calculate constraints based on sequence length
         # Convert maxDelayFrac to units of "time steps"
@@ -192,7 +189,7 @@ class mDLAGGP:
         return cls(
             gamma=gamma,
             delays=delays,
-            eps=eps,
+            eps=eps * np.ones(x_dim, dtype=np.float64),
             kernel=kernel,
             hyper_params=hyper_params,
         )

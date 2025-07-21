@@ -46,8 +46,8 @@ class mDLAGParams:
         Observation model parameters.
     state_params
         State model parameters.
-    gp_params
-        Gaussian process parameters.
+    gp
+        Gaussian process.
     T
         Number of timepoints.
     save_X_cov
@@ -66,7 +66,7 @@ class mDLAGParams:
         x_dim: int | None = None,
         y_dims: np.ndarray | None = None,
         T: int | None = None,
-        gp_params_init: mDLAGGP | None = None,
+        gp_init: mDLAGGP | None = None,
         save_X_cov: bool = False,
         save_C_cov: bool = False,
     ):
@@ -90,12 +90,12 @@ class mDLAGParams:
         self.state_params = StateParamsDelayed(x_dim, num_groups, T, X=None)
 
         # GP parameters:
-        if gp_params_init is None:
+        if gp_init is None:
             # Create empty mDLAGGP with default parameters
             # We'll create a placeholder that will be properly initialized later
-            self.gp_params = None
+            self.gp = None
         else:
-            self.gp_params = gp_params_init
+            self.gp = gp_init
 
         self.T = T
         self.save_X_cov = save_X_cov
@@ -105,7 +105,7 @@ class mDLAGParams:
         return (
             f"{type(self).__name__}(obs_params={self.obs_params}, "
             f"state_params={self.state_params},"
-            f"gp_params={self.gp_params})"
+            f"gp_params={self.gp})"
         )
 
     def is_initialized(self) -> bool:
@@ -119,7 +119,7 @@ class mDLAGParams:
         return (
             self.obs_params.is_initialized()
             and self.state_params.is_initialized()
-            and (self.gp_params is not None and self.gp_params.params.is_initialized())
+            and (self.gp is not None and self.gp.params.is_initialized())
         )
 
     def get_subset_dims(
