@@ -47,6 +47,7 @@ dependencies = [
     "jsonpickle",
     "notebook",
     "pandas",
+    "jax",
 ]
 
 [project.urls]

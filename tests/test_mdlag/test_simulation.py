@@ -5,10 +5,7 @@ import pytest
 
 from latents.mdlag.simulation import generate_latents, generate_observations
 from latents.observation_model.probabilistic import HyperPriorParams, ObsParamsARD
-from latents.state_model.gaussian_process import (
-    GPParams,
-    construct_gp_covariance_matrix,
-)
+from latents.mdlag.gp.gp_model import mDLAGGP
 from latents.state_model.latents import StateParamsDelayed
 
 
@@ -53,7 +50,7 @@ def simulation_params():
     obs_params = ObsParamsARD.generate(
         y_dims, x_dim, hyper_priors, snr, np.random.default_rng(seed=42)
     )
-    gp_params = GPParams(gamma=gamma, eps=eps, D=D)
+    gp_params = mDLAGGP(gamma=gamma, delays=D, eps=eps)
 
     state_params_delayed = StateParamsDelayed(x_dim, num_groups, T)
 
@@ -77,8 +74,8 @@ def test_generate_latents(simulation_params):
     empirical_cov = np.cov(latents_flat)
 
     # Construct theoretical covariance matrix
-    K_big = construct_gp_covariance_matrix(
-        gp_params, T=state_params_delayed.T, return_tensor=False, order="F"
+    K_big = gp_params.build_kernel_matrix(
+        T=state_params_delayed.T, return_tensor=False, order="F"
     )
 
     # Check similarity of empirical covariance and K_big

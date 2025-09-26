@@ -237,7 +237,19 @@ class PosteriorLatentDelayed(ArrayContainer):
             ``(x_dim, num_groups * T, num_groups * T)``.
             Posterior second moments for each latent GP.
             If ``in_place=True``, returns ``None``.
+
+        Raises
+        ------
+        ValueError
+            If covariance is not available (self.cov is None).
         """
+        if self.cov is None:
+            msg = (
+                "Covariance is required to compute GP moments. "
+                "Set save_X_cov=True in infer_latents."
+            )
+            raise ValueError(msg)
+
         x_dim, num_groups, T, N = self.mean.shape
         moment_gp = np.zeros((x_dim, num_groups * T, num_groups * T))
         mean_reshaped = self.mean.reshape(x_dim, num_groups * T, N, order="F")
@@ -278,7 +290,19 @@ class PosteriorLatentDelayed(ArrayContainer):
             ``(num_groups, x_dim, x_dim)``.
             Posterior second moments for each time point.
             If ``in_place=True``, returns ``None``.
+
+        Raises
+        ------
+        ValueError
+            If covariance is not available (self.cov is None).
         """
+        if self.cov is None:
+            msg = (
+                "Covariance is required to compute moments. "
+                "Set save_X_cov=True in infer_latents."
+            )
+            raise ValueError(msg)
+
         x_dim, num_groups, T, N = self.mean.shape
         moment = np.zeros((num_groups, x_dim, x_dim))
 

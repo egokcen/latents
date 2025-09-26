@@ -11,10 +11,7 @@ def test_GP_covariance_matrix():
     import numpy as np
     from scipy.io import loadmat
 
-    from latents.state_model.gaussian_process import (
-        GPParams,
-        construct_gp_covariance_matrix,
-    )
+    from latents.mdlag.gp.gp_model import mDLAGGP
 
     # Dataset characteristics:
     T = 25  # Number of samples per sequence
@@ -30,11 +27,9 @@ def test_GP_covariance_matrix():
     D = D / binWidth
     gamma = (binWidth / tau) ** 2
 
-    gp_params = GPParams(eps=eps, gamma=gamma, D=D)
+    gp_params = mDLAGGP(gamma=gamma, delays=D, eps=eps)
 
-    K_big = construct_gp_covariance_matrix(
-        gp_params, T=T, return_tensor=False, order="F"
-    )
+    K_big = gp_params.build_kernel_matrix(T=T, return_tensor=False, order="F")
 
     fixture_path = os.path.join(os.path.dirname(__file__), "K_big.mat")
     matlab_data = loadmat(fixture_path)

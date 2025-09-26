@@ -12,7 +12,7 @@ from latents.mdlag.core import (
 )
 from latents.mdlag.simulation import generate_latents, generate_observations
 from latents.observation_model.probabilistic import HyperPriorParams, ObsParamsARD
-from latents.state_model.gaussian_process import GPParams
+from latents.mdlag.gp.gp_model import mDLAGGP
 from latents.state_model.latents import StateParamsDelayed
 
 
@@ -55,10 +55,10 @@ def generate_params():
     obs_params = ObsParamsARD.generate(
         y_dims, x_dim, hyper_priors, snr, np.random.default_rng(seed=42)
     )
-    gp_params = GPParams(gamma=gamma, eps=eps, D=D)
+    gp = mDLAGGP(gamma=gamma, delays=D, eps=eps)
     state_params = StateParamsDelayed(x_dim, len(y_dims), T)
 
-    return gp_params, state_params, obs_params
+    return gp, state_params, obs_params
 
 
 def custom_r2_score(y_true, y_pred):
@@ -71,25 +71,23 @@ def custom_r2_score(y_true, y_pred):
 def test_inference_observation(capsys):
     """Test the inference of observations achieves high R² with ground truth."""
     # Generate ground truth parameters and data
-    gp_params_true, state_params_true, obs_params_true = generate_params()
+    gp_true, state_params_true, obs_params_true = generate_params()
     rng = np.random.default_rng(seed=42)
 
     # Generate latents and observations
     N = int(1e3)  # Number of samples
-    X_true = generate_latents(gp_params_true, N=N, T=state_params_true.T, rng=rng)
+    X_true = generate_latents(gp_true, N=N, T=state_params_true.T, rng=rng)
     Y = generate_observations(X_true, obs_params_true, rng)
 
     # Initialize model with true GP parameters
     mdlag_params_true = init_mdlag(
-        Y=Y, gp_params_init=gp_params_true, hyper_priors=HyperPriorParams()
+        Y=Y, gp_init=gp_true, hyper_priors=HyperPriorParams()
     )
     mdlag_params_true.state_params = state_params_true
     mdlag_params_true.obs_params = obs_params_true
 
     # Initialize test model with slightly perturbed C
-    mdlag_params = init_mdlag(
-        Y=Y, gp_params_init=gp_params_true, hyper_priors=HyperPriorParams()
-    )
+    mdlag_params = init_mdlag(Y=Y, gp_init=gp_true, hyper_priors=HyperPriorParams())
     mdlag_params.obs_params.C.mean = (
         mdlag_params_true.obs_params.C.mean
         + 0.4 * rng.standard_normal(mdlag_params_true.obs_params.C.mean.shape)
