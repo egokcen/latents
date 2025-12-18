@@ -1,33 +1,26 @@
 [build-system]
-requires = [
-    "setuptools>=61.0",
-    "setuptools_scm>=8.0",
-]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools.packages.find]
-where = ["src"]     # Specify which directory to look for packages
-namespaces = false  # Disable implicit namespaces
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
 
 [project]
 name = "latents"
 description = "A toolkit for latent variable modeling and dimensionality reduction"
-requires-python = ">=3.9"
-dynamic = ["version"]
-authors = [{ name="Evren Gokcen", email="egokcen@cmu.edu" }]
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
+requires-python = ">=3.10"
+dynamic = ["version"]
+authors = [{ name = "Evren Gokcen", email = "egokcen@cmu.edu" }]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering",
 ]
 keywords = [
@@ -45,58 +38,81 @@ dependencies = [
     "scipy",
     "matplotlib",
     "jsonpickle",
-    "notebook",
-    "pandas",
+]
+
+[project.optional-dependencies]
+# User-facing extras only
+notebook = [
+    "jupyter",
+    "ipywidgets",
 ]
 
 [project.urls]
-GitHub = "https://github.com/egokcen/latents"
+Homepage = "https://github.com/egokcen/latents"
+Documentation = "https://latents.readthedocs.io"
+Repository = "https://github.com/egokcen/latents"
+Changelog = "https://github.com/egokcen/latents/blob/main/CHANGELOG.md"
 
-[project.optional-dependencies]
+# PEP 735 Dependency Groups (dev dependencies, not user-facing)
+[dependency-groups]
+dev = [
+    "pre-commit",
+    "ruff",
+]
+test = [
+    "pytest",
+    "pytest-cov",
+    "coverage[toml]",
+]
 doc = [
     "sphinx",
     "sphinx-autobuild",
     "sphinx-design",
-    "myst_parser",
+    "myst-parser",
     "nbsphinx",
     "pydata-sphinx-theme",
 ]
-dev = [
-    "pre-commit",
-    "ruff",
-    "pytest",
-    "pytest-cov",
-    "build",
-    "twine",
-]
 
-[tool.setuptools_scm]
-version_file = "src/latents/_version.py"
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "src/latents/_version.py"
+
+[tool.hatch.build.targets.sdist]
+include = ["/src"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/latents"]
 
 [tool.ruff]
+line-length = 88
+target-version = "py310"
 extend-include = ["*.ipynb"]
 
 [tool.ruff.lint]
 select = [
-    "E",    # pycodestyle errors
-    "W",    # pycodestyle warnings
-    "F",    # Pyflakes
-    "I",    # isort
-    "D",    # pydocstyle
-    "UP",   # pyupgrade
-    "EM",   # flake8-errmsg
-    "FA",   # flake8-future-annotations
-    "ISC",  # flake8-implicit-str-concat
-    "PT",   # flake8-pytest-style"
-    "Q",    # flake8-quotes
-    "RSE",  # flake8-raise
-    "RET",  # flake8-return
-    "SIM",  # flake8-simplify
-    "ARG",  # flake8-unused-arguments
-    "FIX",  # flake8-fixme
-    "ERA",  # eradicate (commented-out code)
-    "NPY",  # NumPy-specific rules
-    "RUF",  # Ruff-specific rules
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # Pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear (added)
+    "C4",     # flake8-comprehensions (added)
+    "D",      # pydocstyle
+    "UP",     # pyupgrade
+    "EM",     # flake8-errmsg
+    "FA",     # flake8-future-annotations
+    "ISC",    # flake8-implicit-str-concat
+    "PT",     # flake8-pytest-style
+    "Q",      # flake8-quotes
+    "RSE",    # flake8-raise
+    "RET",    # flake8-return
+    "SIM",    # flake8-simplify
+    "ARG",    # flake8-unused-arguments
+    "FIX",    # flake8-fixme
+    "ERA",    # eradicate (commented-out code)
+    "NPY",    # NumPy-specific rules
+    "RUF",    # Ruff-specific rules
 ]
 ignore = [
     "D105",   # Missing docstring in magic method
@@ -111,3 +127,26 @@ ignore = [
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
+
+[tool.ruff.lint.isort]
+known-first-party = ["latents"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = [
+    "--cov=latents",
+    "--cov-report=xml",
+    "--cov-report=term-missing",
+    "-v",
+]
+
+[tool.coverage.run]
+source = ["src/latents"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+]

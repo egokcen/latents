@@ -11,12 +11,13 @@ __pycache__
 # Testing
 .pytest_cache
 .coverage
+coverage.xml
 
 # Distribution / packaging
 build
 dist
 *.egg-info
-_version.py
+src/latents/_version.py
 
 # Sphinx documentation
 docs/build
