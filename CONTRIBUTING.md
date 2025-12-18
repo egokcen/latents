@@ -96,131 +96,89 @@ will also undergo several [automated status checks](.github/workflows) (see
 
 ## Environment Setup
 
-#### Step 1: Clone the Latents repository
+### Prerequisites
 
-To work on Latents locally, clone the repository to your working directory:
+- Python 3.10 or higher
+- [uv](https://docs.astral.sh/uv/) package manager
+
+To install uv, see the [uv installation guide](https://docs.astral.sh/uv/getting-started/installation/).
+
+### Quick Start
 
 ```sh
+# Clone the repository
 git clone https://github.com/egokcen/latents.git
-```
-
-#### Step 2: Create a clean Python environment
-
-Similar to the instructions laid out in the [README](./README.md),
-if you are a 
-[venv](https://docs.python.org/3/library/venv.html) user (preferred for developers),
-run
-
-```sh
-python -m venv myenv
-```
-
-This command will create a new directory ``myenv`` (choose any name you like).
-To activate the virtual environment, run
-
-```sh
-source myenv/bin/activate
-```
-
-All of your development should be done inside of this environment.
-
-If you are a 
-[conda](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) 
-user, run
-
-```sh
-conda create --name myenv python=3.10
-conda activate myenv
-```
-
-Again, you can choose any name you like for the virtual environment, and any
-[supported version](https://devguide.python.org/versions/) of Python.
-
-#### Step 3: Install the latents Python package
-
-
-You're now ready to install the `latents` Python package and its current dependencies.
-Navigate to the repository directory:
-
-```sh
 cd latents
+
+# Install all dependencies (creates .venv automatically)
+uv sync --all-groups
+
+# Verify installation
+uv run pytest
 ```
 
-Install the package in editable mode, with additional optional dependencies for
-development and documentation:
+That's it! The `uv sync` command automatically creates a virtual environment in `.venv`
+and installs all dependencies. You don't need to manually activate the environment—just
+prefix commands with `uv run`.
+
+### Dependency Groups
+
+Dependencies are organized into groups in [pyproject.toml](./pyproject.toml):
+
+- **dev**: Development tools (pre-commit, ruff)
+- **test**: Testing tools (pytest, pytest-cov, coverage)
+- **doc**: Documentation tools (sphinx, pydata-sphinx-theme, etc.)
+
+To install only specific groups:
 
 ```sh
-pip install -e .[dev,doc]
+uv sync --group dev --group test  # Skip doc dependencies
 ```
-
-These extra dependencies are laid out in the [pyproject.toml](./pyproject.toml) file.
-If you don't need one of these sets of dependencies, you can omit `dev` or `doc`.
-
-#### Step 4 (Optional): Install Nox
-
-Optionally, install [Nox](https://nox.thea.codes/en/stable/):
-
-```sh
-pip install nox
-```
-
-Nox is helpful, in particular, for automating local [testing](#testing) across 
-multiple Python versions ([pyenv](https://github.com/pyenv/pyenv) is a great tool for
-switching between Python versions on your machine, and it plays nicely with Nox). In the
-[noxfile.py](./noxfile.py) file, there also sessions configured for
-[code checks and linting](#code-checks-and-linting) and building
-[documentation](#documentation).
 
 ## Code Checks and Linting
 
-#### pre-commit
+### pre-commit
 
 We use [pre-commit](https://pre-commit.com/) for code checks and linting.
 You can find the current set of pre-commit hooks [here](./.pre-commit-config.yaml).
 To install the git hook scripts in your cloned repository, run
 
 ```sh
-pre-commit install
+uv run pre-commit install
 ```
 
-pre-commit will now run automatically on `git commit`. It can also be run manually:
+pre-commit will now run automatically on `git commit`. Because pre-commit needs
+access to the tools installed in the virtual environment, use `uv run` when committing:
 
 ```sh
-pre-commit run --all-files --show-diff-on-failure
+uv run git commit -m "your commit message"
 ```
-#### Ruff
 
-Under the hood, we've configured pre-commit to use 
+You can also run pre-commit manually on all files:
+
+```sh
+uv run pre-commit run --all-files
+```
+
+### Ruff
+
+Under the hood, we've configured pre-commit to use
 [Ruff](https://docs.astral.sh/ruff/) for linting and formatting. See the
 [pyproject.toml](./pyproject.toml) for the current ruleset. We highly recommend
 configuring your development environment to automatically employ Ruff with these
 rules (see, for example, the
 [VS Code Ruff extension](https://marketplace.visualstudio.com/items?itemName=charliermarsh.ruff)).
 
-You can also run Ruff linting and formatting explicitly via the command line.
-To run the linter:
+You can also run Ruff linting and formatting explicitly via the command line:
 
 ```sh
-ruff check
-```
-
-If all checks pass, you can run the formatter:
-```sh
-ruff format
-```
-
-#### Nox
-
-With pre-commit set up, you can optionally perform the above tasks with
-[Nox](#step-4-optional-install-nox):
-
-```sh
-nox -s lint
+uv run ruff check        # Run the linter
+uv run ruff format       # Run the formatter
 ```
 
 ## Testing
 
-#### pytest
+### pytest
 
 Testing in the Latents project relies on [pytest](https://docs.pytest.org/en/stable/):
 
@@ -234,35 +192,35 @@ Testing in the Latents project relies on [pytest](https://docs.pytest.org/en/sta
 These naming conventions are critical for pytest to accurately discover and run all
 tests in the project.
 
-Run all tests in the project by invoking pytest in the command line:
+Run all tests in the project:
 
 ```sh
-pytest
+uv run pytest
 ```
 
-To calculate coverage and generate a coverage report, run pytest with these optional
-arguments:
+Coverage is automatically calculated and reported (configured in pyproject.toml).
+
+### Testing on Multiple Python Versions
+
+To test on a specific Python version, re-sync the environment with that version:
 
 ```sh
-pytest --cov=latents --cov-report=xml
+# Test on Python 3.10
+uv sync --python 3.10 --all-groups
+uv run pytest
+
+# Test on Python 3.14
+uv sync --python 3.14 --all-groups
+uv run pytest
 ```
 
-#### Nox
-
-You can run the project's tests across all supported versions of Python with the help
-of Nox:
-
-```sh
-nox -s tests
-```
-
-For this session to run successfully, you will need to have all supported versions
-of Python locally accessible on your machine. [pyenv](https://github.com/pyenv/pyenv)
-is a great tool for that purpose.
+uv will automatically download and manage Python versions as needed. See the
+[uv Python version documentation](https://docs.astral.sh/uv/concepts/python-versions/)
+for more details.
 
 ## Documentation
 
-#### Sphinx
+### Sphinx
 
 We use [Sphinx](https://www.sphinx-doc.org/en/master/) to build our documentation.
 As a developer, if you're mostly just working on code, then the documentation [style guide](#documentation-1) is the most important information for you to keep in mind.
@@ -272,55 +230,52 @@ on your docstrings.
 Documentation source files live [here](./docs/source). The source directory structure
 aims to match the hierarchical structure of the documentation site itself. Required
 Sphinx extensions and core configurations are set in [conf.py](./docs/source/conf.py).
-Source files are written in reStructuredText (`*.rst`).
+Source files are written in reStructuredText (`*.rst`) or Markdown (`*.md`).
 
 To build the documentation:
 
 ```sh
-sphinx-build -M html docs/source docs/build
+uv run sphinx-build -b html docs/source docs/_build/html
 ```
 
 To check for broken links in the documentation:
 
 ```sh
-sphinx-build -M linkcheck docs/source docs/build
+uv run sphinx-build -b linkcheck docs/source docs/_build/linkcheck
 ```
 
-Locally serve the built html pages:
+Locally serve the built HTML pages:
 
 ```sh
-python -m http.server -b 127.0.0.1 8000 -d docs/build/html
+uv run python -m http.server -b 127.0.0.1 8000 -d docs/_build/html
 ```
 
 `sphinx-autobuild` can be helpful to locally serve and automatically rebuild the
 documentation upon revision:
 
 ```sh
-sphinx-autobuild docs/source/ docs/build/html/
-```
-
-#### Nox
-
-You can use Nox to take care of building the documentation:
-
-```sh
-nox -s docs
-```
-
-To build and then serve the documentation locally:
-
-```sh
-nox -s docs -- --serve
+uv run sphinx-autobuild docs/source docs/_build/html
 ```
 
 ## Style Guides
 
 ### Git Commit Messages
 
+We follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/):
+
+- Use commit types: `feat:`, `fix:`, `docs:`, `style:`, `refactor:`, `test:`, `chore:`
 - Use the present tense ("Add parameter" not "Added parameter")
 - Use the imperative mood ("Infer latent..." not "Infers latent...")
 - Limit the first line to 72 characters or less
 - Reference issues and pull requests liberally after the first line
+
+Examples:
+```
+feat: add cross-validation support to GFA
+fix: correct posterior covariance calculation
+docs: update installation instructions for uv
+chore: update pre-commit hooks
+```
 
 ### Python Code
 
