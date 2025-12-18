@@ -83,7 +83,7 @@ with an emphasis on linear, probabilistic methods.
     :maxdepth: 2
     :hidden:
     :titlesonly:
-    
+
     installation
     user_guide/index
     demo_gallery/index

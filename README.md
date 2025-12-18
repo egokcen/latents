@@ -37,20 +37,20 @@ For information on each method, see the [documentation](#documentation).
 
 ### Prerequisites
 
-**Latents** is implemented in [Python](https://www.python.org/downloads/). It 
+**Latents** is implemented in [Python](https://www.python.org/downloads/). It
 accomodates all [supported Python releases](https://devguide.python.org/versions/).
 To proceed to [installation](#installation), you should have Python installed on your
 machine.
 
-[Usage demonstrations and tutorials](notebooks) for the ``latents`` package are provided in 
+[Usage demonstrations and tutorials](notebooks) for the ``latents`` package are provided in
 [Jupyter Notebooks](https://jupyter.org/). Jupyter Notebook dependencies will be
 installed when you install the ``latents`` package, but familiarity with notebooks
 will be helpful to take full advantage of these resources.
 
 ### Installation
 
-Assuming you have Python installed on your machine, start by creating a virtual 
-environment inside your project directory. For example, if you are a 
+Assuming you have Python installed on your machine, start by creating a virtual
+environment inside your project directory. For example, if you are a
 [venv](https://docs.python.org/3/library/venv.html) user, run
 
 ```sh
@@ -64,8 +64,8 @@ To activate the virtual environment, run
 source myenv/bin/activate
 ```
 
-If you are a 
-[conda](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html) 
+If you are a
+[conda](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html)
 user, run
 
 ```sh
@@ -94,7 +94,7 @@ python3 -m pip install -e .
 > [!NOTE]
 > Depending on your system, you may need to explicitly provide the path to
 > the ``latents`` package. In that case, replace ``.`` with the path to the ``latents``
-> directory.    
+> directory.
 
 You can now import and use the ``latents`` package wherever your project is located.
 
@@ -107,7 +107,7 @@ Interested in contributing? See the [Contributing Guide](CONTRIBUTING.md).
 
 ## Code of Conduct
 
-Whether you are a user, contributor, or maintainer, please consult the 
+Whether you are a user, contributor, or maintainer, please consult the
 [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## License

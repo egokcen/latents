@@ -17,7 +17,7 @@ body:
     attributes:
       label: Involved code
       description: >
-        Specify the involved code. Include subpackages, modules, classes, functions, 
+        Specify the involved code. Include subpackages, modules, classes, functions,
         etc.
     validations:
       required: true

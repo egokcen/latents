@@ -10,7 +10,7 @@ body:
       label: Prerequisites
       options:
         - label: >
-            I have read the 
+            I have read the
             [installation guide](https://github.com/egokcen/latents/blob/main/README.md#getting-started).
           required: true
   - type: input
@@ -55,7 +55,7 @@ body:
     attributes:
       label: Installation Logs
       description: >
-        If possible, please copy and paste the installation logs when attempting to 
+        If possible, please copy and paste the installation logs when attempting to
         install latents.
       value: >
         <details>

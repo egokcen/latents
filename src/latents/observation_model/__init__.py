@@ -10,8 +10,8 @@ from latents.observation_model.observations import (
 )
 
 __all__ = [
-    "observations",
     "ObsStatic",
     "ObsTimeSeries",
+    "observations",
     "probabilistic",
 ]

@@ -29,7 +29,7 @@ body:
     attributes:
       label: Feature Description
       description: >
-        Please describe how the new feature would be implemented, using pseudocode if 
+        Please describe how the new feature would be implemented, using pseudocode if
         relevant.
     validations:
       required: true

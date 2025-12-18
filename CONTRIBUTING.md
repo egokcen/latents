@@ -26,7 +26,7 @@ started.
 If you haven't already, check out the [README](./README.md) file for an overview
 of the project.
 
-New to collaborating and contributing with Git and GitHub? The 
+New to collaborating and contributing with Git and GitHub? The
 [GitHub Docs](https://docs.github.com/en) provide many
 resources for getting acquainted with these tools. Here are a few entry points:
 
@@ -80,7 +80,7 @@ of training samples?
 
 We use [Issues](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/creating-an-issue)
 to track work that needs to be done. When you open an issue, consider using an
-[Issue Template](.github/ISSUE_TEMPLATE). We have Issue Templates for each of the 
+[Issue Template](.github/ISSUE_TEMPLATE). We have Issue Templates for each of the
 [contribution types](#types-of-contributions) above.
 
 #### Pull requests
@@ -285,9 +285,9 @@ to meet these rules to be accepted.
 
 ### Documentation
 
-To facilitate [Sphinx's](https://www.sphinx-doc.org/en/master/) automated build process, we stick to 
+To facilitate [Sphinx's](https://www.sphinx-doc.org/en/master/) automated build process, we stick to
 [NumPy style docstrings](https://www.sphinx-doc.org/en/master/usage/extensions/example_numpy.html)
 with [type hints](https://docs.python.org/3/library/typing.html).
-Docstrings include instances of explicit markup syntax and directives 
+Docstrings include instances of explicit markup syntax and directives
 (e.g., `**bold_variable**` or `:class:`) for proper rendering. Look through any
 [source file](./src) for examples.

@@ -9,7 +9,7 @@ from latents.state_model.latents import (
 )
 
 __all__ = [
-    "latents",
-    "PosteriorLatentStatic",
     "PosteriorLatentDelayed",
+    "PosteriorLatentStatic",
+    "latents",
 ]

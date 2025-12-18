@@ -1,17 +1,10 @@
-repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    # Ruff version.
-    rev: v0.7.2
-    hooks:
-      # Run the linter.
-      - id: ruff
-        types_or: [ python, pyi, jupyter ]
-      # Run the formatter.
-      - id: ruff-format
-        types_or: [ python, pyi, jupyter ]
+default_language_version:
+  python: python3.12
 
+repos:
+  # General file hygiene
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v5.0.0
+    rev: v6.0.0
     hooks:
       - id: check-added-large-files
         args: ['--maxkb=1000']
@@ -19,5 +12,38 @@ repos:
       - id: check-merge-conflict
       - id: check-toml
       - id: check-yaml
+        args: ['--unsafe']
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: ['--fix=lf']
       - id: name-tests-test
         args: [--pytest-test-first]
+      - id: trailing-whitespace
+
+  # Python linting and formatting
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.9
+    hooks:
+      - id: ruff
+        args: ['--fix']
+        types_or: [python, pyi, jupyter]
+      - id: ruff-format
+        types_or: [python, pyi, jupyter]
+
+  # GitHub workflow validation
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.36.0
+    hooks:
+      - id: check-github-workflows
+        exclude: ^\.github/workflows/(build|docs|pre-commit)\.yml$
+
+  # Commit message linting
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.10.1
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]
+
+ci:
+  autoupdate_schedule: quarterly
+  skip: [commitizen]

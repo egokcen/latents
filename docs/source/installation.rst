@@ -3,14 +3,14 @@
 Installation
 ============
 
-Assuming you have Python installed on your machine, start by creating a virtual 
+Assuming you have Python installed on your machine, start by creating a virtual
 environment inside your project directory. For example, if you are a venv user, run
 
 .. tab-set::
 
     .. tab-item:: Linux/macOS
         :sync: linux
-        
+
         .. code-block:: bash
 
             python3 -m venv myenv
@@ -29,7 +29,7 @@ To activate the virtual environment, run
 
     .. tab-item:: Linux/macOS
         :sync: linux
-        
+
         .. code-block:: bash
 
             source myenv/bin/activate
@@ -58,7 +58,7 @@ following command:
 
     .. tab-item:: Linux/macOS
         :sync: linux
-        
+
         .. code-block:: bash
 
             python3 -m pip install .
@@ -75,25 +75,25 @@ to modify the source code and have the changes reflected immediately, without
 having to reinstall the package. To do so, run
 
 .. tab-set::
-    
+
     .. tab-item:: Linux/macOS
         :sync: linux
-        
+
         .. code-block:: bash
 
             python3 -m pip install -e .
 
     .. tab-item:: Windows
         :sync: windows
-        
+
         .. code-block:: bat
-        
+
             python -m pip install -e .
 
 .. note::
 
-    Depending on your system, you may need to explicitly provide the path to 
-    the ``latents`` package. In that case, replace ``.`` with the path to the 
-    ``latents`` directory.            
+    Depending on your system, you may need to explicitly provide the path to
+    the ``latents`` package. In that case, replace ``.`` with the path to the
+    ``latents`` directory.
 
 You can now import and use the ``latents`` package wherever your project is located.

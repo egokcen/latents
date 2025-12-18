@@ -267,7 +267,7 @@ def fit(
         # Display progress
         if verbose:
             print(
-                f"\rIteration {fit_iter+1} of {max_iter}        lb {lb_curr}",
+                f"\rIteration {fit_iter + 1} of {max_iter}        lb {lb_curr}",
                 end="",
                 flush=True,
             )
@@ -284,7 +284,7 @@ def fit(
     # Display reasons for stopping
     if verbose:
         if flags.converged:
-            print(f"\nLower bound converged after {fit_iter+1} iterations.")
+            print(f"\nLower bound converged after {fit_iter + 1} iterations.")
         elif ((fit_iter + 1) < max_iter) and params.x_dim <= 0:
             print("\nFitting stopped because no significant latent dimensions remain.")
         else:

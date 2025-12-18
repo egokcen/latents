@@ -42,7 +42,7 @@ def test_fit():
     )
 
     # Simulate data
-    Y, X_true, params_true = gfa_sim.simulate(
+    Y, _, _ = gfa_sim.simulate(
         N,
         y_dims,
         x_dim,
