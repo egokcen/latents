@@ -35,7 +35,6 @@ repos:
     rev: 0.36.0
     hooks:
       - id: check-github-workflows
-        exclude: ^\.github/workflows/(build|docs|pre-commit)\.yml$
 
   # Commit message linting
   - repo: https://github.com/commitizen-tools/commitizen
