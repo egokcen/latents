@@ -1,12 +1,4 @@
-"""
-Store and manipulate different types of observed data.
-
-**Classes**
-
-- :class:`ObsStatic` -- Store and manipulate views of observed static data.
-- :class:`ObsTimeSeries` -- Store and manipulate views of observed time series data.
-
-"""
+"""Store and manipulate different types of observed data."""
 
 from __future__ import annotations
 

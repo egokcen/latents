@@ -4,6 +4,17 @@ latents.plotting
 ================
 
 .. automodule:: latents.plotting
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   :no-members:
+
+.. currentmodule:: latents.plotting
+
+.. rubric:: Functions
+
+.. autosummary::
+   :nosignatures:
+
+   hinton
+
+----
+
+.. autofunction:: hinton

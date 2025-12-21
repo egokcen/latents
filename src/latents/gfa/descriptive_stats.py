@@ -1,11 +1,4 @@
-"""
-Compute descriptive statistics related to group factor analysis (GFA) models.
-
-**Functions**
-
-- :func:`predictive_performance` -- Leave-group-out predictive performance.
-
-"""
+"""Compute descriptive statistics related to group factor analysis (GFA) models."""
 
 from __future__ import annotations
 

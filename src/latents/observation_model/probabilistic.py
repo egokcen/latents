@@ -1,19 +1,4 @@
-"""
-Building blocks for observation models with probabilistic model components.
-
-Build probabilistic observation models and compute descriptive statistics from their
-parameters.
-
-**Classes**
-
-- :class:`PosteriorLoading` -- Posterior estimates of loading matrices.
-- :class:`PosteriorARD` -- Posterior estimates of ARD parameters.
-- :class:`PosteriorObsMean` -- Posterior estimates of mean parameters.
-- :class:`PosteriorObsPrec` -- Posterior estimates of precision parameters.
-- :class:`HyperPriorParams` -- Prior hyperparameters.
-- :class:`ObsParamsARD` -- A generic observation model with ARD.
-
-"""
+"""Building blocks for observation models with probabilistic components."""
 
 from __future__ import annotations
 
