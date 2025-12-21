@@ -1,8 +1,5 @@
 """Configuration file for the Sphinx documentation builder."""
 
-# Build locally using sphinx autobuild:
-#     $ sphinx-autobuild docs/source/ docs/build/html/
-
 # Path setup
 import os
 import sys
@@ -20,29 +17,64 @@ version = ".".join(release.split(".")[:2])  # Take only major/minor
 
 # General configuration
 extensions = [
+    # Core Sphinx extensions
     "sphinx.ext.autodoc",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.intersphinx",
     "sphinx.ext.mathjax",
-    "sphinx.ext.napoleon",
-    "sphinx_design",
+    "sphinx.ext.viewcode",
+    # Third-party extensions
+    "numpydoc",
     "myst_parser",
-    "nbsphinx",
+    "sphinx_design",
+    "sphinx_gallery.gen_gallery",
 ]
-myst_enable_extensions = ["colon_fence"]  # For using MyST Parser with sphinx design
-exclude_patterns = []
+
+# MyST Parser configuration
+myst_enable_extensions = [
+    "colon_fence",  # ::: directives for sphinx-design
+    "dollarmath",  # $inline$ and $$block$$ LaTeX math
+    "deflist",  # Definition lists
+]
+
+# Autosummary configuration
+autosummary_generate = True
+exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+
+# Intersphinx configuration
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy/", None),
+    "matplotlib": ("https://matplotlib.org/stable/", None),
+}
+
+# Sphinx-gallery configuration
+sphinx_gallery_conf = {
+    "examples_dirs": ["../../examples"],  # Path to example scripts
+    "gallery_dirs": ["auto_examples"],  # Path to generated gallery
+    "filename_pattern": r"\.py$",  # Include all Python files
+    "remove_config_comments": True,
+    "plot_gallery": "True",
+    "download_all_examples": False,
+    "line_numbers": False,
+    "within_subsection_order": "FileNameSortKey",
+    "matplotlib_animations": True,
+}
 
 # HTML theme options
-html_theme = "pydata_sphinx_theme"  # Use the PyData theme
+html_theme = "pydata_sphinx_theme"
 html_js_files = [
-    "pypi-icon.js",  # PyPI icon
+    "pypi-icon.js",
 ]
 
 html_theme_options = {
-    # Navigation bar items
-    "navbar_start": ["navbar-logo", "version-switcher"],
+    # Navigation bar (version switching handled by RTD flyout)
+    "navbar_start": ["navbar-logo"],
     "navbar_center": ["navbar-nav"],
     "navbar_end": ["theme-switcher", "navbar-icon-links"],
     "navbar_persistent": ["search-button"],
-    "header_links_before_dropdown": 4,  # Number of items before a "More" dropdown
+    "header_links_before_dropdown": 4,
     # Project logo
     "logo": {
         "text": "latents",
@@ -67,12 +99,11 @@ html_theme_options = {
     "footer_start": ["copyright"],
     "footer_center": ["sphinx-version"],
     # Primary navigation bar
-    "show_nav_level": 0,  # Collapse navigation to the top-level items
-    "navigation_depth": 2,  # Control how many levels of navigation are shown
-    # Set up the sidebar, on all pages but the index page
-    "secondary_sidebar_items": {
-        "**/*": ["page-toc"],
-    },
+    "show_nav_level": 0,
+    "navigation_depth": 2,
+    # Set up the sidebar
+    # Sidebar: page-toc for all pages, plus download links for examples
+    "secondary_sidebar_items": ["page-toc", "sg_download_links"],
 }
 html_context = {
     "github_user": "egokcen",
@@ -81,14 +112,15 @@ html_context = {
     "doc_path": "docs/source",
     "default_mode": "dark",
 }
-html_static_path = ["_static"]  # Include images and CSS files here
-html_css_files = ["latents.css"]  # CSS files for theme customization
+html_static_path = ["_static"]
+html_css_files = ["latents.css"]
 
 # Autodoc settings
-autodoc_typehints = "description"
+autodoc_typehints = "none"  # numpydoc handles type documentation
 autodoc_member_order = "bysource"
 
-# Napoleon settings
-napoleon_google_docstring = False
-napoleon_numpy_docstring = True
-napoleon_use_ivar = True
+# Numpydoc settings
+numpydoc_show_class_members = True
+numpydoc_class_members_toctree = False
+numpydoc_attributes_as_param_list = True
+numpydoc_xref_param_type = True
