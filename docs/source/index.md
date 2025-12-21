@@ -1,13 +1,14 @@
-The latents toolkit
-===================
+# The latents toolkit
 
 **latents** is a toolkit for latent variable modeling and dimensionality reduction,
 with an emphasis on linear, probabilistic methods.
 
-.. warning::
-    The `latents` toolkit is in an early stage of development and is not yet
-    stable. The API is subject to frequent change.
+:::{warning}
+The `latents` toolkit is in an early stage of development and is not yet
+stable. The API is subject to frequent change.
+:::
 
+```{eval-rst}
 .. grid:: 1 2 2 2
     :gutter: 4
     :padding: 2 2 0 0
@@ -46,22 +47,21 @@ with an emphasis on linear, probabilistic methods.
 
             To the user guide
 
-    .. grid-item-card::  Demo gallery
+    .. grid-item-card::  Examples
         :class-card: intro-card
         :shadow: md
 
-        The demo gallery includes a collection of notebooks with comprehensive
-        demonstrations on how to use each method in the `latents` toolkit.
+        The example gallery includes comprehensive demonstrations on how to use
+        each method in the `latents` toolkit.
 
         +++
 
-        .. button-ref:: demo_gallery
-            :ref-type: ref
+        .. button-link:: auto_examples/index.html
             :click-parent:
             :color: secondary
             :expand:
 
-            To the demo gallery
+            To the examples
 
     .. grid-item-card::  API reference
         :class-card: intro-card
@@ -78,7 +78,9 @@ with an emphasis on linear, probabilistic methods.
             :expand:
 
             To the reference guide
+```
 
+```{eval-rst}
 .. toctree::
     :maxdepth: 2
     :hidden:
@@ -86,5 +88,6 @@ with an emphasis on linear, probabilistic methods.
 
     installation
     user_guide/index
-    demo_gallery/index
+    auto_examples/index
     reference/index
+```
