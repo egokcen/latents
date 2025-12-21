@@ -24,6 +24,8 @@ src/latents/_version.py
 
 # Sphinx documentation
 docs/_build
+docs/source/auto_examples/
+docs/source/sg_execution_times.rst
 
 # Virtual environments
 .env
@@ -38,3 +40,4 @@ myenv
 
 # Claude Code
 .claude/settings.local.json
+.playwright-mcp/
