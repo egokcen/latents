@@ -66,8 +66,30 @@ jobs:
           name: dist
           path: dist/
 
+      - name: Extract release notes from CHANGELOG
+        id: changelog
+        run: |
+          # Get version from tag (strip leading 'v')
+          VERSION="${GITHUB_REF_NAME#v}"
+
+          # Extract section between this version's header and the next section
+          # Stops at: next version header (## [) or link references ([X]: http...)
+          NOTES=$(sed -n "/^## \[${VERSION}\]/,/^\(## \[\|^\[.\+\]:\)/p" CHANGELOG.md | sed '1d;$d')
+
+          if [ -z "$NOTES" ]; then
+            echo "::warning::No CHANGELOG entry found for version ${VERSION}"
+            NOTES="Release ${VERSION}"
+          fi
+
+          # Write to GitHub output using heredoc delimiter
+          {
+            echo "notes<<CHANGELOG_EOF"
+            echo "$NOTES"
+            echo "CHANGELOG_EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          generate_release_notes: true
+          body: ${{ steps.changelog.outputs.notes }}
           files: dist/*

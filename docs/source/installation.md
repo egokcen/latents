@@ -2,105 +2,33 @@
 
 # Installation
 
-Assuming you have Python installed on your machine, start by creating a virtual
-environment inside your project directory. For example, if you are a venv user, run
+## Requirements
 
-```{eval-rst}
-.. tab-set::
+- Python 3.10 or higher
 
-    .. tab-item:: Linux/macOS
-        :sync: linux
+## From PyPI
 
-        .. code-block:: bash
-
-            python3 -m venv myenv
-
-    .. tab-item:: Windows
-        :sync: windows
-
-        .. code-block:: bat
-
-            python -m venv myenv
-```
-
-This command will create a new directory `myenv` (choose any name you like).
-To activate the virtual environment, run
-
-```{eval-rst}
-.. tab-set::
-
-    .. tab-item:: Linux/macOS
-        :sync: linux
-
-        .. code-block:: bash
-
-            source myenv/bin/activate
-
-    .. tab-item:: Windows
-        :sync: windows
-
-        .. code-block:: bat
-
-            myvenv\Scripts\activate.bat
-```
-
-If you are a conda user, run
+Install the latest release from PyPI:
 
 ```bash
-conda create --name myenv python=3.10
-conda activate myenv
+pip install latents
 ```
 
-Again, you can choose any name you like for the virtual environment, and any
-supported version of Python.
+For Jupyter notebook support:
 
-Next, navigate to the `latents` directory. Install the package locally using the
-following command:
-
-```{eval-rst}
-.. tab-set::
-
-    .. tab-item:: Linux/macOS
-        :sync: linux
-
-        .. code-block:: bash
-
-            python3 -m pip install .
-
-    .. tab-item:: Windows
-        :sync: windows
-
-        .. code-block:: bat
-
-            python -m pip install .
+```bash
+pip install latents[notebook]
 ```
 
-Alternatively, you can install the package in editable mode, which allows you
-to modify the source code and have the changes reflected immediately, without
-having to reinstall the package. To do so, run
+## From Source
 
-```{eval-rst}
-.. tab-set::
+For development or to use the latest unreleased changes, install from source:
 
-    .. tab-item:: Linux/macOS
-        :sync: linux
-
-        .. code-block:: bash
-
-            python3 -m pip install -e .
-
-    .. tab-item:: Windows
-        :sync: windows
-
-        .. code-block:: bat
-
-            python -m pip install -e .
+```bash
+git clone https://github.com/egokcen/latents.git
+cd latents
+pip install -e .
 ```
 
-:::{note}
-Depending on your system, you may need to explicitly provide the path to
-the `latents` package. In that case, replace `.` with the path to the
-`latents` directory.
-:::
-
-You can now import and use the `latents` package wherever your project is located.
+For development setup with all dependencies, see the
+[Contributing Guide](https://github.com/egokcen/latents/blob/main/CONTRIBUTING.md).

@@ -58,7 +58,8 @@ unclear, or incorrect documentation (including simple typos), and suggestions fo
 
 #### API and usage tutorials
 
-We welcome suggested improvements to the existing [tutorial notebooks](./notebooks).
+We welcome suggested improvements to the existing
+[examples](https://latents.readthedocs.io/en/latest/auto_examples/index.html).
 Other cool usage examples, or tutorials on the statistical methods themselves are also
 valuable contributions.
 
