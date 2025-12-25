@@ -6,12 +6,15 @@ on:
 
 jobs:
   claude-review:
-    # Only run for external contributors (not OWNER, MEMBER, or COLLABORATOR)
+    # Only run for external human contributors (skip Dependabot and other bots)
     if: |
-      github.event.pull_request.author_association == 'FIRST_TIMER' ||
-      github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR' ||
-      github.event.pull_request.author_association == 'CONTRIBUTOR' ||
-      github.event.pull_request.author_association == 'NONE'
+      github.event.pull_request.user.login != 'dependabot[bot]' &&
+      (
+        github.event.pull_request.author_association == 'FIRST_TIMER' ||
+        github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR' ||
+        github.event.pull_request.author_association == 'CONTRIBUTOR' ||
+        github.event.pull_request.author_association == 'NONE'
+      )
     runs-on: ubuntu-latest
     permissions:
       contents: read
