@@ -1,7 +1,7 @@
 name: Tutorial Request
 description: Request tutorial content
 title: "[TUT] "
-labels: [tutorial]
+labels: [tutorial, needs-triage]
 
 body:
   - type: textarea
@@ -9,7 +9,7 @@ body:
     attributes:
       label: Tutorial Description
       description: >
-        Please describe the latents functionality that could benefit from a tutorial.
+        Describe the latents functionality that could benefit from a tutorial.
         Outline the content of the tutorial.
     validations:
       required: true

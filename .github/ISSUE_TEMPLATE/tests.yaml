@@ -1,7 +1,7 @@
 name: Tests
 description: Suggest unit and/or integration tests for latents
 title: "[TEST] "
-labels: [test]
+labels: [test, needs-triage]
 
 body:
   - type: textarea
@@ -9,9 +9,10 @@ body:
     attributes:
       label: Functionality to be tested
       description: >
-        Please describe the latents functionality that needs to be tested.
+        Describe the latents functionality that needs to be tested.
     validations:
       required: true
+
   - type: textarea
     id: involved-code
     attributes:
@@ -21,6 +22,7 @@ body:
         etc.
     validations:
       required: true
+
   - type: textarea
     id: suggested-fix
     attributes:

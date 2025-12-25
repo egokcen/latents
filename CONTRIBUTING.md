@@ -39,37 +39,38 @@ resources for getting acquainted with these tools. Here are a few entry points:
 There are many ways to meaningfully contribute to the Latents project. The types of
 contributions we welcome include, but are not limited to, the following.
 
-#### Bug reports and fixes
+### Bug reports and fixes
 
 Simply creating an Issue to point out a bug helps improve this project. If you already
 have an idea on how to fix the bug, consider submitting a Pull Request - we might ask
 you to submit one ourselves!
 
-#### Feature or method requests and enhancements
+### Feature or method requests and enhancements
 
 Enhancements can include API improvements, runtime improvements, or better support for
 pre- and post-processing of data and model fits. At a larger scale, we might consider
 additional statistical methods if they fit within the scope of this project.
 
-#### Documentation improvements
+### Documentation improvements
 
 We strive to keep documentation comprehensive, clear, and correct. Reports of missing,
-unclear, or incorrect documentation (including simple typos), and suggestions for improvement are all welcome. You could even suggest improvements to this file!
+unclear, or incorrect documentation (including simple typos), and suggestions for
+improvement are all welcome. You could even suggest improvements to this file!
 
-#### API and usage tutorials
+### API and usage tutorials
 
 We welcome suggested improvements to the existing
 [examples](https://latents.readthedocs.io/en/latest/auto_examples/index.html).
 Other cool usage examples, or tutorials on the statistical methods themselves are also
 valuable contributions.
 
-#### Unit and integration tests
+### Unit and integration tests
 
 Any bug fixes or feature enhancements should come with appropriately modified or
 created tests. But filling in tests where you think they might be missing is a valuable
 contribution in its own right!
 
-#### Benchmarks
+### Benchmarks
 
 Benchmarks can include runtime or statistical performance. For example, how well
 does each method in Latents recover ground truth parameters as a function of number
@@ -77,14 +78,14 @@ of training samples?
 
 ## How to Contribute
 
-#### Issues
+### Issues
 
 We use [Issues](https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/creating-an-issue)
 to track work that needs to be done. When you open an issue, consider using an
 [Issue Template](.github/ISSUE_TEMPLATE). We have Issue Templates for each of the
 [contribution types](#types-of-contributions) above.
 
-#### Pull requests
+### Pull requests
 
 To add your contribution to the Latents project, create a
 [Pull Request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/getting-started/best-practices-for-pull-requests).
@@ -94,6 +95,31 @@ reviewed and approved before it can be merged with the main branch. Each pull re
 will also undergo several [automated status checks](.github/workflows) (see
 [Code Checks and Linting](#code-checks-and-linting), [Testing](#testing), and
 [Documentation](#documentation) below).
+
+### AI-assisted review
+
+External contributors receive automated code review from Claude on pull requests.
+The review covers code quality, potential bugs, performance, security, and test
+coverage. This provides fast initial feedback—a human maintainer will also review
+your PR.
+
+You can mention `@claude` in any issue or PR comment to ask questions or request
+assistance.
+
+### Changelog
+
+We maintain a [CHANGELOG.md](./CHANGELOG.md) following
+[Keep a Changelog](https://keepachangelog.com/) conventions. For user-facing changes,
+add an entry under the `[Unreleased]` section:
+
+- **Added** — new features
+- **Changed** — changes to existing functionality
+- **Deprecated** — soon-to-be removed features
+- **Removed** — removed features
+- **Fixed** — bug fixes
+- **Security** — vulnerability fixes
+
+The release workflow automatically extracts your entry for GitHub Release notes.
 
 ## Environment Setup
 

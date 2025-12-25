@@ -1,7 +1,7 @@
 name: Bug Report
 description: Report incorrect behavior in the latents package
 title: "[BUG] "
-labels: [bug]
+labels: [bug, needs-triage]
 
 body:
   - type: checkboxes
@@ -9,45 +9,62 @@ body:
     attributes:
       label: Prerequisites
       options:
-        - label: >
-            I have checked that this issue has not already been reported.
+        - label: I have searched the existing issues to ensure this bug has not already been reported.
           required: true
+
   - type: input
     id: latents-version
     attributes:
-      label: latents Version
-      description: >
-        Please provide the installed version of latents.
+      label: Latents Version
+      description: Installed version of latents
+      placeholder: "0.1.0"
     validations:
       required: true
+
+  - type: dropdown
+    id: python-version
+    attributes:
+      label: Python Version
+      description: Python version you are using
+      options:
+        - "3.10"
+        - "3.11"
+        - "3.12"
+        - "3.13"
+        - "3.14"
+        - Other (specify in description)
+    validations:
+      required: true
+
   - type: textarea
     id: reproducible-example
     attributes:
       label: Reproducible Example
       description: >
-        Please provide a minimal, copy-pastable example.
-      placeholder: >
-        from latents.mdlag import mDLAGModel
+        Please provide a minimal, copy-pastable code example that reproduces the issue.
+      placeholder: |
+        from latents.gfa import GFAModel
 
-        model = mDLAGModel()
-
-        ...
+        model = GFAModel()
+        # ...
       render: python
     validations:
       required: true
+
   - type: textarea
     id: issue-description
     attributes:
       label: Issue Description
       description: >
-        Please provide a description of the issue shown in the reproducible example.
+        Describe the issue. If an exception is raised, include the full traceback.
     validations:
       required: true
+
   - type: textarea
     id: expected-behavior
     attributes:
       label: Expected Behavior
       description: >
-        Please describe or show a code example of the expected behavior.
+        What did you expect to happen?
     validations:
       required: true
