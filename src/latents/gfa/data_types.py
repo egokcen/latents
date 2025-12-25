@@ -1,14 +1,4 @@
-"""
-Custom data types used throughout the GFA subpackage.
-
-**Classes**
-
-- :class:`GFAParams` -- GFA model parameters.
-- :class:`GFAFitTracker` -- Quantities tracked during a GFA model fit.
-- :class:`GFAFitFlags` -- Status messages during a GFA model fit.
-- :class:`GFAFitArgs` -- Keyword arguments used to fit a GFA model.
-
-"""
+"""Custom data types used throughout the GFA subpackage."""
 
 from __future__ import annotations
 

@@ -1,13 +1,4 @@
-"""
-Building blocks for latent state models.
-
-**Classes**
-
-- :class:`PosteriorLatentStatic` -- Posterior estimates of static latents.
-- :class:`PosteriorLatentDelayed` -- Posterior estimates of time-delayed latents.
-- :class:`StateParamsStatic` -- A generic state model with static latents.
-
-"""
+"""Building blocks for latent state models."""
 
 from __future__ import annotations
 

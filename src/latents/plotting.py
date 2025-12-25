@@ -1,11 +1,4 @@
-"""
-General plotting support across the latents package.
-
-**Functions**
-
-- :func:`hinton` -- Draw a Hinton diagram of a matrix.
-
-"""
+"""General plotting support across the latents package."""
 
 from __future__ import annotations
 

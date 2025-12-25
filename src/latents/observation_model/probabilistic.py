@@ -1,19 +1,4 @@
-"""
-Building blocks for observation models with probabilistic model components.
-
-Build probabilistic observation models and compute descriptive statistics from their
-parameters.
-
-**Classes**
-
-- :class:`PosteriorLoading` -- Posterior estimates of loading matrices.
-- :class:`PosteriorARD` -- Posterior estimates of ARD parameters.
-- :class:`PosteriorObsMean` -- Posterior estimates of mean parameters.
-- :class:`PosteriorObsPrec` -- Posterior estimates of precision parameters.
-- :class:`HyperPriorParams` -- Prior hyperparameters.
-- :class:`ObsParamsARD` -- A generic observation model with ARD.
-
-"""
+"""Building blocks for observation models with probabilistic components."""
 
 from __future__ import annotations
 
@@ -1213,7 +1198,7 @@ class ObsParamsARD:
 
         # Set up labels for the x-axis
         if group_names is None:
-            group_names = [f"{i+1}" for i in range(num_groups)]
+            group_names = [f"{i + 1}" for i in range(num_groups)]
         xticklbls = ["" for i in range(num_dim_types)]
         for dim_idx in range(num_dim_types):
             if dim_cardinality[dim_idx] == 0:
@@ -1292,7 +1277,7 @@ class ObsParamsARD:
 
         # Set up labels for the x-axis
         if group_names is None:
-            group_names = [f"{i+1}" for i in range(num_groups)]
+            group_names = [f"{i + 1}" for i in range(num_groups)]
         xticklbls = ["" for i in range(num_dim_types)]
         for dim_idx in range(num_dim_types):
             if dim_cardinality[dim_idx] == 0:
@@ -1378,15 +1363,14 @@ class ObsParamsARD:
 
         # Set up labels for the x-axis
         if group_names is None:
-            group_names = [f"{i+1}" for i in range(num_groups)]
+            group_names = [f"{i + 1}" for i in range(num_groups)]
         xticklbls = np.full((num_pairs, 3), "", dtype=object)
         for pair_idx in range(num_pairs):
             # Total in group 1
             xticklbls[pair_idx, 0] = f"Total, {group_names[pairs[pair_idx, 0]]}"
             # Shared between both groups
             xticklbls[pair_idx, 1] = (
-                f"{group_names[pairs[pair_idx, 0]]}"
-                f"-{group_names[pairs[pair_idx, 1]]}"
+                f"{group_names[pairs[pair_idx, 0]]}-{group_names[pairs[pair_idx, 1]]}"
             )
             # Total in group 2
             xticklbls[pair_idx, 2] = f"Total, {group_names[pairs[pair_idx, 1]]}"
@@ -1458,11 +1442,11 @@ class ObsParamsARD:
 
         # Set up labels for the x-axis
         if group_names is None:
-            group_names = [f"{i+1}" for i in range(num_groups)]
+            group_names = [f"{i + 1}" for i in range(num_groups)]
 
         pairlbls = np.array(
             [
-                f"{group_names[pairs[i,0]]}" + f"-{group_names[pairs[i,1]]}"
+                f"{group_names[pairs[i, 0]]}" + f"-{group_names[pairs[i, 1]]}"
                 for i in range(num_pairs)
             ]
         )

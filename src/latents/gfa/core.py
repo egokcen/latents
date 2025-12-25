@@ -1,23 +1,4 @@
-"""
-Core utilities to fit a group factor analysis (GFA) model to data.
-
-**Functions**
-
-- :func:`fit` -- Fit a GFA model to data.
-- :func:`init` -- Initialize GFA model parameters to data prior to fitting.
-- :func:`infer_latents` -- Infer latent variables.
-- :func:`infer_loadings` -- Infer loading matrices.
-- :func:`infer_ard` -- Infer ARD parameters.
-- :func:`infer_obs_mean` -- Infer observation mean parameter.
-- :func:`infer_obs_prec` -- Infer observation precision parameters.
-- :func:`compute_lower_bound` -- Compute the variational lower bound.
-- :func:`compute_lower_bound_constants` -- Compute constants in the lower bound.
-
-**Classes**
-
-- :class:`GFAModel` -- A wrapper class to store GFA fitting results.
-
-"""
+"""Core utilities to fit a group factor analysis (GFA) model to data."""
 
 from __future__ import annotations
 
@@ -267,7 +248,7 @@ def fit(
         # Display progress
         if verbose:
             print(
-                f"\rIteration {fit_iter+1} of {max_iter}        lb {lb_curr}",
+                f"\rIteration {fit_iter + 1} of {max_iter}        lb {lb_curr}",
                 end="",
                 flush=True,
             )
@@ -284,7 +265,7 @@ def fit(
     # Display reasons for stopping
     if verbose:
         if flags.converged:
-            print(f"\nLower bound converged after {fit_iter+1} iterations.")
+            print(f"\nLower bound converged after {fit_iter + 1} iterations.")
         elif ((fit_iter + 1) < max_iter) and params.x_dim <= 0:
             print("\nFitting stopped because no significant latent dimensions remain.")
         else:

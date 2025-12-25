@@ -1,12 +1,4 @@
-"""
-Store and manipulate different types of observed data.
-
-**Classes**
-
-- :class:`ObsStatic` -- Store and manipulate views of observed static data.
-- :class:`ObsTimeSeries` -- Store and manipulate views of observed time series data.
-
-"""
+"""Store and manipulate different types of observed data."""
 
 from __future__ import annotations
 
@@ -70,11 +62,7 @@ class ObsStatic:
         self.data = data
 
     def __repr__(self) -> str:
-        return (
-            f"{type(self).__name__}("
-            f"data.shape={self.data.shape}, "
-            f"dims={self.dims})"
-        )
+        return f"{type(self).__name__}(data.shape={self.data.shape}, dims={self.dims})"
 
     def get_groups(self) -> list[np.ndarray]:
         """

@@ -1,13 +1,4 @@
-"""
-Base classes common across the latents package.
-
-**Classes**
-
-- :class:`ArrayContainer` -- A parent class for classes with ndarray attributes.
-- :class:`FitTracker` -- Contains quantities tracked during a model fit.
-- :class:`FitFlags` -- Contains status messages during a model fit.
-
-"""
+"""Base classes common across the latents package."""
 
 from __future__ import annotations
 

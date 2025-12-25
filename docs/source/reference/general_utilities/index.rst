@@ -5,6 +5,6 @@ General utilities
 
 .. toctree::
     :maxdepth: 2
-    
+
     base
     plotting

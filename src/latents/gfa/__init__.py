@@ -9,9 +9,9 @@ from latents.gfa import (
 from latents.gfa.core import GFAModel
 
 __all__ = [
+    "GFAModel",
     "core",
     "data_types",
     "descriptive_stats",
-    "GFAModel",
     "simulation",
 ]

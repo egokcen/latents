@@ -1,24 +1,4 @@
-"""
-Core utilities to fit a delayed latents across multiple groups (mDLAG) model to data.
-
-**Functions**
-
-- :func:`fit` -- Fit a mDLAG model to data.
-- :func:`init` -- Initialize mDLAG model parameters to data prior to fitting.
-- :func:`infer_latents` -- Infer latent variables.
-- :func:`learn_gp_params` -- Learn Gaussian process parameters.
-- :func:`infer_loadings` -- Infer loading matrices.
-- :func:`infer_ard` -- Infer ARD parameters.
-- :func:`infer_obs_mean` -- Infer observation mean parameter.
-- :func:`infer_obs_prec` -- Infer observation precision parameters.
-- :func:`compute_lower_bound` -- Compute the variational lower bound.
-- :func:`compute_lower_bound_constants` -- Compute constants in the lower bound.
-
-**Classes**
-
-- :class:`mDLAGModel` -- A wrapper class to store mDLAG fitting results.
-
-"""
+"""Core utilities to fit an mDLAG model to data."""
 
 from __future__ import annotations
 

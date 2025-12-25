@@ -1,13 +1,4 @@
-"""
-Simulate data from the mDLAG generative model.
-
-**Functions**
-
-- :func:`simulate` -- Generate samples from the full mDLAG model.
-- :func:`generate_latents` -- Generate latents via the state model.
-- :func:`generate_observations` -- Generate observations via the observation model.
-
-"""
+"""Simulate data from the mDLAG generative model."""
 
 from __future__ import annotations
 

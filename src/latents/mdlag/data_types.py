@@ -1,14 +1,4 @@
-"""
-Custom data types used throughout the mDLAG subpackage.
-
-**Classes**
-
-- :class:`mDLAGParams` -- mDLAG model parameters.
-- :class:`mDLAGFitTracker` -- Quantities tracked during a mDLAG model fit.
-- :class:`mDLAGFitFlags` -- Status messages during a mDLAG model fit.
-- :class:`mDLAGFitArgs` -- Keyword arguments used to fit a mDLAG model.
-
-"""
+"""Custom data types used throughout the mDLAG subpackage."""
 
 from __future__ import annotations
 

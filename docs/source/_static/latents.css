@@ -1,6 +1,24 @@
 /* Customize the pydata-sphinx-theme */
 
-/* Main page overview cards */
+/* =============================================================================
+   RTD FLYOUT STYLING
+   Inherits PyData theme colors via CSS variable aliasing.
+   Only applies when hosted on ReadTheDocs (flyout not present locally).
+   ============================================================================= */
+
+:root {
+  --readthedocs-flyout-background-color: var(--pst-color-surface);
+  --readthedocs-flyout-color: var(--pst-color-text-base);
+  --readthedocs-flyout-link-color: var(--pst-color-link);
+  --readthedocs-flyout-item-link-color: var(--pst-color-link);
+  --readthedocs-flyout-font-family: var(--pst-font-family-base);
+  --readthedocs-flyout-section-heading-color: var(--pst-color-text-muted);
+  --readthedocs-flyout-current-version-color: #d35fbcff;  /* Pink accent */
+}
+
+/* =============================================================================
+   INTRO CARDS (Main index page)
+   ============================================================================= */
 
 /* Main index page overview cards */
 
@@ -40,4 +58,24 @@
 .intro-card .sd-btn-secondary:hover {
   background-color: rgb(208, 118, 190) !important;
   border-color: rgb(208, 118, 190) !important;
+}
+
+/* =============================================================================
+   SPHINX-GALLERY THUMBNAILS
+   ============================================================================= */
+
+/* Hover effect for gallery example thumbnails */
+.sphx-glr-thumbcontainer {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border-radius: 8px;
+}
+
+.sphx-glr-thumbcontainer:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark mode: slightly stronger shadow */
+html[data-theme="dark"] .sphx-glr-thumbcontainer:hover {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
 }

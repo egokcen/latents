@@ -1,13 +1,4 @@
-"""
-Simulate data from the group factor analysis (GFA) generative model.
-
-**Functions**
-
-- :func:`simulate` -- Generate samples from the full GFA model.
-- :func:`generate_latents` -- Generate latents via the state model.
-- :func:`generate_observations` -- Generate observed data via the observation model.
-
-"""
+"""Simulate data from the group factor analysis (GFA) generative model."""
 
 from __future__ import annotations
 

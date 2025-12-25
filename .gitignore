@@ -2,8 +2,10 @@
 __pycache__
 
 # Task runners and shell scripts
-.nox
 *.sh
+
+# uv
+.python-version
 
 # Linting
 .ruff_cache
@@ -11,18 +13,19 @@ __pycache__
 # Testing
 .pytest_cache
 .coverage
+coverage.xml
+htmlcov/
 
 # Distribution / packaging
 build
 dist
 *.egg-info
-_version.py
+src/latents/_version.py
 
 # Sphinx documentation
-docs/build
-
-# Saved models
-*.json
+docs/_build
+docs/source/auto_examples/
+docs/source/sg_execution_times.rst
 
 # Virtual environments
 .env
@@ -34,3 +37,7 @@ myenv
 
 # Development environments
 .vscode
+
+# Claude Code
+.claude/settings.local.json
+.playwright-mcp/

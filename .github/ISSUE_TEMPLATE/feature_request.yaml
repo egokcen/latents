@@ -1,51 +1,58 @@
 name: Feature Request
 description: Suggest an idea for latents
 title: "[ENH] "
-labels: [enhancement]
+labels: [enhancement, needs-triage]
 
 body:
   - type: checkboxes
-    id: checks
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      options:
+        - label: I have searched the existing issues to ensure this feature has not already been requested.
+          required: true
+
+  - type: checkboxes
+    id: feature-type
     attributes:
       label: Feature Type
-      description: Please check what type of feature request you would like to propose.
+      description: What type of feature request is this?
       options:
-        - label: >
-            Adding new functionality to latents
-        - label: >
-            Changing existing functionality in latents
-        - label: >
-            Removing existing functionality in latents
+        - label: Adding new functionality to latents
+        - label: Changing existing functionality in latents
+        - label: Removing existing functionality in latents
+
   - type: textarea
     id: problem-description
     attributes:
       label: Problem Description
       description: >
-        Please describe what problem the feature would solve.
+        What problem would this feature solve?
     validations:
       required: true
+
   - type: textarea
     id: feature
     attributes:
       label: Feature Description
       description: >
-        Please describe how the new feature would be implemented, using pseudocode if 
-        relevant.
+        Describe how the new feature would work. Include pseudocode if relevant.
     validations:
       required: true
+
   - type: textarea
     id: alternative
     attributes:
       label: Alternative Solutions
       description: >
-        Please describe any alternative solution (existing functionality,
-        3rd party package, etc.) that would satisfy the feature request.
+        Describe any alternative solutions (existing functionality, 3rd party packages, etc.)
+        that could address this need.
     validations:
       required: true
+
   - type: textarea
     id: context
     attributes:
       label: Additional Context
       description: >
-        Please provide any relevant GitHub issues, code examples, or references that
-        help describe and support the feature request.
+        Any relevant GitHub issues, code examples, papers, or references.
