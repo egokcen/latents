@@ -35,8 +35,8 @@ uv run pre-commit run --all-files  # All pre-commit checks (includes ruff)
 # Git commit (pre-commit hooks require uv run)
 uv run git commit -m "your message"
 
-# Build documentation
-uv run sphinx-build -b html docs/source docs/_build/html
+# Build documentation (warnings are errors)
+uv run sphinx-build -W -b html docs/source docs/_build/html
 
 # Build package (sdist and wheel)
 uv build
@@ -65,20 +65,21 @@ src/latents/
 ├── plotting.py          # Visualization utilities (e.g., hinton diagrams)
 ├── gfa/                 # Group Factor Analysis
 │   ├── core.py          # GFAModel class and fit/infer functions
-│   ├── data_types.py    # GFAParams, GFAFitArgs, etc.
+│   ├── config.py        # GFAFitConfig
+│   ├── data_types.py    # GFAParams, GFAFitTracker, GFAFitFlags
 │   ├── simulation.py    # Data simulation utilities
 │   └── descriptive_stats.py
 ├── mdlag/               # mDLAG (similar structure to gfa/)
 ├── observation_model/   # Observation data and probabilistic components
 │   ├── observations.py  # ObsStatic, ObsTimeSeries data containers
-│   └── probabilistic.py # Posterior classes, HyperPriorParams
+│   └── probabilistic.py # Posterior classes, HyperPriors, SimulationHyperPriors
 └── state_model/         # Latent state representations
     └── latents.py       # PosteriorLatentStatic, StateParamsStatic
 ```
 
 ### Core Design Patterns
 
-1. **Model wrapper classes** (`GFAModel`, `mDLAGModel`): High-level interface that stores params, tracker, flags, and fit_args. Use `.fit(Y)` to train, `.save()`/`.load()` for JSON serialization via jsonpickle.
+1. **Model wrapper classes** (`GFAModel`, `mDLAGModel`): High-level interface that stores params, tracker, flags, config, and hyper_priors. Use `.fit(Y)` to train.
 
 2. **Parameter containers** (`GFAParams`, etc.): Hierarchical structure with `obs_params` (observation model parameters) and `state_params` (latent state parameters).
 
@@ -91,18 +92,16 @@ src/latents/
 ### Fitting Workflow
 
 ```python
-from latents.gfa import GFAModel
+from latents.gfa import GFAFitConfig, GFAModel
 
-model = GFAModel()
-
-# Configure fitting arguments
-model.fit_args.set_args(
+# Configure fitting parameters (frozen dataclass)
+config = GFAFitConfig(
     x_dim_init=10,   # Initial latent dimensionality
     verbose=True,
 )
 
-# Initialize and fit (init is auto-called by fit if omitted)
-model.init(Y)
+# Instantiate and fit (init is auto-called by fit if omitted)
+model = GFAModel(config=config)
 model.fit(Y)
 
 # Access results
@@ -121,7 +120,37 @@ See `examples/gfa_demo.py` for a complete example with simulation, fitting, and 
 - NumPy docstring convention
 - Type hints with `from __future__ import annotations`
 - Tests follow `test_*.py` naming with pytest
-- Use Conventional Commits (https://www.conventionalcommits.org/en/v1.0.0/) for git commits and messages
+
+## Git and GitHub
+
+### Commits
+
+Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) format:
+- Types: `feat:`, `fix:`, `docs:`, `style:`, `refactor:`, `test:`, `chore:`, `ci:`
+- Present tense, imperative mood ("Add feature" not "Added feature")
+- First line ≤72 characters
+
+```bash
+# Pre-commit hooks require uv run
+uv run git commit -m "feat: add cross-validation support to GFA"
+```
+
+### Issues
+
+Use the appropriate template from `.github/ISSUE_TEMPLATE/` when creating issues (bug reports, feature requests, documentation improvements, etc.).
+
+### Pull Requests
+
+When creating PRs, **always follow the template** in `.github/PULL_REQUEST_TEMPLATE.md`:
+
+1. Fill out the Description section
+2. Link related issues
+3. Check the appropriate Type of Change
+4. Complete all applicable Checklist items:
+   - Tests pass: `uv run pytest`
+   - Code checks pass: `uv run pre-commit run --all-files`
+   - Docs build without warnings: `uv run sphinx-build -W -b html docs/source docs/_build/html`
+   - Update `CHANGELOG.md` for user-facing changes (see below)
 
 ## CHANGELOG
 

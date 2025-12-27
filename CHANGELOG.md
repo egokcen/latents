@@ -13,16 +13,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Interactive examples gallery using sphinx-gallery
 - Python 3.14 support
 - Optional `notebook` extra for Jupyter support (`pip install latents[notebook]`)
+- `GFAFitConfig` frozen dataclass for immutable GFA fitting configuration
+- `HyperPriors` frozen dataclass for fitting hyperprior parameters
+- `SimulationHyperPriors` frozen dataclass for simulation hyperprior parameters
 
 ### Changed
 
 - Minimum Python version raised from 3.9 to 3.10
 - Jupyter dependencies (`jupyter`, `ipywidgets`) moved from core to optional extra
+- `GFAModel` now accepts `config` parameter in constructor instead of using `fit_args.set_args()`
+- Configuration uses snake_case naming (e.g., `prune_x` instead of `prune_X`)
 
 ### Removed
 
 - Python 3.9 support
 - Unused `pandas` dependency
+- `GFAFitArgs` class (replaced by `GFAFitConfig`)
+- `HyperPriorParams` class (replaced by `HyperPriors` and `SimulationHyperPriors`)
 
 ## [0.0.4] - 2024-10-31
 

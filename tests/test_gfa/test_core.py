@@ -6,8 +6,8 @@ def test_fit():
     import numpy as np
 
     import latents.gfa.simulation as gfa_sim
-    from latents.gfa import GFAModel
-    from latents.observation_model.probabilistic import HyperPriorParams
+    from latents.gfa import GFAFitConfig, GFAModel
+    from latents.observation_model.probabilistic import SimulationHyperPriors
 
     # Set a random seed, for reproducibility
     random_seed = 1  # Set to None for no seeding
@@ -33,7 +33,7 @@ def test_fit():
         ],
     )
     MAG = 100  # Control the variance of alpha parameters (larger = less var.)
-    hyper_priors = HyperPriorParams(
+    sim_priors = SimulationHyperPriors(
         a_alpha=MAG * sparsity_pattern,
         b_alpha=MAG * np.ones_like(sparsity_pattern),
         a_phi=1.0,
@@ -46,31 +46,28 @@ def test_fit():
         N,
         y_dims,
         x_dim,
-        hyper_priors,
+        sim_priors,
         snr,
         random_seed=random_seed,
     )
 
-    # Instantiate a GFA model
-    model = GFAModel()
-
-    # All arguments in model.fit_args are set to their default values automatically.
-    # To change any of these arguments, use the set_args() method.
-    # For example:
-    model.fit_args.set_args(
+    # Configure fitting
+    config = GFAFitConfig(
         x_dim_init=10,  # Set to larger than the hypothesized latent dimensionality
-        hyper_priors=HyperPriorParams(),  # Hyper-prior parameters
         fit_tol=1e-8,  # Tolerance to determine fitting convergence
         max_iter=20000,  # Maximum number of fitting iterations
         verbose=True,  # Print fitting progress
         random_seed=0,  # Set to None for no seeding
         min_var_frac=0.001,  # Private variance floor
-        prune_X=True,  # For speed-up, remove latents that become inactive
+        prune_x=True,  # For speed-up, remove latents that become inactive
         prune_tol=1e-7,  # Tolerance for pruning inactive latents
-        save_X=False,  # Set False to save memory when saving final results
-        save_C_cov=False,  # Set False to save memory when saving final results
+        save_x=False,  # Set False to save memory when saving final results
+        save_c_cov=False,  # Set False to save memory when saving final results
         save_fit_progress=True,  # Save lower bound, runtime each iteration
     )
+
+    # Instantiate a GFA model with config
+    model = GFAModel(config=config)
 
     # Initialize the model
     model.init(Y)

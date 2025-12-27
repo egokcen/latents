@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from itertools import combinations
 
 import matplotlib.pyplot as plt
@@ -601,50 +602,142 @@ class PosteriorObsPrec(ArrayContainer):
         return self.a / self.b
 
 
-class HyperPriorParams(ArrayContainer):
-    """
-    A class for prior hyperparameters.
+@dataclass(frozen=True, slots=True, kw_only=True)
+class HyperPriors:
+    """Prior hyperparameters for model fitting.
+
+    These control the prior distributions in the Bayesian model. Default values
+    are uninformative (very small), allowing the data to dominate.
 
     Parameters
     ----------
-    d_beta : float > 0
-        Precision of the observation mean prior.
-    a_alpha : float > 0
-        Shape parameter of the ARD prior.
-    b_alpha : float > 0
-        Rate parameter of the ARD prior.
-    a_phi : float > 0
-        Shape parameter of the observation precision prior.
-    b_phi : float > 0
-        Rate parameter of the observation precision prior.
+    d_beta : float
+        Precision of the observation mean prior (Gaussian). Must be > 0.
+    a_alpha : float
+        Shape parameter of the ARD prior (Gamma). Must be > 0.
+    b_alpha : float
+        Rate parameter of the ARD prior (Gamma). Must be > 0.
+    a_phi : float
+        Shape parameter of the observation precision prior (Gamma). Must be > 0.
+    b_phi : float
+        Rate parameter of the observation precision prior (Gamma). Must be > 0.
 
-    Attributes
-    ----------
-    d_beta
-        Same as **d_beta**, above.
-    a_alpha
-        Same as **a_alpha**, above.
-    b_alpha
-        Same as **b_alpha**, above.
-    a_phi
-        Same as **a_phi**, above.
-    b_phi
-        Same as **b_phi**, above.
+    Examples
+    --------
+    >>> priors = HyperPriors()  # Use defaults (uninformative)
+    >>> priors = HyperPriors(a_alpha=1e-6, b_alpha=1e-6)  # Slightly informative
     """
 
-    def __init__(
-        self,
-        d_beta: float = 1e-12,
-        a_alpha: float = 1e-12,
-        b_alpha: float = 1e-12,
-        a_phi: float = 1e-12,
-        b_phi: float = 1e-12,
-    ):
-        self.d_beta = d_beta
-        self.a_alpha = a_alpha
-        self.b_alpha = b_alpha
-        self.a_phi = a_phi
-        self.b_phi = b_phi
+    d_beta: float = 1e-12
+    a_alpha: float = 1e-12
+    b_alpha: float = 1e-12
+    a_phi: float = 1e-12
+    b_phi: float = 1e-12
+
+    def __post_init__(self) -> None:
+        """Validate all parameters are positive."""
+        for name in ("d_beta", "a_alpha", "b_alpha", "a_phi", "b_phi"):
+            value = getattr(self, name)
+            if not isinstance(value, (int, float)) or value <= 0:
+                msg = f"{name} must be a positive number, got {value!r}"
+                raise ValueError(msg)
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class SimulationHyperPriors:
+    """Hyperparameters for data generation/simulation.
+
+    Unlike `HyperPriors`, this class requires explicit specification of
+    `a_alpha` and `b_alpha` as arrays, enabling control over the sparsity
+    structure of the loading matrices.
+
+    Parameters
+    ----------
+    a_alpha : np.ndarray
+        Shape parameters for ARD priors, shape ``(num_groups, x_dim)``.
+        Use ``np.inf`` to force zero loadings (sparsity pattern).
+    b_alpha : np.ndarray
+        Rate parameters for ARD priors, shape ``(num_groups, x_dim)``.
+        Typically ones or matched to `a_alpha`.
+    d_beta : float
+        Precision of observation mean prior. Must be > 0.
+    a_phi : float
+        Shape parameter of observation precision prior. Must be > 0.
+    b_phi : float
+        Rate parameter of observation precision prior. Must be > 0.
+
+    Examples
+    --------
+    >>> # 3 groups, 4 latents, with sparsity pattern
+    >>> sparsity = np.array([
+    ...     [1, 1, np.inf, 1],      # Group 0: latents 0,1,3
+    ...     [1, np.inf, 1, 1],      # Group 1: latents 0,2,3
+    ...     [np.inf, 1, 1, 1],      # Group 2: latents 1,2,3
+    ... ])
+    >>> priors = SimulationHyperPriors(
+    ...     a_alpha=100 * sparsity,
+    ...     b_alpha=100 * np.ones((3, 4)),
+    ... )
+    """
+
+    a_alpha: np.ndarray
+    b_alpha: np.ndarray
+    d_beta: float = 1.0
+    a_phi: float = 1.0
+    b_phi: float = 1.0
+
+    def __post_init__(self) -> None:
+        """Validate array shapes and scalar positivity."""
+        # Validate a_alpha is ndarray
+        if not isinstance(self.a_alpha, np.ndarray):
+            msg = f"a_alpha must be a numpy array, got {type(self.a_alpha).__name__}"
+            raise TypeError(msg)
+
+        # Validate b_alpha is ndarray
+        if not isinstance(self.b_alpha, np.ndarray):
+            msg = f"b_alpha must be a numpy array, got {type(self.b_alpha).__name__}"
+            raise TypeError(msg)
+
+        # Validate shapes match
+        if self.a_alpha.shape != self.b_alpha.shape:
+            msg = (
+                f"a_alpha shape {self.a_alpha.shape} "
+                f"must match b_alpha shape {self.b_alpha.shape}"
+            )
+            raise ValueError(msg)
+
+        # Validate 2D
+        if self.a_alpha.ndim != 2:
+            msg = f"a_alpha must be 2D (num_groups, x_dim), got {self.a_alpha.ndim}D"
+            raise ValueError(msg)
+
+        # Validate b_alpha values are positive (a_alpha can have np.inf)
+        if np.any(self.b_alpha <= 0):
+            msg = "b_alpha values must all be > 0"
+            raise ValueError(msg)
+
+        # Validate finite a_alpha values are positive
+        finite_mask = np.isfinite(self.a_alpha)
+        if np.any(self.a_alpha[finite_mask] <= 0):
+            msg = "Finite a_alpha values must be > 0 (use np.inf for sparsity)"
+            raise ValueError(msg)
+
+        # Validate scalars
+        for name in ("d_beta", "a_phi", "b_phi"):
+            value = getattr(self, name)
+            if value <= 0:
+                msg = f"{name} must be > 0, got {value}"
+                raise ValueError(msg)
+
+    @property
+    def num_groups(self) -> int:
+        """Number of observed groups."""
+        return self.a_alpha.shape[0]
+
+    @property
+    def x_dim(self) -> int:
+        """Number of latent dimensions."""
+        return self.a_alpha.shape[1]
 
 
 class ObsParamsARD:
@@ -760,12 +853,11 @@ class ObsParamsARD:
         cls,
         y_dims: np.ndarray,
         x_dim: int,
-        hyper_priors: HyperPriorParams,
+        hyper_priors: SimulationHyperPriors,
         snr: np.ndarray,
         rng: np.random.Generator,
     ) -> ObsParamsARD:
-        """
-        Randomly generate a set of observation model parameters.
+        """Randomly generate a set of observation model parameters.
 
         Parameters
         ----------
@@ -775,12 +867,9 @@ class ObsParamsARD:
         x_dim
             Number of latent dimensions.
         hyper_priors
-            Hyperparameters of the GFA prior distributions.
-            Note that ``hyper_priors.a_alpha`` and ``hyper_priors.b_alpha`` can be
-            abused here, so that they can be used to specify group- and
-            column-specific sparsity patterns in the loadings matrices.
-            In that case, specify both of them as `ndarray` of shape
-            ``(num_groups, x_dim)``.
+            Simulation hyperparameters. The ``a_alpha`` and ``b_alpha`` arrays
+            specify group- and column-specific sparsity patterns in the loading
+            matrices. Use ``np.inf`` in ``a_alpha`` to force zero loadings.
         snr
             `ndarray` of `float`, shape ``(num_groups,)``.
             Signal-to-noise ratios of each group.
@@ -800,14 +889,9 @@ class ObsParamsARD:
 
         # Initialize ARD parameters
         obs_params.alpha.mean = np.zeros((num_groups, x_dim))
-        if isinstance(hyper_priors.a_alpha, float):
-            # Repeat the ARD hyperparameters for each group and column
-            a_alpha = hyper_priors.a_alpha * np.ones((num_groups, x_dim))
-            b_alpha = hyper_priors.b_alpha * np.ones((num_groups, x_dim))
-        else:
-            # Use the ARD hyperparameters specified by the user
-            a_alpha = hyper_priors.a_alpha
-            b_alpha = hyper_priors.b_alpha
+        # Use the ARD hyperparameters from SimulationHyperPriors (always arrays)
+        a_alpha = hyper_priors.a_alpha
+        b_alpha = hyper_priors.b_alpha
 
         # Generate observation mean parameters
         obs_params.d.mean = rng.normal(

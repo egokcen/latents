@@ -15,11 +15,8 @@ import numpy as np
 
 import latents.gfa.descriptive_stats as gfa_stats
 import latents.gfa.simulation as gfa_sim
-from latents.gfa import GFAModel
-from latents.observation_model.probabilistic import (
-    HyperPriorParams,
-    ObsParamsARD,
-)
+from latents.gfa import GFAFitConfig, GFAModel
+from latents.observation_model.probabilistic import ObsParamsARD, SimulationHyperPriors
 from latents.plotting import hinton
 
 # %%
@@ -51,9 +48,9 @@ sparsity_pattern = np.array(
     ],
 )
 
-# Set up hyperpriors
+# Set up simulation hyperpriors
 MAG = 100  # Control the variance of alpha parameters (larger = less variance)
-hyper_priors = HyperPriorParams(
+sim_priors = SimulationHyperPriors(
     a_alpha=MAG * sparsity_pattern,
     b_alpha=MAG * np.ones_like(sparsity_pattern),
     a_phi=1.0,
@@ -66,7 +63,7 @@ Y, X_true, obs_params_true = gfa_sim.simulate(
     N,
     y_dims,
     x_dim,
-    hyper_priors,
+    sim_priors,
     snr,
     random_seed=random_seed,
 )
@@ -77,24 +74,23 @@ Y, X_true, obs_params_true = gfa_sim.simulate(
 #
 # Now we instantiate and fit a GFA model to the simulated data.
 
-# Instantiate a GFA model
-model = GFAModel()
-
-# Configure fitting arguments
-model.fit_args.set_args(
+# Configure fitting
+config = GFAFitConfig(
     x_dim_init=10,  # Set larger than the hypothesized latent dimensionality
-    hyper_priors=HyperPriorParams(),
     fit_tol=1e-8,
     max_iter=20000,
     verbose=True,
     random_seed=0,
     min_var_frac=0.001,
-    prune_X=True,
+    prune_x=True,
     prune_tol=1e-7,
-    save_X=True,  # Required for compute_lower_bound
-    save_C_cov=True,  # Required for compute_lower_bound
+    save_x=True,  # Required for compute_lower_bound
+    save_c_cov=True,  # Required for compute_lower_bound
     save_fit_progress=True,
 )
+
+# Instantiate a GFA model with config
+model = GFAModel(config=config)
 
 # Initialize and fit the model
 model.init(Y)

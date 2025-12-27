@@ -6,8 +6,8 @@ import numpy as np
 
 from latents.observation_model.observations import ObsStatic
 from latents.observation_model.probabilistic import (
-    HyperPriorParams,
     ObsParamsARD,
+    SimulationHyperPriors,
 )
 
 
@@ -15,12 +15,11 @@ def simulate(
     N: int,
     y_dims: np.ndarray,
     x_dim: int,
-    hyper_priors: HyperPriorParams,
+    hyper_priors: SimulationHyperPriors,
     snr: np.ndarray,
     random_seed: int | None = None,
 ) -> tuple[ObsStatic, np.ndarray, ObsParamsARD]:
-    """
-    Generate samples from the full group factor analysis model.
+    """Generate samples from the full group factor analysis model.
 
     Parameters
     ----------
@@ -32,12 +31,9 @@ def simulate(
     x_dim
         Number of latent dimensions.
     hyper_priors
-        Hyperparameters of the GFA prior distributions.
-        Note that ``hyper_priors.a_alpha`` and ``hyper_priors.b_alpha`` can be
-        abused here, so that they can be used to specify group- and
-        column-specific sparsity patterns in the loadings matrices.
-        In that case, specify both of them as `ndarray` of shape
-        ``(num_groups, x_dim)``.
+        Simulation hyperparameters. The ``a_alpha`` and ``b_alpha`` arrays
+        specify group- and column-specific sparsity patterns in the loading
+        matrices. Use ``np.inf`` in ``a_alpha`` to force zero loadings.
     snr
         `ndarray` of `float`, shape ``(num_groups,)``.
         Signal-to-noise ratios of each group.
