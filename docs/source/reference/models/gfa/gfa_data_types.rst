@@ -16,7 +16,6 @@ gfa.data\_types
    GFAParams
    GFAFitTracker
    GFAFitFlags
-   GFAFitArgs
 
 ----
 
@@ -31,11 +30,6 @@ gfa.data\_types
    :show-inheritance:
 
 .. autoclass:: GFAFitFlags
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. autoclass:: GFAFitArgs
    :members:
    :undoc-members:
    :show-inheritance:

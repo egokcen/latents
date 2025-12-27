@@ -7,6 +7,7 @@ Group factor analysis (GFA)
     :maxdepth: 2
 
     gfa_core
+    gfa_config
     gfa_data_types
     gfa_descriptive_stats
     gfa_simulation

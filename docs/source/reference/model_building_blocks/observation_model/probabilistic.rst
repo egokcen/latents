@@ -17,7 +17,8 @@ observation\_model.probabilistic
    PosteriorARD
    PosteriorObsMean
    PosteriorObsPrec
-   HyperPriorParams
+   HyperPriors
+   SimulationHyperPriors
    ObsParamsARD
 
 ----
@@ -42,7 +43,12 @@ observation\_model.probabilistic
    :undoc-members:
    :show-inheritance:
 
-.. autoclass:: HyperPriorParams
+.. autoclass:: HyperPriors
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. autoclass:: SimulationHyperPriors
    :members:
    :undoc-members:
    :show-inheritance:

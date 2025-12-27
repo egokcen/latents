@@ -11,15 +11,15 @@ from scipy.linalg import eigh
 from scipy.special import gammaln, psi
 from scipy.stats import gmean
 
+from latents.gfa.config import GFAFitConfig
 from latents.gfa.data_types import (
-    GFAFitArgs,
     GFAFitFlags,
     GFAFitTracker,
     GFAParams,
 )
 from latents.observation_model.observations import ObsStatic
 from latents.observation_model.probabilistic import (
-    HyperPriorParams,
+    HyperPriors,
     PosteriorARD,
     PosteriorLoading,
     PosteriorObsMean,
@@ -33,18 +33,8 @@ jsonpickle_numpy.register_handlers()
 def fit(
     Y: ObsStatic,
     params: GFAParams,
-    x_dim_init: int = 1,
-    hyper_priors: HyperPriorParams | None = None,
-    fit_tol: float = 1e-8,
-    max_iter: int = int(1e6),
-    verbose: bool = False,
-    random_seed: int | None = None,
-    min_var_frac: float = 0.001,
-    prune_X: bool = True,
-    prune_tol: float = 1e-7,
-    save_X: bool = False,
-    save_C_cov: bool = False,
-    save_fit_progress: bool = True,
+    config: GFAFitConfig | None = None,
+    hyper_priors: HyperPriors | None = None,
 ) -> tuple[GFAParams, GFAFitTracker, GFAFitFlags]:
     """Fit a GFA model to data.
 
@@ -57,43 +47,10 @@ def fit(
         Observed data.
     params
         Initial GFA model parameters.
-    x_dim_init
-        Initial number of latent dimensions to fit (before pruning).
-        Defaults to ``1``.
+    config
+        Fitting configuration. If None, uses default GFAFitConfig().
     hyper_priors
-        Hyperparameters of the GFA prior distributions. If not provided,
-        default hyperparameters will be used.
-    fit_tol
-        Tolerance for convergence. Defaults to ``1e-8``.
-    max_iter
-        Maximum number of iterations. Defaults to ``1e6``.
-    verbose
-        Specifies whether to display progress information. Defaults to
-        ``False``.
-    random_seed
-        Seed the random number generator for reproducibility. Defaults to
-        ``None``.
-    min_var_frac
-        Fraction of overall data variance for each observed dimension to set
-        as the private variance floor. Defaults to ``0.001``.
-    prune_X
-        Set to ``True`` to remove latents that become inactive. Can speed up
-        runtime and improve memory efficiency. Defaults to ``True``.
-    prune_tol
-        Tolerance for pruning. Sample second moment of each latent must
-        remain larger than this value to remain in the model. Defaults to
-        ``1e-7``.
-    save_X
-        Set to ``True`` to save posterior estimates of latent variables
-        :math:`X`. For large datasets, ``X.mean`` may be very large.
-        Defaults to ``False``.
-    save_C_cov
-        Set to true to save posterior covariance of :math:`C`. For large
-        ``y_dim`` and ``x_dim``, these structures can use a lot of memory.
-        Defaults to ``False``.
-    save_fit_progress
-        Set to ``True`` to save the lower bound and runtime at each iteration.
-        Defaults to ``True``.
+        Prior hyperparameters. If None, uses default HyperPriors().
 
     Returns
     -------
@@ -106,32 +63,35 @@ def fit(
 
     Raises
     ------
-    TypeError
-        If ``hyper_priors`` is not a ``HyperPriorParams`` object.
     ValueError
         If ``params.y_dims`` does not match ``Y.dims`` or if ``params.x_dim``
-        does not match ``x_dim_init``.
+        does not match ``config.x_dim_init``.
     """
+    # Use defaults if not provided
+    if config is None:
+        config = GFAFitConfig()
+    if hyper_priors is None:
+        hyper_priors = HyperPriors()
+
+    # Unpack config for local use (maintains readability in existing code)
+    x_dim_init = config.x_dim_init
+    fit_tol = config.fit_tol
+    max_iter = config.max_iter
+    verbose = config.verbose
+    min_var_frac = config.min_var_frac
+    prune_x = config.prune_x
+    prune_tol = config.prune_tol
+    save_x = config.save_x
+    save_c_cov = config.save_c_cov
+    save_fit_progress = config.save_fit_progress
+
     # Initialize GFA model parameters if they have not been initialized already
     if not params.is_initialized():
         if verbose:
             print("GFA model parameters not initialized. Initializing...")
-        params = init(
-            Y,
-            x_dim_init=x_dim_init,
-            hyper_priors=hyper_priors,
-            random_seed=random_seed,
-            save_C_cov=save_C_cov,
-        )
+        params = init(Y, config=config, hyper_priors=hyper_priors)
     obs_params = params.obs_params
     state_params = params.state_params
-
-    # Initialize hyper_priors if not provided
-    if hyper_priors is None:
-        hyper_priors = HyperPriorParams()
-    elif not isinstance(hyper_priors, HyperPriorParams):
-        msg = "hyper_priors must be a HyperPriorParams object."
-        raise TypeError(msg)
 
     # Check that the observed data dimensions match between the data and the
     # parameters
@@ -141,7 +101,7 @@ def fit(
 
     # Check that the initial latent dimensionality matches param.x_dim
     if obs_params.x_dim != x_dim_init:
-        msg = "params.obs_params.x_dim must match x_dim_init."
+        msg = "params.obs_params.x_dim must match config.x_dim_init."
         raise ValueError(msg)
 
     # Get data size characteristics
@@ -175,7 +135,7 @@ def fit(
     fit_iter = 0
     for fit_iter in range(max_iter):
         # Check if any latents need to be removed
-        if prune_X:
+        if prune_x:
             # To be kept, the sample second moment of each latent must be
             # sufficiently large
             kept_x_dims = np.nonzero(
@@ -275,11 +235,11 @@ def fit(
     if np.any(obs_params.phi.mean == 1 / var_floor):
         flags.private_var_floor = True
 
-    if not save_C_cov:
+    if not save_c_cov:
         # Delete the loading matrix covariances to save memory
         obs_params.C.cov = None
 
-    if not save_X:
+    if not save_x:
         # Delete the latent variable estimates to save memory
         state_params.X.clear()
 
@@ -288,48 +248,35 @@ def fit(
 
 def init(
     Y: ObsStatic,
-    x_dim_init: int = 1,
-    hyper_priors: HyperPriorParams | None = None,
-    random_seed: int | None = None,
-    save_C_cov: bool = False,
+    config: GFAFitConfig | None = None,
+    hyper_priors: HyperPriors | None = None,
 ) -> GFAParams:
-    """
-    Initialize GFA model parameters for fitting.
+    """Initialize GFA model parameters for fitting.
 
     Parameters
     ----------
     Y
         Observed data.
-    x_dim_init
-        Initial number of latent dimensions to fit (before pruning).
-        Defaults to ``1``.
+    config
+        Fitting configuration. If None, uses default GFAFitConfig().
     hyper_priors
-        Hyperparameters of the GFA prior distributions. If not provided,
-        default hyperparameters will be used.
-    random_seed
-        Seed the random number generator for reproducibility. Defaults to
-        ``None``.
-    save_C_cov
-        Set to ``True`` to save posterior covariance of :math:`C`. For large
-        ``y_dim`` and ``x_dim``, these structures can use a lot of memory.
-        Defaults to ``False``.
+        Prior hyperparameters. If None, uses default HyperPriors().
 
     Returns
     -------
     GFAParams
         Initialized GFA model parameters.
-
-    Raises
-    ------
-    TypeError
-        If ``hyper_priors`` is not a ``HyperPriorParams`` object.
     """
-    # Initialize hyper_priors if not provided
+    # Use defaults if not provided
+    if config is None:
+        config = GFAFitConfig()
     if hyper_priors is None:
-        hyper_priors = HyperPriorParams()
-    elif not isinstance(hyper_priors, HyperPriorParams):
-        msg = "hyper_priors must be a HyperPriorParams object."
-        raise TypeError(msg)
+        hyper_priors = HyperPriors()
+
+    # Unpack config for local use
+    x_dim_init = config.x_dim_init
+    random_seed = config.random_seed
+    save_c_cov = config.save_c_cov
 
     # Get data size characteristics
     y_dims = Y.dims  # Dimensionality of each group
@@ -390,7 +337,7 @@ def init(
     obs_params.C.compute_moment()
     # Get views of the loading matrix moments for each group
     _, _, C_moments = obs_params.C.get_groups(y_dims)
-    if not save_C_cov:
+    if not save_c_cov:
         # Delete the loading matrix covariances to save memory
         obs_params.C.cov = None
 
@@ -559,7 +506,7 @@ def infer_loadings(
 
 def infer_ard(
     params: GFAParams,
-    hyper_priors: HyperPriorParams,
+    hyper_priors: HyperPriors,
     in_place: bool = True,
     C_norm: np.ndarray | None = None,
 ) -> PosteriorARD | None:
@@ -624,7 +571,7 @@ def infer_ard(
 def infer_obs_mean(
     Y: ObsStatic,
     params: GFAParams,
-    hyper_priors: HyperPriorParams,
+    hyper_priors: HyperPriors,
     in_place: bool = True,
 ) -> PosteriorObsMean | None:
     """
@@ -679,7 +626,7 @@ def infer_obs_mean(
 def infer_obs_prec(
     Y: ObsStatic,
     params: GFAParams,
-    hyper_priors: HyperPriorParams,
+    hyper_priors: HyperPriors,
     in_place: bool = True,
     d_moment: np.ndarray | None = None,
     XY: np.ndarray | None = None,
@@ -770,7 +717,7 @@ def infer_obs_prec(
 def compute_lower_bound(
     Y: ObsStatic,
     params: GFAParams,
-    hyper_priors: HyperPriorParams,
+    hyper_priors: HyperPriors,
     consts: tuple | None = None,
     logdet_C: float | None = None,
     C_norm: np.ndarray | None = None,
@@ -894,7 +841,7 @@ def compute_lower_bound(
 def compute_lower_bound_constants(
     N: int,
     params: GFAParams,
-    hyper_priors: HyperPriorParams,
+    hyper_priors: HyperPriors,
 ) -> tuple[
     float, float, float, float, float, float, float, float, np.ndarray, np.ndarray
 ]:
@@ -967,8 +914,7 @@ def compute_lower_bound_constants(
 
 
 class GFAModel:
-    """
-    Interface with, fit, and store the fitting results of a GFA model.
+    """Interface with, fit, and store the fitting results of a GFA model.
 
     Parameters
     ----------
@@ -978,8 +924,10 @@ class GFAModel:
         Contains quantities tracked during fitting.
     flags
         Contains status messages about the fitting process.
-    fit_args
-        Keyword arguments used to fit the model.
+    config
+        Fitting configuration. If None, uses default GFAFitConfig().
+    hyper_priors
+        Prior hyperparameters. If None, uses default HyperPriors().
 
     Attributes
     ----------
@@ -989,14 +937,17 @@ class GFAModel:
         Same as **tracker**, above.
     flags
         Same as **flags**, above.
-    fit_args
-        Same as **fit_args**, above.
+    config
+        Same as **config**, above.
+    hyper_priors
+        Same as **hyper_priors**, above.
 
-    Raises
-    ------
-    TypeError
-        If **params**, **tracker**, **flags**, or **fit_args** are not the
-        respective types specified above.
+    Examples
+    --------
+    >>> from latents.gfa import GFAModel, GFAFitConfig
+    >>> config = GFAFitConfig(x_dim_init=10, verbose=True)
+    >>> model = GFAModel(config=config)
+    >>> model.fit(Y)
     """
 
     def __init__(
@@ -1004,7 +955,8 @@ class GFAModel:
         params: GFAParams | None = None,
         tracker: GFAFitTracker | None = None,
         flags: GFAFitFlags | None = None,
-        fit_args: GFAFitArgs | None = None,
+        config: GFAFitConfig | None = None,
+        hyper_priors: HyperPriors | None = None,
     ):
         # Estimated parameters
         if params is None:
@@ -1033,29 +985,24 @@ class GFAModel:
         else:
             self.flags = flags
 
-        # Fit keyword arguments
-        if fit_args is None:
-            self.fit_args = GFAFitArgs()
-        elif not isinstance(fit_args, GFAFitArgs):
-            msg = "fit_args must be a GFAFitArgs object."
-            raise TypeError(msg)
-        else:
-            self.fit_args = fit_args
+        # Fitting configuration (immutable)
+        self.config = config if config is not None else GFAFitConfig()
+
+        # Prior hyperparameters (immutable)
+        self.hyper_priors = hyper_priors if hyper_priors is not None else HyperPriors()
 
     def __repr__(self) -> str:
         return (
             f"GFAModel(params={self.params}, "
             f"tracker={self.tracker}, "
-            f"flags={self.flags}, "
-            f"fit_args={self.fit_args})"
+            f"flags={self.flags})"
         )
 
     def fit(self, Y: ObsStatic) -> None:
-        """
-        Fit a GFA model to data.
+        """Fit a GFA model to data.
 
-        Fit a GFA model to data. Uses the current model parameters as initial
-        values, and uses the current keyword arguments.
+        Uses the current model parameters as initial values. Configuration
+        and hyperparameters are set at model construction.
 
         Parameters
         ----------
@@ -1064,32 +1011,24 @@ class GFAModel:
         """
         # Initialize GFA model parameters if they have not been initialized
         if not self.params.is_initialized():
-            if self.fit_args.verbose:
+            if self.config.verbose:
                 print("GFA model parameters not initialized. Initializing...")
             self.init(Y)
 
         # Fit the model
         self.params, self.tracker, self.flags = fit(
-            Y, self.params, **self.fit_args.get_args()
+            Y, self.params, config=self.config, hyper_priors=self.hyper_priors
         )
 
     def init(self, Y: ObsStatic) -> None:
-        """
-        Initialize GFA model parameters.
+        """Initialize GFA model parameters.
 
         Parameters
         ----------
         Y
             Observed data.
         """
-        # Get a subset of keyword arguments to pass to core.init_gfa
-        init_args = ["x_dim_init", "hyper_priors", "random_seed", "save_C_cov"]
-        kwargs = {
-            key: value
-            for key, value in self.fit_args.get_args().items()
-            if key in init_args
-        }
-        self.params = init(Y, **kwargs)
+        self.params = init(Y, config=self.config, hyper_priors=self.hyper_priors)
 
     def save(self, filename: str, indent: int = 2) -> None:
         """
@@ -1194,7 +1133,7 @@ class GFAModel:
         PosteriorARD | None
             Posterior estimates of ARD parameters.
         """
-        return infer_ard(self.params, self.fit_args.hyper_priors, in_place=in_place)
+        return infer_ard(self.params, self.hyper_priors, in_place=in_place)
 
     def infer_obs_mean(
         self,
@@ -1220,9 +1159,7 @@ class GFAModel:
         PosteriorObsMean | None
             Posterior estimates of observation mean parameters.
         """
-        return infer_obs_mean(
-            Y, self.params, self.fit_args.hyper_priors, in_place=in_place
-        )
+        return infer_obs_mean(Y, self.params, self.hyper_priors, in_place=in_place)
 
     def infer_obs_prec(
         self,
@@ -1248,9 +1185,7 @@ class GFAModel:
         PosteriorObsPrec | None
             Posterior estimates of observation precision parameters.
         """
-        return infer_obs_prec(
-            Y, self.params, self.fit_args.hyper_priors, in_place=in_place
-        )
+        return infer_obs_prec(Y, self.params, self.hyper_priors, in_place=in_place)
 
     def compute_lower_bound(
         self,
@@ -1269,4 +1204,4 @@ class GFAModel:
         float
             Variational lower bound.
         """
-        return compute_lower_bound(Y, self.params, self.fit_args.hyper_priors)
+        return compute_lower_bound(Y, self.params, self.hyper_priors)

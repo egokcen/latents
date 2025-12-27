@@ -41,19 +41,16 @@ pip install latents[notebook]
 ## Quick Start
 
 ```python
-from latents.gfa import GFAModel
+from latents.gfa import GFAFitConfig, GFAModel
 
-# Instantiate a GFA model
-model = GFAModel()
-
-# Configure fitting arguments
-model.fit_args.set_args(
+# Configure fitting parameters
+config = GFAFitConfig(
     x_dim_init=10,  # Initial latent dimensionality
     verbose=True,
 )
 
-# Initialize and fit to multi-group observation data Y
-model.init(Y)
+# Instantiate and fit to multi-group observation data Y
+model = GFAModel(config=config)
 model.fit(Y)
 
 # Check convergence and access results
