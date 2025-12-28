@@ -358,7 +358,7 @@ def infer_latents(
     Y: ObsStatic,
     params: GFAParams,
     in_place: bool = True,
-) -> PosteriorLatentStatic | None:
+) -> PosteriorLatentStatic:
     """
     Infer latent variables given GFA model parameters and observed data.
 
@@ -369,14 +369,13 @@ def infer_latents(
     params
         GFA model parameters.
     in_place
-        If ``True``, update the posterior latents in place.
-        If ``False``, compute the posterior latents and return as a
-        new ``PosteriorLatent`` without modifying ``params``. Defaults to
-        ``True``.
+        If ``True``, update ``params.state_params.X`` in place and return it.
+        If ``False``, return a new ``PosteriorLatentStatic``.
+        Defaults to ``True``.
 
     Returns
     -------
-    PosteriorLatent | None
+    PosteriorLatentStatic
         Posterior estimates of latent variables :math:`X`.
     """
     obs_params = params.obs_params
@@ -417,9 +416,7 @@ def infer_latents(
     # Second moment
     X.compute_moment(in_place=True)
 
-    if not in_place:
-        return X
-    return None
+    return X
 
 
 def infer_loadings(
@@ -427,7 +424,7 @@ def infer_loadings(
     params: GFAParams,
     in_place: bool = True,
     XY: np.ndarray | None = None,
-) -> PosteriorLoading | None:
+) -> PosteriorLoading:
     """
     Infer loadings :math:`C` given current params and observed data.
 
@@ -438,10 +435,9 @@ def infer_loadings(
     params
         GFA model parameters.
     in_place
-        If ``True``, update the posterior loadings in place.
-        If ``False``, compute the posterior loadings and return as a
-        new ``PosteriorLoading`` without modifying ``params``. Defaults to
-        ``True``.
+        If ``True``, update ``params.obs_params.C`` in place and return it.
+        If ``False``, return a new ``PosteriorLoading``.
+        Defaults to ``True``.
     XY
         `ndarray` of `float`, shape ``(x_dim, y_dim)``.
         Correlation matrix between the latent variables and zero-centered
@@ -450,7 +446,7 @@ def infer_loadings(
 
     Returns
     -------
-    PosteriorLoading | None
+    PosteriorLoading
         Posterior estimates of loadings.
     """
     obs_params = params.obs_params
@@ -499,9 +495,7 @@ def infer_loadings(
     # Second moment
     C.compute_moment(in_place=True)
 
-    if not in_place:
-        return C
-    return None
+    return C
 
 
 def infer_ard(
@@ -509,7 +503,7 @@ def infer_ard(
     hyper_priors: HyperPriors,
     in_place: bool = True,
     C_norm: np.ndarray | None = None,
-) -> PosteriorARD | None:
+) -> PosteriorARD:
     """
     Infer ARD parameters alpha given current params.
 
@@ -520,9 +514,9 @@ def infer_ard(
     hyper_priors
         Hyperparameters of the GFA prior distributions.
     in_place
-        If ``True``, update the posterior ARD parameters in place.
-        If ``False``, compute the posterior ARD parameters and return as a
-        new ``PosteriorARD`` without modifying ``params``. Defaults to ``True``.
+        If ``True``, update ``params.obs_params.alpha`` in place and return it.
+        If ``False``, return a new ``PosteriorARD``.
+        Defaults to ``True``.
     C_norm
         `ndarray` of `float`, shape ``(num_groups, x_dim)``.
         ``C_norm[i,j]`` is the expected squared norm of column ``j`` of the
@@ -531,7 +525,7 @@ def infer_ard(
 
     Returns
     -------
-    PosteriorARD | None
+    PosteriorARD
         Posterior estimates of ARD parameters.
     """
     obs_params = params.obs_params
@@ -563,9 +557,7 @@ def infer_ard(
     # Mean
     alpha.compute_mean(in_place=True)
 
-    if not in_place:
-        return alpha
-    return None
+    return alpha
 
 
 def infer_obs_mean(
@@ -573,7 +565,7 @@ def infer_obs_mean(
     params: GFAParams,
     hyper_priors: HyperPriors,
     in_place: bool = True,
-) -> PosteriorObsMean | None:
+) -> PosteriorObsMean:
     """
     Infer observation mean parameter given GFA model parameters and observed data.
 
@@ -586,14 +578,13 @@ def infer_obs_mean(
     hyper_priors
         Hyperparameters of the GFA prior distributions.
     in_place
-        If ``True``, update the posterior observation mean in place.
-        If ``False``, compute the posterior observation mean and return as a
-        new ``PosteriorObsMean`` without modifying ``params``. Defaults to
-        ``True``.
+        If ``True``, update ``params.obs_params.d`` in place and return it.
+        If ``False``, return a new ``PosteriorObsMean``.
+        Defaults to ``True``.
 
     Returns
     -------
-    PosteriorObsMean | None
+    PosteriorObsMean
         Posterior estimates of observation mean parameter.
     """
     obs_params = params.obs_params
@@ -618,9 +609,7 @@ def infer_obs_mean(
         * np.sum(Y.data - obs_params.C.mean @ state_params.X.mean, axis=1)
     )
 
-    if not in_place:
-        return d
-    return None
+    return d
 
 
 def infer_obs_prec(
@@ -631,7 +620,7 @@ def infer_obs_prec(
     d_moment: np.ndarray | None = None,
     XY: np.ndarray | None = None,
     Y2: np.ndarray | None = None,
-) -> PosteriorObsPrec | None:
+) -> PosteriorObsPrec:
     """
     Infer observation precision parameters given GFA model parameters and observed data.
 
@@ -644,9 +633,9 @@ def infer_obs_prec(
     hyper_priors
         Hyperparameters of the GFA prior distributions.
     in_place
-        If ``True``, update the posterior observation precisions in place.
-        If ``False``, compute the posterior observation precisions and return as
-        a new ``PosteriorObsPrec`` without modifying ``params``.
+        If ``True``, update ``params.obs_params.phi`` in place and return it.
+        If ``False``, return a new ``PosteriorObsPrec``.
+        Defaults to ``True``.
     d_moment
         `ndarray` of `float`, shape ``(y_dim,)``.
         Second moment of the observation mean parameter. If not provided,
@@ -663,7 +652,7 @@ def infer_obs_prec(
 
     Returns
     -------
-    PosteriorObsPrec | None
+    PosteriorObsPrec
         Posterior estimates of observation precision parameters.
     """
     obs_params = params.obs_params
@@ -709,9 +698,7 @@ def infer_obs_prec(
     # Mean
     phi.compute_mean(in_place=True)
 
-    if not in_place:
-        return phi
-    return None
+    return phi
 
 
 def compute_lower_bound(
@@ -1067,7 +1054,7 @@ class GFAModel:
         self,
         Y: ObsStatic,
         in_place: bool = True,
-    ) -> PosteriorLatentStatic | None:
+    ) -> PosteriorLatentStatic:
         """
         Infer latent variables X given current params and observed data.
 
@@ -1076,14 +1063,13 @@ class GFAModel:
         Y
             Observed data.
         in_place
-            If ``True``, update the posterior latents in place.
-            If ``False``, compute the posterior latents and return as a
-            new ``PosteriorLatent`` without modifying ``params``. Defaults to
-            ``True``.
+            If ``True``, update ``self.params.state_params.X`` in place and return it.
+            If ``False``, return a new ``PosteriorLatentStatic``.
+            Defaults to ``True``.
 
         Returns
         -------
-        PosteriorLatent | None
+        PosteriorLatentStatic
             Posterior estimates of latent variables.
         """
         return infer_latents(Y, self.params, in_place=in_place)
@@ -1092,7 +1078,7 @@ class GFAModel:
         self,
         Y: ObsStatic,
         in_place: bool = True,
-    ) -> PosteriorLoading | None:
+    ) -> PosteriorLoading:
         """
         Infer loadings C given current params and observed data.
 
@@ -1101,14 +1087,13 @@ class GFAModel:
         Y
             Observed data.
         in_place
-            If ``True``, update the posterior loadings in place.
-            If ``False``, compute the posterior loadings and return as a
-            new ``PosteriorLoading`` without modifying ``params``. Defaults to
-            ``True``.
+            If ``True``, update ``self.params.obs_params.C`` in place and return it.
+            If ``False``, return a new ``PosteriorLoading``.
+            Defaults to ``True``.
 
         Returns
         -------
-        PosteriorLoading | None
+        PosteriorLoading
             Posterior estimates of loadings.
         """
         return infer_loadings(Y, self.params, in_place=in_place)
@@ -1116,21 +1101,20 @@ class GFAModel:
     def infer_ard(
         self,
         in_place: bool = True,
-    ) -> PosteriorARD | None:
+    ) -> PosteriorARD:
         """
         Infer ARD parameters alpha given current params.
 
         Parameters
         ----------
         in_place
-            If ``True``, update the posterior ARD parameters in place.
-            If ``False``, compute the posterior ARD parameters and return as a
-            new ``PosteriorARD`` without modifying ``params``. Defaults to
-            ``True``.
+            If ``True``, update ``self.params.obs_params.alpha`` in place and return it.
+            If ``False``, return a new ``PosteriorARD``.
+            Defaults to ``True``.
 
         Returns
         -------
-        PosteriorARD | None
+        PosteriorARD
             Posterior estimates of ARD parameters.
         """
         return infer_ard(self.params, self.hyper_priors, in_place=in_place)
@@ -1139,7 +1123,7 @@ class GFAModel:
         self,
         Y: ObsStatic,
         in_place: bool = True,
-    ) -> PosteriorObsMean | None:
+    ) -> PosteriorObsMean:
         """
         Infer observation mean parameters given current params and observed data.
 
@@ -1148,15 +1132,13 @@ class GFAModel:
         Y
             Observed data.
         in_place
-            If ``True``, update the posterior observation mean parameters in
-            place.
-            If ``False``, compute the posterior observation mean parameters and
-            return as a new ``PosteriorObsMean`` without modifying ``params``.
+            If ``True``, update ``self.params.obs_params.d`` in place and return it.
+            If ``False``, return a new ``PosteriorObsMean``.
             Defaults to ``True``.
 
         Returns
         -------
-        PosteriorObsMean | None
+        PosteriorObsMean
             Posterior estimates of observation mean parameters.
         """
         return infer_obs_mean(Y, self.params, self.hyper_priors, in_place=in_place)
@@ -1165,7 +1147,7 @@ class GFAModel:
         self,
         Y: ObsStatic,
         in_place: bool = True,
-    ) -> PosteriorObsPrec | None:
+    ) -> PosteriorObsPrec:
         """
         Infer observation precision parameters given current params and observed data.
 
@@ -1174,15 +1156,13 @@ class GFAModel:
         Y
             Observed data.
         in_place
-            If ``True``, update the posterior observation precision parameters
-            in place.
-            If ``False``, compute the posterior observation precision parameters
-            and return as a new ``PosteriorObsPrec`` without modifying
-            ``params``. Defaults to ``True``.
+            If ``True``, update ``self.params.obs_params.phi`` in place and return it.
+            If ``False``, return a new ``PosteriorObsPrec``.
+            Defaults to ``True``.
 
         Returns
         -------
-        PosteriorObsPrec | None
+        PosteriorObsPrec
             Posterior estimates of observation precision parameters.
         """
         return infer_obs_prec(Y, self.params, self.hyper_priors, in_place=in_place)

@@ -2,7 +2,14 @@
 
 from __future__ import annotations
 
+import sys
+
 import numpy as np
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 from latents.base import ArrayContainer
 
@@ -65,20 +72,20 @@ class PosteriorLatentStatic(ArrayContainer):
     def compute_moment(
         self,
         in_place: bool = True,
-    ) -> np.ndarray | None:
+    ) -> np.ndarray:
         """
         Compute the posterior second moments of the latent variables.
 
         Parameters
         ----------
         in_place
-            If ``True``, compute the posterior second moments in place.
-            If ``False``, compute the posterior second moments and return as a
-            new `ndarray` without modifying self. Defaults to ``True``.
+            If ``True``, store result in ``self.moment`` and return reference to it.
+            If ``False``, return a new array without modifying self.
+            Defaults to ``True``.
 
         Returns
         -------
-        ndarray | None
+        ndarray
             `ndarray` of shape ``(x_dim, x_dim)``.
             Posterior second moments of the latent variables.
         """
@@ -87,6 +94,7 @@ class PosteriorLatentStatic(ArrayContainer):
             if self.moment is None:
                 self.moment = np.zeros((x_dim, x_dim))
             self.moment[:] = N * self.cov + self.mean @ self.mean.T
+            return self.moment
 
         return N * self.cov + self.mean @ self.mean.T
 
@@ -94,43 +102,39 @@ class PosteriorLatentStatic(ArrayContainer):
         self,
         dims: np.ndarray,
         in_place: bool = True,
-    ) -> PosteriorLatentStatic | None:
+    ) -> Self:
         """
         Keep only a subset of the latent dimensions in each attribute.
 
         Parameters
         ----------
         dims
-            `ndarray` of `int`, at most length ``x_dim``.
+            1D `ndarray` of `int`, at most length ``x_dim``.
             Indexes into the latent dimensions to keep.
         in_place
-            If ``True``, modify self in place.
-            If ``False``, copy over the relevant subsets of dimensions to
-            a new ``PosteriorLatentStatic``, and return that new
-            ``PosteriorLatentStatic``. Defaults to ``True``.
+            If ``True``, modify self in place and return self.
+            If ``False``, return a new instance with the subset.
+            Defaults to ``True``.
 
         Returns
         -------
-        PosteriorLatentStatic | None
-            A new ``PosteriorLatentStatic`` object with only the specified
-            latent dimensions.
+        Self
+            The modified instance (if ``in_place=True``) or a new instance
+            with only the specified latent dimensions.
         """
-        if in_place:
-            # Keep only the specified dimensions
-            self.mean = self.mean[dims, :] if self.mean is not None else None
-            self.cov = self.cov[np.ix_(dims, dims)] if self.cov is not None else None
-            self.moment = (
-                self.moment[np.ix_(dims, dims)] if self.moment is not None else None
-            )
-            return None
-
-        # Copy over the relevant subsets of dimensions to a new
-        # PosteriorLatentStatic, and return that new PosteriorLatentStatic
+        # Compute sliced arrays once
         new_mean = self.mean[dims, :] if self.mean is not None else None
         new_cov = self.cov[np.ix_(dims, dims)] if self.cov is not None else None
         new_moment = (
             self.moment[np.ix_(dims, dims)] if self.moment is not None else None
         )
+
+        if in_place:
+            self.mean = new_mean
+            self.cov = new_cov
+            self.moment = new_moment
+            return self
+
         return self.__class__(mean=new_mean, cov=new_cov, moment=new_moment)
 
 
@@ -202,7 +206,7 @@ class StateParamsStatic:
         self,
         dims: np.ndarray,
         in_place: bool = True,
-    ) -> StateParamsStatic | None:
+    ) -> Self:
         """
         Keep only a subset of the latent dimensions in each relevant parameter.
 
@@ -212,37 +216,33 @@ class StateParamsStatic:
             1D `ndarray` of `int`, at most length ``x_dim``.
             Indexes into the latent dimensions to keep.
         in_place
-            If ``True``, modify self in place.
-            If ``False``, copy over parameters with the relevant subsets of
-            dimensions to a new ``StateParamsStatic``, and return that new
-            ``StateParamsStatic``. Defaults to ``True``.
+            If ``True``, modify self in place and return self.
+            If ``False``, return a new instance with the subset.
+            Defaults to ``True``.
 
         Returns
         -------
-        StateParamsStatic | None
-            A new ``StateParamsStatic`` object whose parameters have only the specified
-            latent dimensions.
+        Self
+            The modified instance (if ``in_place=True``) or a new instance
+            with only the specified latent dimensions.
         """
         if in_place:
-            # Keep only the specified dimensions
             self.x_dim = len(dims)
             self.X.get_subset_dims(dims, in_place=True)
-            return None
+            return self
 
-        # Copy over parameters with the relevant subsets of dimensions to a
-        # new StateParamsStatic object, and return that new StateParamsStatic object.
         return self.__class__(
             x_dim=len(dims),
             X=self.X.get_subset_dims(dims, in_place=False),
         )
 
-    def copy(self) -> StateParamsStatic:
+    def copy(self) -> Self:
         """
         Return a copy of self.
 
         Returns
         -------
-        StateParamsStatic
+        Self
             A copy of self.
         """
         return self.__class__(
