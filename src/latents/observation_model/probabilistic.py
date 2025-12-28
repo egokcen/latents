@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
 from itertools import combinations
 
@@ -9,6 +10,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 from latents.base import ArrayContainer
 
@@ -137,20 +143,20 @@ class PosteriorLoading(ArrayContainer):
     def compute_moment(
         self,
         in_place: bool = True,
-    ) -> np.ndarray | None:
+    ) -> np.ndarray:
         """
         Compute the posterior second moments of the loading matrices.
 
         Parameters
         ----------
         in_place
-            If ``True``, compute the posterior second moments in place.
-            If ``False``, compute the posterior second moments and return as a
-            new `ndarray` without modifying self. Defaults to ``True``.
+            If ``True``, store result in ``self.moment`` and return reference to it.
+            If ``False``, return a new array without modifying self.
+            Defaults to ``True``.
 
         Returns
         -------
-        ndarray | None
+        ndarray
             `ndarray`, shape ``(y_dim, x_dim, x_dim)``.
             Posterior second moments of the loading matrices.
         """
@@ -158,7 +164,7 @@ class PosteriorLoading(ArrayContainer):
             if self.moment is None:
                 self.moment = np.zeros_like(self.cov)
             self.moment[:] = np.einsum("ij,ik->ijk", self.mean, self.mean) + self.cov
-            return None
+            return self.moment
 
         return np.einsum("ij,ik->ijk", self.mean, self.mean) + self.cov
 
@@ -197,7 +203,7 @@ class PosteriorLoading(ArrayContainer):
         self,
         dims: np.ndarray,
         in_place: bool = True,
-    ) -> PosteriorLoading | None:
+    ) -> Self:
         """
         Keep only a subset of the latent dimensions in each attribute.
 
@@ -207,34 +213,17 @@ class PosteriorLoading(ArrayContainer):
             1D `ndarray` of `int`, at most length ``x_dim``.
             Indexes into the latent dimensions to keep.
         in_place
-            If ``True``, modify self in place.
-            If ``False``, copy over the relevant subsets of dimensions to
-            a new ``PosteriorLoading``, and return that new
-            ``PosteriorLoading``. Defaults to ``True``.
+            If ``True``, modify self in place and return self.
+            If ``False``, return a new instance with the subset.
+            Defaults to ``True``.
 
         Returns
         -------
-        PosteriorLoading | None
-            A new ``PosteriorLoading`` object with only the specified
-            latent dimensions.
+        Self
+            The modified instance (if ``in_place=True``) or a new instance
+            with only the specified latent dimensions.
         """
-        if in_place:
-            # Keep only the specified dimensions
-            self.mean = self.mean[:, dims] if self.mean is not None else None
-            self.cov = (
-                self.cov[np.ix_(np.arange(self.cov.shape[0]), dims, dims)]
-                if self.cov is not None
-                else None
-            )
-            self.moment = (
-                self.moment[np.ix_(np.arange(self.moment.shape[0]), dims, dims)]
-                if self.moment is not None
-                else None
-            )
-            return None
-
-        # Copy over the relevant subsets of dimensions to a new
-        # PosteriorLoading, and return that new PosteriorLoading
+        # Compute sliced arrays once
         new_mean = self.mean[:, dims] if self.mean is not None else None
         new_cov = (
             self.cov[np.ix_(np.arange(self.cov.shape[0]), dims, dims)]
@@ -246,6 +235,13 @@ class PosteriorLoading(ArrayContainer):
             if self.moment is not None
             else None
         )
+
+        if in_place:
+            self.mean = new_mean
+            self.cov = new_cov
+            self.moment = new_moment
+            return self
+
         return self.__class__(mean=new_mean, cov=new_cov, moment=new_moment)
 
 
@@ -307,20 +303,20 @@ class PosteriorARD(ArrayContainer):
     def compute_mean(
         self,
         in_place: bool = True,
-    ) -> np.ndarray | None:
+    ) -> np.ndarray:
         """
         Compute the posterior mean of the ARD parameters, a / b.
 
         Parameters
         ----------
         in_place
-            If ``True``, compute the posterior mean in place.
-            If ``False``, compute the posterior mean and return as a new
-            `ndarray` without modifying self. Defaults to ``True``.
+            If ``True``, store result in ``self.mean`` and return reference to it.
+            If ``False``, return a new array without modifying self.
+            Defaults to ``True``.
 
         Returns
         -------
-        ndarray | None
+        ndarray
             `ndarray` of `float`, shape ``(num_groups, x_dim)``.
             Posterior mean of the ARD parameters.
         """
@@ -328,7 +324,7 @@ class PosteriorARD(ArrayContainer):
             if self.mean is None:
                 self.mean = np.zeros_like(self.b)
             self.mean[:] = self.a[:, np.newaxis] / self.b
-            return None
+            return self.mean
 
         return self.a[:, np.newaxis] / self.b
 
@@ -336,7 +332,7 @@ class PosteriorARD(ArrayContainer):
         self,
         dims: np.ndarray,
         in_place: bool = True,
-    ) -> PosteriorARD | None:
+    ) -> Self:
         """
         Keep only a subset of the latent dimensions in each attribute.
 
@@ -346,28 +342,26 @@ class PosteriorARD(ArrayContainer):
             1D `ndarray` of `int`, at most length ``x_dim``.
             Indexes into the latent dimensions to keep.
         in_place
-            If ``True``, modify self in place.
-            If ``False``, copy over the relevant subsets of dimensions to
-            a new ``PosteriorARD``, and return that new ``PosteriorARD``.
+            If ``True``, modify self in place and return self.
+            If ``False``, return a new instance with the subset.
             Defaults to ``True``.
 
         Returns
         -------
-        PosteriorARD | None
-            A new ``PosteriorARD`` object with only the specified
-            latent dimensions.
+        Self
+            The modified instance (if ``in_place=True``) or a new instance
+            with only the specified latent dimensions.
         """
-        if in_place:
-            # Keep only the specified dimensions
-            self.b = self.b[:, dims] if self.b is not None else None
-            self.mean = self.mean[:, dims] if self.mean is not None else None
-            return None
-
-        # Copy over the relevant subsets of dimensions to a new
-        # PosteriorARD, and return that new PosteriorARD
-        new_a = self.a.copy() if self.a is not None else None
+        # Compute sliced arrays once (a is not sliced, only copied for new instance)
         new_b = self.b[:, dims] if self.b is not None else None
         new_mean = self.mean[:, dims] if self.mean is not None else None
+
+        if in_place:
+            self.b = new_b
+            self.mean = new_mean
+            return self
+
+        new_a = self.a.copy() if self.a is not None else None
         return self.__class__(a=new_a, b=new_b, mean=new_mean)
 
 
@@ -576,20 +570,20 @@ class PosteriorObsPrec(ArrayContainer):
     def compute_mean(
         self,
         in_place: bool = True,
-    ) -> np.ndarray | None:
+    ) -> np.ndarray:
         """
         Compute the posterior mean of the observation precision parameters, a / b.
 
         Parameters
         ----------
         in_place
-            If ``True``, compute the posterior mean in place.
-            If ``False``, compute the posterior mean and return as a new
-            `ndarray` without modifying self. Defaults to ``True``.
+            If ``True``, store result in ``self.mean`` and return reference to it.
+            If ``False``, return a new array without modifying self.
+            Defaults to ``True``.
 
         Returns
         -------
-        ndarray | None
+        ndarray
             `ndarray` of `float`, shape ``(y_dim,)``.
             Posterior mean of the observation precision parameters.
         """
@@ -597,7 +591,7 @@ class PosteriorObsPrec(ArrayContainer):
             if self.mean is None:
                 self.mean = np.zeros_like(self.b)
             self.mean[:] = self.a / self.b
-            return None
+            return self.mean
 
         return self.a / self.b
 
@@ -958,7 +952,7 @@ class ObsParamsARD:
         self,
         dims: np.ndarray,
         in_place: bool = True,
-    ) -> ObsParamsARD | None:
+    ) -> Self:
         """
         Keep only a subset of the latent dimensions in each relevant parameter.
 
@@ -968,26 +962,22 @@ class ObsParamsARD:
             1D `ndarray` of `int`, at most length ``x_dim``.
             Indexes into the latent dimensions to keep.
         in_place
-            If ``True``, modify self in place.
-            If ``False``, copy over parameters with the relevant subsets of
-            dimensions to a new ``ObsParamsARD``, and return that new
-            ``ObsParamsARD``. Defaults to ``True``.
+            If ``True``, modify self in place and return self.
+            If ``False``, return a new instance with the subset.
+            Defaults to ``True``.
 
         Returns
         -------
-        ObsParamsARD | None
-            A new ``ObsParamsARD`` object whose parameters have only the specified
-            latent dimensions.
+        Self
+            The modified instance (if ``in_place=True``) or a new instance
+            with only the specified latent dimensions.
         """
         if in_place:
-            # Keep only the specified dimensions
             self.x_dim = len(dims)
             self.C.get_subset_dims(dims, in_place=True)
             self.alpha.get_subset_dims(dims, in_place=True)
-            return None
+            return self
 
-        # Copy over parameters with the relevant subsets of dimensions to a
-        # new ObsParamsARD object, and return that new ObsParamsARD object.
         return self.__class__(
             x_dim=len(dims),
             y_dims=self.y_dims.copy(),
@@ -997,13 +987,13 @@ class ObsParamsARD:
             phi=self.phi.copy(),
         )
 
-    def copy(self) -> ObsParamsARD:
+    def copy(self) -> Self:
         """
         Return a copy of self.
 
         Returns
         -------
-        ObsParamsARD
+        Self
             A copy of self.
         """
         return self.__class__(

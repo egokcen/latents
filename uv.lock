@@ -1448,6 +1448,7 @@ dependencies = [
     { name = "numpy", version = "2.3.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "scipy", version = "1.16.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
 ]
 
 [package.optional-dependencies]
@@ -1487,6 +1488,7 @@ requires-dist = [
     { name = "matplotlib" },
     { name = "numpy" },
     { name = "scipy" },
+    { name = "typing-extensions", marker = "python_full_version < '3.11'", specifier = ">=4.0" },
 ]
 provides-extras = ["notebook"]
 

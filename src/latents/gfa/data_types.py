@@ -2,7 +2,14 @@
 
 from __future__ import annotations
 
+import sys
+
 import numpy as np
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 from latents.base import (
     FitFlags,
@@ -76,7 +83,7 @@ class GFAParams:
         self,
         dims: np.ndarray,
         in_place: bool = True,
-    ) -> GFAParams | None:
+    ) -> Self:
         """
         Keep only a subset of the latent dimensions in each relevant parameter.
 
@@ -86,37 +93,33 @@ class GFAParams:
             1D `ndarray` of `int`, at most length ``x_dim``.
             Indexes into the latent dimensions to keep.
         in_place
-            If ``True``, modify self in place.
-            If ``False``, copy over parameters with the relevant subsets of
-            dimensions to a new ``GFAParams``, and return that new
-            ``GFAParams``. Defaults to ``True``.
+            If ``True``, modify self in place and return self.
+            If ``False``, return a new instance with the subset.
+            Defaults to ``True``.
 
         Returns
         -------
-        GFAParams | None
-            A new ``GFAParams`` object whose parameters have only the specified
-            latent dimensions.
+        Self
+            The modified instance (if ``in_place=True``) or a new instance
+            with only the specified latent dimensions.
         """
         if in_place:
-            # Keep only the specified dimensions
             self.obs_params.get_subset_dims(dims, in_place=True)
             self.state_params.get_subset_dims(dims, in_place=True)
-            return None
+            return self
 
-        # Copy over parameters with the relevant subsets of dimensions to a
-        # new GFAParams object, and return that new GFAParams object.
         return self.__class__(
             obs_params=self.obs_params.get_subset_dims(dims, in_place=False),
             state_params=self.state_params.get_subset_dims(dims, in_place=False),
         )
 
-    def copy(self) -> GFAParams:
+    def copy(self) -> Self:
         """
         Return a copy of self.
 
         Returns
         -------
-        GFAParams
+        Self
             A copy of self.
         """
         return self.__class__(
