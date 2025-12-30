@@ -30,7 +30,7 @@ class GFAParams:
     x_dim
         Number of latent dimensions.
     y_dims
-        `ndarray` of `int`, shape ``(num_groups,)``.
+        `ndarray` of `int`, shape ``(n_groups,)``.
         Dimensionalities of each observed group.
 
     Attributes
@@ -81,7 +81,7 @@ class GFAParams:
 
     def get_subset_dims(
         self,
-        dims: np.ndarray,
+        x_indices: np.ndarray,
         in_place: bool = True,
     ) -> Self:
         """
@@ -89,9 +89,9 @@ class GFAParams:
 
         Parameters
         ----------
-        dims
+        x_indices
             1D `ndarray` of `int`, at most length ``x_dim``.
-            Indexes into the latent dimensions to keep.
+            Indices of the latent dimensions to keep.
         in_place
             If ``True``, modify self in place and return self.
             If ``False``, return a new instance with the subset.
@@ -104,13 +104,13 @@ class GFAParams:
             with only the specified latent dimensions.
         """
         if in_place:
-            self.obs_params.get_subset_dims(dims, in_place=True)
-            self.state_params.get_subset_dims(dims, in_place=True)
+            self.obs_params.get_subset_dims(x_indices, in_place=True)
+            self.state_params.get_subset_dims(x_indices, in_place=True)
             return self
 
         return self.__class__(
-            obs_params=self.obs_params.get_subset_dims(dims, in_place=False),
-            state_params=self.state_params.get_subset_dims(dims, in_place=False),
+            obs_params=self.obs_params.get_subset_dims(x_indices, in_place=False),
+            state_params=self.state_params.get_subset_dims(x_indices, in_place=False),
         )
 
     def copy(self) -> Self:

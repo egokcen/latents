@@ -1,30 +1,35 @@
 """Test the gfa.core module."""
 
+from __future__ import annotations
 
-def test_fit():
-    """Test basic fitting."""
-    import numpy as np
+import time
 
-    import latents.gfa.simulation as gfa_sim
-    from latents.gfa import GFAFitConfig, GFAModel
-    from latents.observation_model.probabilistic import SimulationHyperPriors
+import numpy as np
+import pytest
 
-    # Set a random seed, for reproducibility
-    random_seed = 1  # Set to None for no seeding
+import latents.gfa.simulation as gfa_sim
+from latents.gfa import GFAFitConfig, GFAModel
+from latents.observation_model.probabilistic import SimulationHyperPriors
 
-    # Dataset characteristics
-    N = 100  # Total number of samples
-    y_dims = np.array([10, 10, 10])  # Dimensionality of each observed group
-    num_groups = len(y_dims)  # Total number of groups
-    x_dim = 7  # Latent dimensionality
-    snr = 1.0 * np.ones(num_groups)  # Signal-to-noise ratio of each group
 
-    # Build up the desired sparsity pattern of the loading matrices, a
-    # (num_groups x x_dim) array. Row i corresponds to group i. Column j
-    # corresponds to latent j. A value of np.inf indicates that a latent is
-    # NOT present in a group. The corresponding loadings will be 0 for that
-    # group. The remaining hyperparameters are not very important, and can
-    # be left alone.
+# --- Fixtures ---
+
+
+@pytest.fixture(scope="module")
+def simulation_data():
+    """Generate simulated GFA data with known ground truth.
+
+    Uses fixed seeds for reproducibility. Returns data and ground truth
+    parameters for regression testing.
+    """
+    random_seed = 1
+    n_samples = 100
+    y_dims = np.array([10, 10, 10])
+    n_groups = len(y_dims)
+    x_dim = 7
+    snr = 1.0 * np.ones(n_groups)
+
+    # Sparsity pattern: rows=groups, cols=latents. np.inf means latent absent.
     sparsity_pattern = np.array(
         [
             [1, 1, 1, np.inf, 1, np.inf, np.inf],
@@ -32,7 +37,7 @@ def test_fit():
             [1, np.inf, 1, 1, np.inf, np.inf, 1],
         ],
     )
-    MAG = 100  # Control the variance of alpha parameters (larger = less var.)
+    MAG = 100  # Controls variance of alpha (larger = less variance)
     sim_priors = SimulationHyperPriors(
         a_alpha=MAG * sparsity_pattern,
         b_alpha=MAG * np.ones_like(sparsity_pattern),
@@ -41,45 +46,176 @@ def test_fit():
         d_beta=1.0,
     )
 
-    # Simulate data
-    Y, _, _ = gfa_sim.simulate(
-        N,
-        y_dims,
-        x_dim,
-        sim_priors,
-        snr,
-        random_seed=random_seed,
+    Y, X_true, obs_params_true = gfa_sim.simulate(
+        n_samples, y_dims, x_dim, sim_priors, snr, random_seed=random_seed
     )
 
-    # Configure fitting
+    return {
+        "Y": Y,
+        "X_true": X_true,
+        "obs_params_true": obs_params_true,
+        "y_dims": y_dims,
+        "x_dim": x_dim,
+    }
+
+
+@pytest.fixture(scope="module")
+def fitted_model(simulation_data):
+    """Fit a GFA model to simulated data.
+
+    Uses fixed fitting seed for reproducibility. Saves all outputs needed
+    for regression tests (X, C covariance, fit progress).
+    """
+    Y = simulation_data["Y"]
+
     config = GFAFitConfig(
-        x_dim_init=10,  # Set to larger than the hypothesized latent dimensionality
-        fit_tol=1e-8,  # Tolerance to determine fitting convergence
-        max_iter=20000,  # Maximum number of fitting iterations
-        verbose=True,  # Print fitting progress
-        random_seed=0,  # Set to None for no seeding
-        min_var_frac=0.001,  # Private variance floor
-        prune_x=True,  # For speed-up, remove latents that become inactive
-        prune_tol=1e-7,  # Tolerance for pruning inactive latents
-        save_x=False,  # Set False to save memory when saving final results
-        save_c_cov=False,  # Set False to save memory when saving final results
-        save_fit_progress=True,  # Save lower bound, runtime each iteration
+        x_dim_init=10,
+        fit_tol=1e-8,
+        max_iter=20000,
+        verbose=False,
+        random_seed=0,
+        min_var_frac=0.001,
+        prune_x=True,
+        prune_tol=1e-7,
+        save_x=True,
+        save_c_cov=True,
+        save_fit_progress=True,
     )
 
-    # Instantiate a GFA model with config
     model = GFAModel(config=config)
-
-    # Initialize the model
     model.init(Y)
 
-    # Fit the model
+    start_time = time.perf_counter()
     model.fit(Y)
+    elapsed_time = time.perf_counter() - start_time
 
-    # Check model fit flags
+    return {"model": model, "elapsed_time": elapsed_time}
+
+
+# --- Tests ---
+
+
+def test_fit(fitted_model):
+    """Test basic fitting: convergence flags and iteration count."""
+    model = fitted_model["model"]
+
     assert model.flags.converged
     assert not model.flags.decreasing_lb
     assert not model.flags.private_var_floor
+    # Regression baselines for fixed seeds (simulation_seed=1, fitting_seed=0).
+    # x_dim_init=10, true x_dim=7, so 3 latents pruned.
     assert model.flags.x_dims_removed == 3
-
-    # Check the number of iterations
+    # Iteration count for convergence with fit_tol=1e-8.
     assert len(model.tracker.iter_time) == 2521
+
+
+def test_elbo_monotonicity(fitted_model):
+    """Test that ELBO is monotonically non-decreasing.
+
+    Uses sqrt(machine epsilon) as tolerance to account for floating-point
+    accumulation errors while remaining precision-aware.
+    """
+    from conftest import testing_tols
+
+    model = fitted_model["model"]
+    lb = np.array(model.tracker.lb)
+
+    # Use rtol from testing_tols (sqrt(eps)) as absolute tolerance for differences
+    tols = testing_tols(lb.dtype)
+    tol = tols["rtol"]
+
+    lb_diff = np.diff(lb)
+    assert np.all(lb_diff >= -tol), (
+        f"ELBO decreased by more than tolerance. "
+        f"Min diff: {lb_diff.min():.2e}, tolerance: {-tol:.2e}"
+    )
+
+
+def test_parameter_recovery(simulation_data, fitted_model):
+    """Test that fitted parameters recover ground truth loading matrix.
+
+    Compares estimated C matrix against ground truth using per-column
+    correlation. Columns are reordered and sign-flipped to align with
+    ground truth (ordering is arbitrary in factor models).
+
+    Thresholds calibrated from baseline run with fixed seeds:
+    - Min per-column correlation: 0.77 (column 0, group-specific latent)
+    - Mean correlation: 0.94
+    """
+    model = fitted_model["model"]
+    obs_params_true = simulation_data["obs_params_true"]
+
+    # Column reordering and sign flips for this seed combination
+    # (simulation_seed=1, fitting_seed=0)
+    reorder = np.array([4, 2, 1, 5, 3, 6, 0])
+    rescale = np.array([-1, -1, 1, -1, 1, -1, 1])
+
+    C_true = obs_params_true.C.mean
+    C_est = model.params.obs_params.C.mean[:, reorder] * rescale
+
+    # Compute per-column correlation
+    n_cols = C_true.shape[1]
+    correlations = np.array(
+        [np.corrcoef(C_true[:, j], C_est[:, j])[0, 1] for j in range(n_cols)]
+    )
+
+    min_corr = correlations.min()
+    mean_corr = correlations.mean()
+
+    # Thresholds with margin below baseline values
+    assert min_corr > 0.70, (
+        f"Min column correlation {min_corr:.3f} below threshold 0.70"
+    )
+    assert mean_corr > 0.90, (
+        f"Mean column correlation {mean_corr:.3f} below threshold 0.90"
+    )
+
+
+def _run_reference_operation() -> float:
+    """Run a reference operation for relative timing.
+
+    Performs 500 matrix solve operations with warmup. This normalizes
+    runtime measurements across different machines and coverage overhead.
+
+    Returns
+    -------
+    float
+        Time in seconds for the reference operation.
+    """
+    rng = np.random.default_rng(42)
+    A = rng.standard_normal((30, 30))
+    B = rng.standard_normal((30, 100))
+
+    # Warmup to stabilize timing
+    for _ in range(50):
+        C = A @ A.T + np.eye(30)
+        np.linalg.solve(C, B)
+
+    # Timed reference: 500 solve operations
+    start = time.perf_counter()
+    for _ in range(500):
+        C = A @ A.T + np.eye(30)
+        np.linalg.solve(C, B)
+    return time.perf_counter() - start
+
+
+def test_fitting_runtime(fitted_model):
+    """Test that fitting runtime is reasonable relative to baseline operations.
+
+    Uses a reference operation (matrix solves) to normalize across machines
+    and coverage overhead. This approach has ~2% coefficient of variation
+    compared to ~40% variance with absolute wall-clock thresholds.
+
+    Baseline ratio: ~56x reference operation.
+    Threshold: 80x (~40% margin to catch major regressions).
+    """
+    elapsed = fitted_model["elapsed_time"]
+    ref_time = _run_reference_operation()
+
+    ratio = elapsed / ref_time
+    max_ratio = 80.0  # Baseline ~56x, threshold at 80x
+
+    assert ratio < max_ratio, (
+        f"Fitting took {ratio:.1f}x reference operation, "
+        f"exceeds {max_ratio}x threshold (elapsed={elapsed:.2f}s, ref={ref_time:.3f}s)"
+    )

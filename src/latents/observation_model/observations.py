@@ -12,14 +12,14 @@ class ObsStatic:
     Parameters
     ----------
     data
-        `ndarray` of `float`, shape ``(dim, N)``.
+        `ndarray` of `float`, shape ``(dim, n_samples)``.
         Observed data. Groups are stacked vertically. For example, if there
         are three groups with dimensionalities 2, 3, and 4, then ``data`` is a
-        `ndarray` of shape ``(9, N)``, and ``data[:2, :]`` contains the first
+        `ndarray` of shape ``(9, n_samples)``, and ``data[:2, :]`` contains the first
         group, ``data[2:5, :]`` contains the second group, and ``data[5:, :]``
         contains the third group.
     dims
-        `ndarray` of `int`, shape ``(num_groups,)``.
+        `ndarray` of `int`, shape ``(n_groups,)``.
         Dimensionalities of each observed group.
 
     Attributes
@@ -71,7 +71,7 @@ class ObsStatic:
         Returns
         -------
         list[ndarray]
-            *list* of `ndarray`, length ``num_groups``.
+            *list* of `ndarray`, length ``n_groups``.
             List of views of the observed data, one for each group.
         """
         return np.split(self.data, np.cumsum(self.dims)[:-1], axis=0)

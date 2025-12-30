@@ -36,7 +36,7 @@ def hinton(
     Examples
     --------
     >>> import numpy as np
-    >>> from gfa_py.plotting_gfa import hinton
+    >>> from latents.plotting import hinton
     >>> C = np.random.normal(size=(10, 5))
     >>> hinton(C)
     """

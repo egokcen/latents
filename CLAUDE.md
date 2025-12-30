@@ -120,6 +120,7 @@ See `examples/gfa_demo.py` for a complete example with simulation, fitting, and 
 - NumPy docstring convention
 - Type hints with `from __future__ import annotations`
 - Tests follow `test_*.py` naming with pytest
+- Array shape comments on complex operations (see CONTRIBUTING.md for conventions)
 
 ## Git and GitHub
 

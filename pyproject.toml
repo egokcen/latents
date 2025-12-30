@@ -113,7 +113,6 @@ select = [
     "SIM",    # flake8-simplify
     "ARG",    # flake8-unused-arguments
     "FIX",    # flake8-fixme
-    "ERA",    # eradicate (commented-out code)
     "NPY",    # NumPy-specific rules
     "RUF",    # Ruff-specific rules
 ]

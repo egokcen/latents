@@ -310,6 +310,30 @@ We use [Ruff](https://docs.astral.sh/ruff/) for linting and code formatting. See
 the [pyproject.toml](./pyproject.toml) for the current ruleset. Pull Requests will need
 to meet these rules to be accepted.
 
+### Array Shape Comments
+
+For complex array operations, especially broadcasting, add inline shape comments:
+
+```python
+# Input shapes -> output shape
+# X: (x_dim, n_samples), Y: (y_dim, n_samples) -> XY: (x_dim, y_dim)
+XY = X @ Y.T
+
+# Explain broadcasting expansions
+# d: (y_dim,) -> (y_dim, 1) for broadcast with Y: (y_dim, n_samples)
+centered = Y - d[:, np.newaxis]  # (y_dim, n_samples)
+```
+
+Use semantic dimension names:
+
+| Dimension | Name | Description |
+|-----------|------|-------------|
+| Samples | `n_samples` | Independent observations |
+| Time points | `n_time` | Time steps per sequence |
+| Latent dims | `x_dim` | Latent space dimensionality |
+| Observed dims | `y_dim` | Observation space dimensionality |
+| Groups | `n_groups` | Number of observation groups |
+
 ### Documentation
 
 To facilitate [Sphinx's](https://www.sphinx-doc.org/en/master/) automated build process, we stick to

@@ -21,7 +21,7 @@ class PosteriorLatentStatic(ArrayContainer):
     Parameters
     ----------
     mean
-        `ndarray` of `float`, shape ``(x_dim, N)``.
+        `ndarray` of `float`, shape ``(x_dim, n_samples)``.
         Posterior mean of the latent variables.
     cov
         `ndarray` of `float`, shape ``(x_dim, x_dim)``.
@@ -89,18 +89,18 @@ class PosteriorLatentStatic(ArrayContainer):
             `ndarray` of shape ``(x_dim, x_dim)``.
             Posterior second moments of the latent variables.
         """
-        x_dim, N = self.mean.shape
+        x_dim, n_samples = self.mean.shape
         if in_place:
             if self.moment is None:
                 self.moment = np.zeros((x_dim, x_dim))
-            self.moment[:] = N * self.cov + self.mean @ self.mean.T
+            self.moment[:] = n_samples * self.cov + self.mean @ self.mean.T
             return self.moment
 
-        return N * self.cov + self.mean @ self.mean.T
+        return n_samples * self.cov + self.mean @ self.mean.T
 
     def get_subset_dims(
         self,
-        dims: np.ndarray,
+        x_indices: np.ndarray,
         in_place: bool = True,
     ) -> Self:
         """
@@ -108,9 +108,9 @@ class PosteriorLatentStatic(ArrayContainer):
 
         Parameters
         ----------
-        dims
+        x_indices
             1D `ndarray` of `int`, at most length ``x_dim``.
-            Indexes into the latent dimensions to keep.
+            Indices of the latent dimensions to keep.
         in_place
             If ``True``, modify self in place and return self.
             If ``False``, return a new instance with the subset.
@@ -123,10 +123,14 @@ class PosteriorLatentStatic(ArrayContainer):
             with only the specified latent dimensions.
         """
         # Compute sliced arrays once
-        new_mean = self.mean[dims, :] if self.mean is not None else None
-        new_cov = self.cov[np.ix_(dims, dims)] if self.cov is not None else None
+        new_mean = self.mean[x_indices, :] if self.mean is not None else None
+        new_cov = (
+            self.cov[np.ix_(x_indices, x_indices)] if self.cov is not None else None
+        )
         new_moment = (
-            self.moment[np.ix_(dims, dims)] if self.moment is not None else None
+            self.moment[np.ix_(x_indices, x_indices)]
+            if self.moment is not None
+            else None
         )
 
         if in_place:
@@ -193,7 +197,7 @@ class StateParamsStatic:
 
     def is_initialized(self) -> bool:
         """
-        Check if observation model parameters have been initialized to data.
+        Check if state model parameters have been initialized to data.
 
         Returns
         -------
@@ -204,7 +208,7 @@ class StateParamsStatic:
 
     def get_subset_dims(
         self,
-        dims: np.ndarray,
+        x_indices: np.ndarray,
         in_place: bool = True,
     ) -> Self:
         """
@@ -212,9 +216,9 @@ class StateParamsStatic:
 
         Parameters
         ----------
-        dims
+        x_indices
             1D `ndarray` of `int`, at most length ``x_dim``.
-            Indexes into the latent dimensions to keep.
+            Indices of the latent dimensions to keep.
         in_place
             If ``True``, modify self in place and return self.
             If ``False``, return a new instance with the subset.
@@ -227,13 +231,13 @@ class StateParamsStatic:
             with only the specified latent dimensions.
         """
         if in_place:
-            self.x_dim = len(dims)
-            self.X.get_subset_dims(dims, in_place=True)
+            self.x_dim = len(x_indices)
+            self.X.get_subset_dims(x_indices, in_place=True)
             return self
 
         return self.__class__(
-            x_dim=len(dims),
-            X=self.X.get_subset_dims(dims, in_place=False),
+            x_dim=len(x_indices),
+            X=self.X.get_subset_dims(x_indices, in_place=False),
         )
 
     def copy(self) -> Self:

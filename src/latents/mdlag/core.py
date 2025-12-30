@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+_NOT_IMPLEMENTED_MSG = "mDLAG not yet implemented"
+
 
 def fit():
     """Fit a mDLAG model to data.
@@ -9,100 +11,100 @@ def fit():
     Fit a delayed latents across multiple groups (mDLAG) model using an iterative
     variational inference scheme with mean-field approximation.
     """
-    pass
+    raise NotImplementedError(_NOT_IMPLEMENTED_MSG)
 
 
 def init():
     """Initialize mDLAG model parameters for fitting."""
-    pass
+    raise NotImplementedError(_NOT_IMPLEMENTED_MSG)
 
 
 def infer_latents():
     """Infer latent variables given mDLAG model parameters and observed data."""
-    pass
+    raise NotImplementedError(_NOT_IMPLEMENTED_MSG)
 
 
 def learn_gp_params():
     """Learn Gaussian process parameters given mDLAG model parameters and latents."""
-    pass
+    raise NotImplementedError(_NOT_IMPLEMENTED_MSG)
 
 
 def infer_loadings():
     """Infer loadings :math:`C` given current params and observed data."""
-    pass
+    raise NotImplementedError(_NOT_IMPLEMENTED_MSG)
 
 
 def infer_ard():
     """Infer ARD parameters alpha given current params."""
-    pass
+    raise NotImplementedError(_NOT_IMPLEMENTED_MSG)
 
 
 def infer_obs_mean():
     """Infer observation mean parameter given current params and observed data."""
-    pass
+    raise NotImplementedError(_NOT_IMPLEMENTED_MSG)
 
 
 def infer_obs_prec():
     """Infer observation precision parameters given current params and observed data."""
-    pass
+    raise NotImplementedError(_NOT_IMPLEMENTED_MSG)
 
 
 def compute_lower_bound():
     """Compute the variational lower bound for a mDLAG model on observed data."""
-    pass
+    raise NotImplementedError(_NOT_IMPLEMENTED_MSG)
 
 
 def compute_lower_bound_constants():
     """Compute constant factors in the variational lower bound."""
-    pass
+    raise NotImplementedError(_NOT_IMPLEMENTED_MSG)
 
 
 class mDLAGModel:
     """Interface with, fit, and store the fitting results of a mDLAG model."""
 
     def __init__():
-        pass
+        raise NotImplementedError(_NOT_IMPLEMENTED_MSG)
 
     def __repr__():
-        pass
+        raise NotImplementedError(_NOT_IMPLEMENTED_MSG)
 
     def fit():
         """Fit a mDLAG model to data."""
-        pass
+        raise NotImplementedError(_NOT_IMPLEMENTED_MSG)
 
     def init():
         """Initialize mDLAG model parameters."""
-        pass
+        raise NotImplementedError(_NOT_IMPLEMENTED_MSG)
 
     def save():
         """Save a mDLAGModel object to a JSON file."""
-        pass
+        raise NotImplementedError(_NOT_IMPLEMENTED_MSG)
 
     @staticmethod
     def load():
         """Load a mDLAGModel object from a JSON file."""
-        pass
+        raise NotImplementedError(_NOT_IMPLEMENTED_MSG)
 
     def infer_latents():
         """Infer latent variables X given current params and observed data."""
-        pass
+        raise NotImplementedError(_NOT_IMPLEMENTED_MSG)
 
     def infer_loadings():
         """Infer loadings C given current params and observed data."""
-        pass
+        raise NotImplementedError(_NOT_IMPLEMENTED_MSG)
 
     def infer_ard():
         """Infer ARD parameters alpha given current params."""
-        pass
+        raise NotImplementedError(_NOT_IMPLEMENTED_MSG)
 
     def infer_obs_mean():
         """Infer observation mean parameter given current params and observed data."""
-        pass
+        raise NotImplementedError(_NOT_IMPLEMENTED_MSG)
 
     def infer_obs_prec():
         """Infer observation precision params given current params and observed data."""
-        pass
+        raise NotImplementedError(_NOT_IMPLEMENTED_MSG)
 
     def compute_lower_bound():
         """Compute the variational lower bound given observed data."""
-        pass
+        raise NotImplementedError(_NOT_IMPLEMENTED_MSG)
