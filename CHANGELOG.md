@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Internal utilities reorganized into `_core/` subpackage (base classes, fitting infrastructure, numerics)
 - Minimum Python version raised from 3.9 to 3.10
 - Jupyter dependencies (`jupyter`, `ipywidgets`) moved from core to optional extra
 - `GFAModel` now accepts `config` parameter in constructor instead of using `fit_args.set_args()`

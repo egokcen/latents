@@ -1,49 +1,11 @@
-"""Base classes common across the latents package."""
+"""Base classes for model fitting infrastructure."""
 
 from __future__ import annotations
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-
-class ArrayContainer:
-    """A parent class for classes with numpy.ndarray attributes."""
-
-    def __repr__(self) -> str:
-        # If array attributes are specified, then display their shapes, rather
-        # than their full values
-        attr_reprs = []
-        for attr_name, attr_value in vars(self).items():
-            if isinstance(attr_value, np.ndarray):
-                attr_reprs.append(f"{attr_name}.shape={attr_value.shape}")
-            else:
-                attr_reprs.append(f"{attr_name}={attr_value}")
-
-        return type(self).__name__ + "(" + ", ".join(attr_reprs) + ")"
-
-    def copy(self) -> ArrayContainer:
-        """
-        Return a deep copy of self.
-
-        Returns
-        -------
-        ArrayContainer
-            A deep copy of self.
-        """
-        # If array attributes are specified, then create copies of them, and
-        # create a new class instance with those copies
-        new_attrs = {}
-        for attr_name, attr_value in vars(self).items():
-            if isinstance(attr_value, np.ndarray):
-                new_attrs[attr_name] = attr_value.copy()
-            else:
-                new_attrs[attr_name] = attr_value
-        return self.__class__(**new_attrs)
-
-    def clear(self) -> None:
-        """Set all attributes to None."""
-        for attr_name in vars(self):
-            setattr(self, attr_name, None)
+from latents._core.base import ArrayContainer
 
 
 class FitTracker(ArrayContainer):

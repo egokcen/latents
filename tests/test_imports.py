@@ -22,9 +22,6 @@ def test_latents_namespace():
     """Test that the latents package has the expected namespace."""
     import latents
 
-    # Check that submodules are in the namespace of latents
-    assert "base" in dir(latents)
-
     # Check that subpackages are in the namespace of latents
     assert "gfa" in dir(latents)
     assert "mdlag" in dir(latents)
@@ -35,15 +32,11 @@ def test_latents_namespace():
 def test_latents_import_subpackages():
     """Test the 'from latents import' mechanism."""
     from latents import (
-        base,  # noqa: F401
         gfa,  # noqa: F401
         mdlag,  # noqa: F401
         observation_model,  # noqa: F401
         state_model,  # noqa: F401
     )
-
-    # Check that submodules are in the namespace of latents
-    assert "base" in dir()
 
     # Check that subpackages are in the current namespace
     assert "gfa" in dir()

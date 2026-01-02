@@ -11,7 +11,7 @@ from scipy.linalg import eigh
 from scipy.special import gammaln, psi
 from scipy.stats import gmean
 
-from latents._numerics import stability_floor, validate_tolerance
+from latents._core.numerics import stability_floor, validate_tolerance
 from latents.gfa.config import GFAFitConfig
 from latents.gfa.data_types import (
     GFAFitFlags,

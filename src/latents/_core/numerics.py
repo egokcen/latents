@@ -1,6 +1,8 @@
-"""Numerical stability utilities for the latents package."""
+"""Numerical stability utilities."""
 
 from __future__ import annotations
+
+import warnings
 
 import numpy as np
 
@@ -47,8 +49,6 @@ def validate_tolerance(tol: float, dtype, name: str) -> None:
     UserWarning
         If ``tol`` is below the stability floor for ``dtype``.
     """
-    import warnings
-
     floor = stability_floor(dtype)
     if tol < floor:
         warnings.warn(

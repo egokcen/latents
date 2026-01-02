@@ -16,8 +16,8 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import Self
 
-from latents._numerics import stability_floor
-from latents.base import ArrayContainer
+from latents._core.base import ArrayContainer
+from latents._core.numerics import stability_floor
 
 
 class PosteriorLoading(ArrayContainer):

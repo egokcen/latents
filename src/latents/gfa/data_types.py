@@ -11,7 +11,7 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import Self
 
-from latents.base import (
+from latents._core.fitting import (
     FitFlags,
     FitTracker,
 )
