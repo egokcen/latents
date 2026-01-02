@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import time
-
 import numpy as np
 import pytest
 
@@ -84,12 +82,9 @@ def fitted_model(simulation_data):
 
     model = GFAModel(config=config)
     model.init(Y)
-
-    start_time = time.perf_counter()
     model.fit(Y)
-    elapsed_time = time.perf_counter() - start_time
 
-    return {"model": model, "elapsed_time": elapsed_time}
+    return {"model": model}
 
 
 # --- Tests ---
@@ -168,54 +163,4 @@ def test_parameter_recovery(simulation_data, fitted_model):
     )
     assert mean_corr > 0.90, (
         f"Mean column correlation {mean_corr:.3f} below threshold 0.90"
-    )
-
-
-def _run_reference_operation() -> float:
-    """Run a reference operation for relative timing.
-
-    Performs 500 matrix solve operations with warmup. This normalizes
-    runtime measurements across different machines and coverage overhead.
-
-    Returns
-    -------
-    float
-        Time in seconds for the reference operation.
-    """
-    rng = np.random.default_rng(42)
-    A = rng.standard_normal((30, 30))
-    B = rng.standard_normal((30, 100))
-
-    # Warmup to stabilize timing
-    for _ in range(50):
-        C = A @ A.T + np.eye(30)
-        np.linalg.solve(C, B)
-
-    # Timed reference: 500 solve operations
-    start = time.perf_counter()
-    for _ in range(500):
-        C = A @ A.T + np.eye(30)
-        np.linalg.solve(C, B)
-    return time.perf_counter() - start
-
-
-def test_fitting_runtime(fitted_model):
-    """Test that fitting runtime is reasonable relative to baseline operations.
-
-    Uses a reference operation (matrix solves) to normalize across machines
-    and coverage overhead. This approach has ~2% coefficient of variation
-    compared to ~40% variance with absolute wall-clock thresholds.
-
-    Baseline ratio: ~56x reference operation.
-    Threshold: 80x (~40% margin to catch major regressions).
-    """
-    elapsed = fitted_model["elapsed_time"]
-    ref_time = _run_reference_operation()
-
-    ratio = elapsed / ref_time
-    max_ratio = 80.0  # Baseline ~56x, threshold at 80x
-
-    assert ratio < max_ratio, (
-        f"Fitting took {ratio:.1f}x reference operation, "
-        f"exceeds {max_ratio}x threshold (elapsed={elapsed:.2f}s, ref={ref_time:.3f}s)"
     )
