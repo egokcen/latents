@@ -9,7 +9,7 @@ from latents import (
     observation,
     observation_model,
     plotting,
-    state_model,
+    state,
 )
 
 with contextlib.suppress(PackageNotFoundError):
@@ -21,5 +21,5 @@ __all__ = [
     "observation",
     "observation_model",
     "plotting",
-    "state_model",
+    "state",
 ]

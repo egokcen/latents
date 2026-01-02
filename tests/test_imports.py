@@ -26,7 +26,7 @@ def test_latents_namespace():
     assert "gfa" in dir(latents)
     assert "mdlag" in dir(latents)
     assert "observation_model" in dir(latents)
-    assert "state_model" in dir(latents)
+    assert "state" in dir(latents)
 
 
 def test_latents_import_subpackages():
@@ -35,14 +35,14 @@ def test_latents_import_subpackages():
         gfa,  # noqa: F401
         mdlag,  # noqa: F401
         observation_model,  # noqa: F401
-        state_model,  # noqa: F401
+        state,  # noqa: F401
     )
 
     # Check that subpackages are in the current namespace
     assert "gfa" in dir()
     assert "mdlag" in dir()
     assert "observation_model" in dir()
-    assert "state_model" in dir()
+    assert "state" in dir()
 
 
 def test_gfa_namespace():
@@ -107,13 +107,19 @@ def test_observation_namespace():
     assert "adjust_snr" in dir(observation)
 
 
-def test_state_model_namespace():
-    """Test that the state_model subpackage has the expected namespace."""
-    from latents import state_model
+def test_state_namespace():
+    """Test that the state subpackage has the expected namespace."""
+    from latents import state
 
-    # Check that submodules are in the namespace of state_model
-    assert "latents" in dir(state_model)
+    # Check posterior classes
+    assert "LatentsPosteriorStatic" in dir(state)
+    assert "LatentsPosteriorTimeSeries" in dir(state)
+    assert "LatentsPosteriorDelayed" in dir(state)
 
-    # Check other assets exposed to the user
-    assert "PosteriorLatentDelayed" in dir(state_model.latents)
-    assert "PosteriorLatentStatic" in dir(state_model.latents)
+    # Check prior classes
+    assert "LatentsPriorStatic" in dir(state)
+    assert "LatentsPriorGP" in dir(state)
+    assert "LatentsHyperPriorGP" in dir(state)
+
+    # Check realization classes
+    assert "LatentsRealization" in dir(state)

@@ -20,11 +20,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `ObsParamsRealization` and `ObsParamsPoint` for parameter value containers
   - `adjust_snr()` utility for signal-to-noise ratio adjustment
   - Posterior classes: `LoadingPosterior`, `ARDPosterior`, `ObsMeanPosterior`, `ObsPrecPosterior`, `ObsParamsPosterior`
+- New `state/` subpackage with probabilistic hierarchy:
+  - `LatentsPriorStatic` with `sample()` method for forward sampling
+  - `LatentsPosteriorStatic` with `sample()` and `posterior_mean` for posterior inference
+  - `LatentsRealization` for sampled latent values
+  - GP prior/posterior stubs for future GPFA/mDLAG support
 
 ### Changed
 
 - Internal utilities reorganized into `_core/` subpackage (base classes, fitting infrastructure, numerics)
 - Observation model probabilistic components reorganized into `observation/` subpackage
+- State model classes reorganized into `state/` subpackage
+- `simulate()` now returns `LatentsRealization` instead of raw ndarray
 - Minimum Python version raised from 3.9 to 3.10
 - Jupyter dependencies (`jupyter`, `ipywidgets`) moved from core to optional extra
 - `GFAModel` now accepts `config` parameter in constructor instead of using `fit_args.set_args()`
@@ -38,6 +45,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `GFAFitArgs` class (replaced by `GFAFitConfig`)
 - `HyperPriorParams` class (replaced by `ObsParamsHyperPrior` and `ObsParamsHyperPriorStructured`)
 - `observation_model/probabilistic` module (classes moved to `observation/` subpackage)
+- `state_model/` subpackage (classes moved to `state/` subpackage)
+- `StateParamsStatic` class (functionality absorbed into `LatentsPosteriorStatic`)
 
 ## [0.0.4] - 2024-10-31
 

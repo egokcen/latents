@@ -1,42 +1,44 @@
-"""Test the latents submodule."""
+"""Test the state posteriors module."""
 
 import numpy as np
 
-from latents.state_model.latents import (
-    PosteriorLatentStatic,
-)
+from latents.state import LatentsPosteriorStatic
 
 
 # --------------------------
-# Test PosteriorLatentStatic class
+# Test LatentsPosteriorStatic class
 # --------------------------
-def test_posteriorlatentstatic_init_correct() -> None:
-    """Test the correct instantation of a PosteriorLatentStatic class object."""
-    # Create a PosteriorLatentStatic object
+def test_latentsposteriorstatic_init_correct() -> None:
+    """Test the correct instantiation of a LatentsPosteriorStatic class object."""
+    # Create a LatentsPosteriorStatic object
     mean = np.ones((10, 20))
     cov = np.ones((10, 10))
     moment = np.ones((10, 10))
-    X = PosteriorLatentStatic(mean=mean, cov=cov, moment=moment)
+    X = LatentsPosteriorStatic(mean=mean, cov=cov, moment=moment)
 
     # Test attributes
     assert np.array_equal(X.mean, mean)
     assert np.array_equal(X.cov, cov)
     assert np.array_equal(X.moment, moment)
 
+    # Test derived properties
+    assert X.x_dim == 10
+    assert X.n_samples == 20
+
     # Test repr
     assert (
-        repr(X) == "PosteriorLatentStatic(mean.shape=(10, 20), "
+        repr(X) == "LatentsPosteriorStatic(mean.shape=(10, 20), "
         "cov.shape=(10, 10), moment.shape=(10, 10))"
     )
 
 
-def test_posteriorlatentstatic_copy() -> None:
-    """Test the copy method of the PosteriorLatentStatic class."""
-    # Create a PosteriorLatentStatic object
+def test_latentsposteriorstatic_copy() -> None:
+    """Test the copy method of the LatentsPosteriorStatic class."""
+    # Create a LatentsPosteriorStatic object
     mean = np.ones((10, 20))
     cov = np.ones((10, 10))
     moment = np.ones((10, 10))
-    X = PosteriorLatentStatic(mean=mean, cov=cov, moment=moment)
+    X = LatentsPosteriorStatic(mean=mean, cov=cov, moment=moment)
 
     # Test copy
     X_copy = X.copy()
@@ -50,13 +52,13 @@ def test_posteriorlatentstatic_copy() -> None:
     assert X_copy.moment.flags.owndata
 
 
-def test_posteriorlatentstatic_clear() -> None:
-    """Test the clear method of the PosteriorLatentStatic class."""
-    # Create a PosteriorLatentStatic object
+def test_latentsposteriorstatic_clear() -> None:
+    """Test the clear method of the LatentsPosteriorStatic class."""
+    # Create a LatentsPosteriorStatic object
     mean = np.ones((10, 20))
     cov = np.ones((10, 10))
     moment = np.ones((10, 10))
-    X = PosteriorLatentStatic(mean=mean, cov=cov, moment=moment)
+    X = LatentsPosteriorStatic(mean=mean, cov=cov, moment=moment)
 
     # Test clear
     X.clear()

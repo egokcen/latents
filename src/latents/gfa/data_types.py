@@ -16,9 +16,7 @@ from latents._core.fitting import (
     FitTracker,
 )
 from latents.observation import ObsParamsPosterior
-from latents.state_model.latents import (
-    StateParamsStatic,
-)
+from latents.state import LatentsPosteriorStatic
 
 
 class GFAParams:
@@ -37,7 +35,7 @@ class GFAParams:
     ----------
     obs_params : ObsParamsPosterior
         Posterior observation parameters.
-    state_params : StateParamsStatic
+    state_params : LatentsPosteriorStatic
         Posterior state parameters.
     """
 
@@ -59,8 +57,8 @@ class GFAParams:
         # Observation model parameters
         self.obs_params = ObsParamsPosterior(x_dim=x_dim, y_dims=y_dims)
 
-        # State model parameters
-        self.state_params = StateParamsStatic(x_dim=x_dim)
+        # State model parameters (posterior over latents)
+        self.state_params = LatentsPosteriorStatic()
 
     def __repr__(self) -> str:
         return (
