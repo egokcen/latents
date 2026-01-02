@@ -30,14 +30,14 @@ from latents.plotting import hinton
 random_seed = 1
 
 # Dataset characteristics
-N = 100  # Total number of samples
+n_samples = 100  # Total number of samples
 y_dims = np.array([10, 10, 10])  # Dimensionality of each observed group
-num_groups = len(y_dims)
+n_groups = len(y_dims)
 x_dim = 7  # Latent dimensionality
-snr = 1.0 * np.ones(num_groups)  # Signal-to-noise ratio of each group
+snr = 1.0 * np.ones(n_groups)  # Signal-to-noise ratio of each group
 
 # Build the desired sparsity pattern of the loading matrices.
-# A (num_groups x x_dim) array where row i corresponds to group i,
+# A (n_groups x x_dim) array where row i corresponds to group i,
 # column j corresponds to latent j. A value of np.inf indicates that
 # a latent is NOT present in a group.
 sparsity_pattern = np.array(
@@ -60,7 +60,7 @@ sim_priors = SimulationHyperPriors(
 
 # Simulate data
 Y, X_true, obs_params_true = gfa_sim.simulate(
-    N,
+    n_samples,
     y_dims,
     x_dim,
     sim_priors,
@@ -193,7 +193,7 @@ print(f"              MSE:   {MSE:.4f}")
 snr_est = model.params.obs_params.compute_snr()
 
 print("Estimated SNRs:")
-for group_idx in range(num_groups):
+for group_idx in range(n_groups):
     print(f"    Group {group_idx + 1}: {snr_est[group_idx]:.4f}")
 
 # %%
@@ -239,12 +239,12 @@ pair_dims, pair_var_exp, pairs = ObsParamsARD.compute_dims_pairs(
 
 # Visualize pairwise dimensionalities
 plt.figure(figsize=(7, 2.5))
-ObsParamsARD.plot_dims_pairs(pair_dims, pairs, num_groups, group_names=["A", "B", "C"])
+ObsParamsARD.plot_dims_pairs(pair_dims, pairs, n_groups, group_names=["A", "B", "C"])
 plt.show()
 
 # Visualize pairwise shared variances
 plt.figure(figsize=(5, 2.5))
 ObsParamsARD.plot_var_exp_pairs(
-    pair_var_exp, pairs, num_groups, group_names=["A", "B", "C"], sem_pair_var_exp=None
+    pair_var_exp, pairs, n_groups, group_names=["A", "B", "C"], sem_pair_var_exp=None
 )
 plt.show()

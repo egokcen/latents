@@ -11,6 +11,7 @@ from scipy.linalg import eigh
 from scipy.special import gammaln, psi
 from scipy.stats import gmean
 
+from latents._numerics import stability_floor, validate_tolerance
 from latents.gfa.config import GFAFitConfig
 from latents.gfa.data_types import (
     GFAFitFlags,
@@ -85,6 +86,10 @@ def fit(
     save_c_cov = config.save_c_cov
     save_fit_progress = config.save_fit_progress
 
+    # Validate tolerances against data precision
+    validate_tolerance(fit_tol, Y.data.dtype, "fit_tol")
+    validate_tolerance(prune_tol, Y.data.dtype, "prune_tol")
+
     # Initialize GFA model parameters if they have not been initialized already
     if not params.is_initialized():
         if verbose:
@@ -107,7 +112,7 @@ def fit(
     # Get data size characteristics
     y_dims = Y.dims  # Dimensionality of each group
     y_dim = y_dims.sum()  # Total number of observed dimensions
-    N = Y.data.shape[1]  # Number of samples
+    n_samples = Y.data.shape[1]  # Number of samples
     x_dim = obs_params.x_dim  # Number of latent dimensions
 
     Y2 = np.sum(Y.data**2, axis=1)  # Sample second moments of observed data
@@ -117,16 +122,19 @@ def fit(
         obs_params.C.cov = np.zeros((y_dim, x_dim, x_dim))
 
     # Compute the variance floor for each observed dimension
-    var_floor = min_var_frac * np.var(Y.data, axis=1, ddof=1)
+    # Apply stability_floor() to handle constant features (zero variance)
+    floor = stability_floor(Y.data.dtype)
+    var_floor = np.maximum(min_var_frac * np.var(Y.data, axis=1, ddof=1), floor)
 
     # Constant factors in the lower bound
-    consts_lb = compute_lower_bound_constants(N, params, hyper_priors)
+    consts_lb = compute_lower_bound_constants(n_samples, params, hyper_priors)
 
     # Initialize tracked quantities
     tracker = GFAFitTracker()
     if save_fit_progress:
-        tracker.lb = np.array([])  # Lower bound
-        tracker.iter_time = np.array([])  # Runtime per iteration
+        # Pre-allocate arrays to max_iter; will truncate after loop
+        tracker.lb = np.empty(max_iter)
+        tracker.iter_time = np.empty(max_iter)
     lb_curr = -np.inf  # Initial lower bound
 
     # Initialize status flags
@@ -164,6 +172,9 @@ def fit(
         infer_latents(Y, params, in_place=True)
         # Correlation matrix between current estimate of latents and
         # zero-centered observations. Used for C and phi updates.
+        # X.mean: (x_dim, n_samples)
+        # d.mean: (y_dim,) -> broadcast to (y_dim, n_samples)
+        # Result XY: (x_dim, n_samples) @ (n_samples, y_dim) -> (x_dim, y_dim)
         XY = state_params.X.mean @ (Y.data - obs_params.d.mean[:, np.newaxis]).T
 
         # Loading matrices, C
@@ -199,11 +210,9 @@ def fit(
 
         # Save progress
         if save_fit_progress:
-            # Compute the runtime of this iteration
             end_time = time.time()
-            tracker.iter_time = np.append(tracker.iter_time, end_time - start_time)
-            # Record the current lower bound
-            tracker.lb = np.append(tracker.lb, lb_curr)
+            tracker.iter_time[fit_iter] = end_time - start_time
+            tracker.lb[fit_iter] = lb_curr
 
         # Display progress
         if verbose:
@@ -221,6 +230,12 @@ def fit(
         elif (lb_curr - lb_base) < (1 + fit_tol) * (lb_old - lb_base):
             flags.converged = True
             break
+
+    # Truncate pre-allocated arrays to actual iteration count
+    if save_fit_progress:
+        n_iters = fit_iter + 1
+        tracker.lb = tracker.lb[:n_iters]
+        tracker.iter_time = tracker.iter_time[:n_iters]
 
     # Display reasons for stopping
     if verbose:
@@ -281,8 +296,8 @@ def init(
     # Get data size characteristics
     y_dims = Y.dims  # Dimensionality of each group
     y_dim = y_dims.sum()  # Total number of observed dimensions
-    num_groups = len(y_dims)  # Number of observed groups
-    N = Y.data.shape[1]  # Number of samples
+    n_groups = len(y_dims)  # Number of observed groups
+    n_samples = Y.data.shape[1]  # Number of samples
     x_dim = x_dim_init  # Number of latent dimensions
 
     # Get views of the observed data for each group
@@ -300,7 +315,7 @@ def init(
     rng = np.random.default_rng(random_seed)
 
     # Latent variables
-    state_params.X.mean = rng.normal(size=(x_dim, N))  # Mean
+    state_params.X.mean = rng.normal(size=(x_dim, n_samples))  # Mean
     state_params.X.cov = np.eye(x_dim)  # Covariance
 
     # Mean parameter
@@ -308,7 +323,7 @@ def init(
     obs_params.d.cov = np.full(y_dim, 1 / hyper_priors.d_beta)
 
     # Noise precisions
-    obs_params.phi.a = hyper_priors.a_phi + N / 2
+    obs_params.phi.a = hyper_priors.a_phi + n_samples / 2
     obs_params.phi.b = np.full(y_dim, hyper_priors.b_phi)
     obs_params.phi.mean = np.concatenate(
         [1 / np.diag(Y_cov) for Y_cov in Y_covs], axis=0
@@ -320,7 +335,7 @@ def init(
     obs_params.C.mean = np.zeros((y_dim, x_dim))
     # Get views of the loading matrices for each group
     C_means, _, _ = obs_params.C.get_groups(y_dims)
-    for group_idx in range(num_groups):
+    for group_idx in range(n_groups):
         # The covariance of the current group might not be full rank
         # because N < y_dims[group_idx]. Scale the loading matrix according to
         # the geometric mean of the non-zero eigenvalues of the covariance.
@@ -343,10 +358,10 @@ def init(
 
     # ARD parameters
     obs_params.alpha.a = hyper_priors.a_alpha + y_dims / 2
-    obs_params.alpha.b = np.full((num_groups, x_dim), hyper_priors.b_alpha)
+    obs_params.alpha.b = np.full((n_groups, x_dim), hyper_priors.b_alpha)
     # Scale ARD parameters to match the data
-    obs_params.alpha.mean = np.zeros((num_groups, x_dim))
-    for group_idx in range(num_groups):
+    obs_params.alpha.mean = np.zeros((n_groups, x_dim))
+    for group_idx in range(n_groups):
         obs_params.alpha.mean[group_idx, :] = y_dims[group_idx] / np.diag(
             np.sum(C_moments[group_idx], axis=0)
         )
@@ -397,7 +412,9 @@ def infer_latents(
             moment=np.zeros((state_params.x_dim, state_params.x_dim)),
         )
 
-    # Covariance
+    # Covariance: inv(I + sum_j phi_j * E[C_j^T C_j])
+    # phi.mean: (y_dim,) -> (y_dim, 1, 1), C.moment: (y_dim, x_dim, x_dim)
+    # Weighted sum over y_dim -> (x_dim, x_dim)
     X.cov[:] = np.linalg.inv(
         np.eye(state_params.x_dim)
         + np.sum(
@@ -407,7 +424,9 @@ def infer_latents(
     )
     # Ensure symmetry
     X.cov[:] = 0.5 * (X.cov + X.cov.T)
-    # Mean
+    # Mean: X.cov @ C^T diag(phi) @ (Y - d) -> X.mean: (x_dim, n_samples)
+    # phi: (y_dim,) -> (1, y_dim) for broadcast with C.mean.T: (x_dim, y_dim)
+    # d: (y_dim,) -> (y_dim, 1) for broadcast with Y: (y_dim, n_samples)
     X.mean[:] = (
         X.cov
         @ (obs_params.C.mean.T * obs_params.phi.mean[np.newaxis, :])
@@ -454,7 +473,7 @@ def infer_loadings(
 
     y_dim = obs_params.y_dims.sum()  # Total number of observed dimensions
     x_dim = obs_params.x_dim  # Number of latent dimensions
-    num_groups = len(obs_params.y_dims)  # Number of observed groups
+    n_groups = len(obs_params.y_dims)  # Number of observed groups
 
     # Initialize C, if needed
     if in_place:
@@ -473,6 +492,7 @@ def infer_loadings(
         )
 
     # Correlation matrix between latents and zero-centered observations
+    # X.mean: (x_dim, n_samples), (Y - d): (y_dim, n_samples) -> XY: (x_dim, y_dim)
     if XY is None:
         XY = state_params.X.mean @ (Y.data - obs_params.d.mean[:, np.newaxis]).T
 
@@ -480,14 +500,17 @@ def infer_loadings(
     _, C_covs, _ = C.get_groups(obs_params.y_dims)
     phi_means, _ = obs_params.phi.get_groups(obs_params.y_dims)
 
-    for group_idx in range(num_groups):
-        # Covariance
+    for group_idx in range(n_groups):
+        # Covariance: inv(diag(alpha) + phi * E[X X^T]) -> (y_dim_m, x_dim, x_dim)
+        # phi: (y_dim_m,) -> (y_dim_m, 1, 1) for broadcast with X.moment: (x_dim, x_dim)
         C_covs[group_idx][:] = np.linalg.inv(
             np.diag(obs_params.alpha.mean[group_idx, :])
             + phi_means[group_idx][:, np.newaxis, np.newaxis] * state_params.X.moment
         )
 
-    # Mean
+    # Mean: phi * einsum(C.cov, XY) -> C.mean: (y_dim, x_dim)
+    # phi: (y_dim,) -> (y_dim, 1) for broadcast
+    # einsum "ijk,ij->ik": contract over k dimension
     C.mean[:] = obs_params.phi.mean[:, np.newaxis] * np.einsum(
         "ijk,ij->ik", C.cov, XY.T
     )
@@ -518,7 +541,7 @@ def infer_ard(
         If ``False``, return a new ``PosteriorARD``.
         Defaults to ``True``.
     C_norm
-        `ndarray` of `float`, shape ``(num_groups, x_dim)``.
+        `ndarray` of `float`, shape ``(n_groups, x_dim)``.
         ``C_norm[i,j]`` is the expected squared norm of column ``j`` of the
         loading matrix :math:`C` for group ``i``. If not provided, it will be
         computed from ``params.C``.
@@ -529,22 +552,22 @@ def infer_ard(
         Posterior estimates of ARD parameters.
     """
     obs_params = params.obs_params
-    num_groups = len(obs_params.y_dims)  # Number of observed groups
+    n_groups = len(obs_params.y_dims)  # Number of observed groups
 
     # Initialize alpha, if needed
     if in_place:
         if obs_params.alpha.a is None:
             obs_params.alpha.a = hyper_priors.a_alpha + obs_params.y_dims / 2
         if obs_params.alpha.b is None:
-            obs_params.alpha.b = np.zeros((num_groups, obs_params.x_dim))
+            obs_params.alpha.b = np.zeros((n_groups, obs_params.x_dim))
         if obs_params.alpha.mean is None:
-            obs_params.alpha.mean = np.zeros((num_groups, obs_params.x_dim))
+            obs_params.alpha.mean = np.zeros((n_groups, obs_params.x_dim))
         alpha = obs_params.alpha
     else:
         alpha = PosteriorARD(
             a=hyper_priors.a_alpha + obs_params.y_dims / 2,
-            b=np.zeros((num_groups, obs_params.x_dim)),
-            mean=np.zeros((num_groups, obs_params.x_dim)),
+            b=np.zeros((n_groups, obs_params.x_dim)),
+            mean=np.zeros((n_groups, obs_params.x_dim)),
         )
 
     # Expected squared norm of each column of C
@@ -589,7 +612,7 @@ def infer_obs_mean(
     """
     obs_params = params.obs_params
     state_params = params.state_params
-    y_dim, N = Y.data.shape
+    y_dim, n_samples = Y.data.shape
 
     # Initialize d, if needed
     if in_place:
@@ -602,7 +625,7 @@ def infer_obs_mean(
         d = PosteriorObsMean(mean=np.zeros(y_dim), cov=np.zeros(y_dim))
 
     # Covariance
-    d.cov[:] = 1 / (hyper_priors.d_beta + N * obs_params.phi.mean)
+    d.cov[:] = 1 / (hyper_priors.d_beta + n_samples * obs_params.phi.mean)
     d.mean[:] = (
         d.cov
         * obs_params.phi.mean
@@ -657,20 +680,22 @@ def infer_obs_prec(
     """
     obs_params = params.obs_params
     state_params = params.state_params
-    y_dim, N = Y.data.shape
+    y_dim, n_samples = Y.data.shape
 
     # Initialize phi, if needed
     if in_place:
         if obs_params.phi.mean is None:
             obs_params.phi.mean = np.zeros(y_dim)
         if obs_params.phi.a is None:
-            obs_params.phi.a = hyper_priors.a_phi + N / 2
+            obs_params.phi.a = hyper_priors.a_phi + n_samples / 2
         if obs_params.phi.b is None:
             obs_params.phi.b = np.zeros(y_dim)
         phi = obs_params.phi
     else:
         phi = PosteriorObsPrec(
-            mean=np.zeros(y_dim), a=hyper_priors.a_phi + N / 2, b=np.zeros(y_dim)
+            mean=np.zeros(y_dim),
+            a=hyper_priors.a_phi + n_samples / 2,
+            b=np.zeros(y_dim),
         )
 
     # Pre-computations
@@ -683,12 +708,14 @@ def infer_obs_prec(
         d_moment = obs_params.d.cov + obs_params.d.mean**2  # Only the diagonal is used
 
     # Correlation matrix between latents and zero-centered observations
+    # X.mean: (x_dim, n_samples), (Y - d): (y_dim, n_samples) -> XY: (x_dim, y_dim)
     if XY is None:
         XY = state_params.X.mean @ (Y.data - obs_params.d.mean[:, np.newaxis]).T
 
-    # Rate parameter
+    # Rate parameter: expected reconstruction error -> phi.b: (y_dim,)
+    # d: (y_dim,) -> (y_dim, 1) for broadcast with Y: (y_dim, n_samples)
     phi.b[:] = hyper_priors.b_phi + 0.5 * (
-        N * d_moment
+        n_samples * d_moment
         + Y2
         - 2 * np.sum(obs_params.d.mean[:, np.newaxis] * Y.data, axis=1)
         - 2 * np.sum(obs_params.C.mean * XY.T, axis=1)
@@ -728,7 +755,7 @@ def compute_lower_bound(
         Log-determinant of the covariance of the loading matrices. If not
         provided, it will be computed from ``params.C``.
     C_norm
-        `ndarray` of `float`, shape ``(num_groups, x_dim)``.
+        `ndarray` of `float`, shape ``(n_groups, x_dim)``.
         ``C_norm[i,j]`` is the expected squared norm of column ``j`` of the
         loading matrix C for group ``i``. If not provided, it will be computed
         from ``params.C``.
@@ -747,12 +774,12 @@ def compute_lower_bound(
     y_dims = obs_params.y_dims  # Dimensionality of each group
     y_dim = y_dims.sum()  # Total number of observed dimensions
     x_dim = obs_params.x_dim  # Number of latent dimensions
-    num_groups = len(obs_params.y_dims)  # Number of observed groups
-    N = Y.data.shape[1]  # Number of samples
+    n_groups = len(obs_params.y_dims)  # Number of observed groups
+    n_samples = Y.data.shape[1]  # Number of samples
 
     # Constant factors in the lower bound
     if consts is None:
-        consts = compute_lower_bound_constants(N, params, hyper_priors)
+        consts = compute_lower_bound_constants(n_samples, params, hyper_priors)
 
     (
         const_lik,
@@ -775,22 +802,29 @@ def compute_lower_bound(
     if d_moment is None:
         d_moment = obs_params.d.cov + obs_params.d.mean**2
 
+    # Stability floor for log operations on rate parameters
+    floor = stability_floor(obs_params.phi.b.dtype)
+
     # Likelihood term
-    log_phi = digamma_a_phi - np.log(obs_params.phi.b)
+    log_phi = digamma_a_phi - np.log(np.maximum(obs_params.phi.b, floor))
     lb = (
         const_lik
-        + 0.5 * N * np.sum(log_phi)
+        + 0.5 * n_samples * np.sum(log_phi)
         - np.sum(obs_params.phi.mean * (obs_params.phi.b - hyper_priors.b_phi))
     )
 
     # X KL term
-    lb += 0.5 * N * (x_dim + np.linalg.slogdet(state_params.X.cov)[1]) - 0.5 * np.trace(
-        state_params.X.moment
+    lb += 0.5 * n_samples * (
+        x_dim + np.linalg.slogdet(state_params.X.cov)[1]
+    ) - 0.5 * np.trace(state_params.X.moment)
+
+    # digamma_a_alpha: (n_groups,) -> (n_groups, 1) for broadcast -> (n_groups, x_dim)
+    log_alpha = digamma_a_alpha[:, np.newaxis] - np.log(
+        np.maximum(obs_params.alpha.b, floor)
     )
 
-    log_alpha = digamma_a_alpha[:, np.newaxis] - np.log(obs_params.alpha.b)
-
     # C KL term
+    # y_dims: (n_groups,) -> (n_groups, 1) for broadcast with log_alpha
     lb += 0.5 * (
         x_dim * y_dim
         + logdet_C
@@ -798,10 +832,12 @@ def compute_lower_bound(
     )
 
     # alpha KL term
+    # alpha.a: (n_groups,) -> (n_groups, 1) for broadcast with alpha.b
     lb += (
-        num_groups * x_dim * (alogb_alpha - loggamma_a_alpha_prior)
+        n_groups * x_dim * (alogb_alpha - loggamma_a_alpha_prior)
         + np.sum(
-            -obs_params.alpha.a[:, np.newaxis] * np.log(obs_params.alpha.b)
+            -obs_params.alpha.a[:, np.newaxis]
+            * np.log(np.maximum(obs_params.alpha.b, floor))
             - hyper_priors.b_alpha * obs_params.alpha.mean
             + (hyper_priors.a_alpha - obs_params.alpha.a)[:, np.newaxis] * log_alpha
         )
@@ -812,7 +848,7 @@ def compute_lower_bound(
     lb += y_dim * (
         alogb_phi + loggamma_a_phi_post - loggamma_a_phi_prior + obs_params.phi.a
     ) + np.sum(
-        -obs_params.phi.a * np.log(obs_params.phi.b)
+        -obs_params.phi.a * np.log(np.maximum(obs_params.phi.b, floor))
         + hyper_priors.b_phi * obs_params.phi.mean
         + (hyper_priors.a_phi - obs_params.phi.a) * log_phi
     )
@@ -826,7 +862,7 @@ def compute_lower_bound(
 
 
 def compute_lower_bound_constants(
-    N: int,
+    n_samples: int,
     params: GFAParams,
     hyper_priors: HyperPriors,
 ) -> tuple[
@@ -837,7 +873,7 @@ def compute_lower_bound_constants(
 
     Parameters
     ----------
-    N
+    n_samples
         Number of samples in the observed data.
     params
         GFA model parameters.
@@ -862,9 +898,9 @@ def compute_lower_bound_constants(
         Constant factor related to the ARD parameters.
     loggamma_a_alpha_prior : float
         Constant factor related to the ARD parameters.
-    loggamma_a_alpha_post : ndarray, shape ``(num_groups,)``
+    loggamma_a_alpha_post : ndarray, shape ``(n_groups,)``
         Constant factor related to the ARD parameters.
-    digamma_a_alpha : ndarray, shape ``(num_groups,)``
+    digamma_a_alpha : ndarray, shape ``(n_groups,)``
         Constant factor related to the ARD parameters.
     """
     obs_params = params.obs_params
@@ -872,7 +908,7 @@ def compute_lower_bound_constants(
 
     # Constant factors in the lower bound
     # Related to the likelihood
-    const_lik = -(y_dim * N / 2) * np.log(2 * np.pi)
+    const_lik = -(y_dim * n_samples / 2) * np.log(2 * np.pi)
     # Related to observation mean parameters
     const_d = 0.5 * y_dim + 0.5 * y_dim * np.log(hyper_priors.d_beta)
     # Related to observation precision parameters

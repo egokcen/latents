@@ -16,6 +16,7 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import Self
 
+from latents._numerics import stability_floor
 from latents.base import ArrayContainer
 
 
@@ -76,7 +77,7 @@ class PosteriorLoading(ArrayContainer):
 
     def get_groups(
         self,
-        dims: np.ndarray,
+        y_dims: np.ndarray,
     ) -> tuple[list[np.ndarray], list[np.ndarray], list[np.ndarray]]:
         """
         Get a list of views into the posterior loadings parameters, one for each group.
@@ -86,24 +87,24 @@ class PosteriorLoading(ArrayContainer):
 
         Parameters
         ----------
-        dims
-            `ndarray` of `int`, shape ``(num_groups,)``
+        y_dims
+            `ndarray` of `int`, shape ``(n_groups,)``.
             Dimensionalities of each observed group.
 
         Returns
         -------
         group_means: List[ndarray] | None
-            list of `ndarray`, length ``num_groups``.
+            list of `ndarray`, length ``n_groups``.
             List of views into the posterior mean of the loading matrices,
             one view for each group. If ``self.mean`` is ``None``, returns
             ``None``.
         group_covs : List[ndarray] | None
-            list of `ndarray`, length ``num_groups``.
+            list of `ndarray`, length ``n_groups``.
             List of views into the posterior covariance of the loading
             matrices, one view for each group. If ``self.cov`` is ``None``,
             returns ``None``.
         group_moments : List[ndarray] | None
-            list of `ndarray`, length ``num_groups``.
+            list of `ndarray`, length ``n_groups``.
             List of views into the posterior second moments of the loading
             matrices, one view for each group. If ``self.moment`` is ``None``,
             returns ``None``.
@@ -111,32 +112,34 @@ class PosteriorLoading(ArrayContainer):
         Raises
         ------
         ValueError
-            If the sum of ``dims`` does not equal the number of rows in
+            If the sum of ``y_dims`` does not equal the number of rows in
             ``mean``, ``cov``, or ``moment``.
         """
         # Split mean into groups
         group_means = None
         if self.mean is not None:
-            if np.sum(dims) != self.mean.shape[0]:
-                msg = "The sum of dims must equal the number of rows in mean."
+            if np.sum(y_dims) != self.mean.shape[0]:
+                msg = "The sum of y_dims must equal the number of rows in mean."
                 raise ValueError(msg)
-            group_means = np.split(self.mean, np.cumsum(dims)[:-1], axis=0)
+            group_means = np.split(self.mean, np.cumsum(y_dims)[:-1], axis=0)
 
         # Split cov into groups
         group_covs = None
         if self.cov is not None:
-            if np.sum(dims) != self.cov.shape[0]:
-                msg = "The sum of dims must equal the size of the first axis of cov."
+            if np.sum(y_dims) != self.cov.shape[0]:
+                msg = "The sum of y_dims must equal the size of the first axis of cov."
                 raise ValueError(msg)
-            group_covs = np.split(self.cov, np.cumsum(dims)[:-1], axis=0)
+            group_covs = np.split(self.cov, np.cumsum(y_dims)[:-1], axis=0)
 
         # Split moment into groups
         group_moments = None
         if self.moment is not None:
-            if np.sum(dims) != self.moment.shape[0]:
-                msg = "The sum of dims must equal the size of the first axis of moment."
+            if np.sum(y_dims) != self.moment.shape[0]:
+                msg = (
+                    "The sum of y_dims must equal the size of the first axis of moment."
+                )
                 raise ValueError(msg)
-            group_moments = np.split(self.moment, np.cumsum(dims)[:-1], axis=0)
+            group_moments = np.split(self.moment, np.cumsum(y_dims)[:-1], axis=0)
 
         return group_means, group_covs, group_moments
 
@@ -168,30 +171,30 @@ class PosteriorLoading(ArrayContainer):
 
         return np.einsum("ij,ik->ijk", self.mean, self.mean) + self.cov
 
-    def compute_squared_norms(self, dims: np.ndarray) -> np.ndarray:
+    def compute_squared_norms(self, y_dims: np.ndarray) -> np.ndarray:
         """
         Compute the expected squared norm of each column of the loadings for each group.
 
         Parameters
         ----------
-        dims
-            `ndarray` of `int`, shape ``(num_groups,)``.
+        y_dims
+            `ndarray` of `int`, shape ``(n_groups,)``.
             Dimensionalities of each observed group.
 
         Returns
         -------
         squared_norms : ndarray
-            `ndarray` of `float`, shape ``(num_groups, x_dim)``.
+            `ndarray` of `float`, shape ``(n_groups, x_dim)``.
             ``squared_norms[i,j]`` is the expected squared norm of column ``j``
             of the loading matrix for group ``i``.
         """
-        num_groups = len(dims)
+        n_groups = len(y_dims)
         x_dim = self.moment.shape[1]
 
         # Get views of the moment matrix for each group
-        _, _, moments = self.get_groups(dims)
-        squared_norms = np.zeros((num_groups, x_dim))
-        for group_idx in range(num_groups):
+        _, _, moments = self.get_groups(y_dims)
+        squared_norms = np.zeros((n_groups, x_dim))
+        for group_idx in range(n_groups):
             # We need only the diagonal of each x_dim x x_dim moment matrix
             squared_norms[group_idx, :] = np.sum(
                 moments[group_idx].diagonal(offset=0, axis1=1, axis2=2), axis=0
@@ -201,7 +204,7 @@ class PosteriorLoading(ArrayContainer):
 
     def get_subset_dims(
         self,
-        dims: np.ndarray,
+        x_indices: np.ndarray,
         in_place: bool = True,
     ) -> Self:
         """
@@ -209,9 +212,9 @@ class PosteriorLoading(ArrayContainer):
 
         Parameters
         ----------
-        dims
+        x_indices
             1D `ndarray` of `int`, at most length ``x_dim``.
-            Indexes into the latent dimensions to keep.
+            Indices of the latent dimensions to keep.
         in_place
             If ``True``, modify self in place and return self.
             If ``False``, return a new instance with the subset.
@@ -224,14 +227,14 @@ class PosteriorLoading(ArrayContainer):
             with only the specified latent dimensions.
         """
         # Compute sliced arrays once
-        new_mean = self.mean[:, dims] if self.mean is not None else None
+        new_mean = self.mean[:, x_indices] if self.mean is not None else None
         new_cov = (
-            self.cov[np.ix_(np.arange(self.cov.shape[0]), dims, dims)]
+            self.cov[np.ix_(np.arange(self.cov.shape[0]), x_indices, x_indices)]
             if self.cov is not None
             else None
         )
         new_moment = (
-            self.moment[np.ix_(np.arange(self.moment.shape[0]), dims, dims)]
+            self.moment[np.ix_(np.arange(self.moment.shape[0]), x_indices, x_indices)]
             if self.moment is not None
             else None
         )
@@ -252,13 +255,13 @@ class PosteriorARD(ArrayContainer):
     Parameters
     ----------
     a
-        `ndarray` of `float`, shape ``(num_groups,)``.
+        `ndarray` of `float`, shape ``(n_groups,)``.
         Shape parameters of the ARD posterior.
     b
-        `ndarray` of `float`, shape ``(num_groups, x_dim)``.
+        `ndarray` of `float`, shape ``(n_groups, x_dim)``.
         Rate parameters of the ARD posterior.
     mean
-        `ndarray` of `float`, shape ``(num_groups, x_dim)``.
+        `ndarray` of `float`, shape ``(n_groups, x_dim)``.
         Posterior mean of the ARD parameters.
 
     Attributes
@@ -317,20 +320,21 @@ class PosteriorARD(ArrayContainer):
         Returns
         -------
         ndarray
-            `ndarray` of `float`, shape ``(num_groups, x_dim)``.
+            `ndarray` of `float`, shape ``(n_groups, x_dim)``.
             Posterior mean of the ARD parameters.
         """
+        floor = stability_floor(self.b.dtype)
         if in_place:
             if self.mean is None:
                 self.mean = np.zeros_like(self.b)
-            self.mean[:] = self.a[:, np.newaxis] / self.b
+            self.mean[:] = self.a[:, np.newaxis] / np.maximum(self.b, floor)
             return self.mean
 
-        return self.a[:, np.newaxis] / self.b
+        return self.a[:, np.newaxis] / np.maximum(self.b, floor)
 
     def get_subset_dims(
         self,
-        dims: np.ndarray,
+        x_indices: np.ndarray,
         in_place: bool = True,
     ) -> Self:
         """
@@ -338,9 +342,9 @@ class PosteriorARD(ArrayContainer):
 
         Parameters
         ----------
-        dims
+        x_indices
             1D `ndarray` of `int`, at most length ``x_dim``.
-            Indexes into the latent dimensions to keep.
+            Indices of the latent dimensions to keep.
         in_place
             If ``True``, modify self in place and return self.
             If ``False``, return a new instance with the subset.
@@ -353,8 +357,8 @@ class PosteriorARD(ArrayContainer):
             with only the specified latent dimensions.
         """
         # Compute sliced arrays once (a is not sliced, only copied for new instance)
-        new_b = self.b[:, dims] if self.b is not None else None
-        new_mean = self.mean[:, dims] if self.mean is not None else None
+        new_b = self.b[:, x_indices] if self.b is not None else None
+        new_mean = self.mean[:, x_indices] if self.mean is not None else None
 
         if in_place:
             self.b = new_b
@@ -408,7 +412,7 @@ class PosteriorObsMean(ArrayContainer):
 
     def get_groups(
         self,
-        dims: np.ndarray,
+        y_dims: np.ndarray,
     ) -> tuple[list[np.ndarray], list[np.ndarray]]:
         """
         Get a list of views into the posterior mean parameters, one for each group.
@@ -418,19 +422,19 @@ class PosteriorObsMean(ArrayContainer):
 
         Parameters
         ----------
-        dims
-            `ndarray` of `int`, shape ``(num_groups,)``.
+        y_dims
+            `ndarray` of `int`, shape ``(n_groups,)``.
             Dimensionalities of each observed group.
 
         Returns
         -------
         group_means : List[ndarray] | None
-            list of `ndarray`, length ``num_groups``.
+            list of `ndarray`, length ``n_groups``.
             List of views into the posterior mean of the observation mean
             parameters, one view for each group. If ``self.mean`` is ``None``,
             returns ``None``.
         group_covs : List[ndarray] | None
-            list of `ndarray`, length ``num_groups``.
+            list of `ndarray`, length ``n_groups``.
             List of views into the posterior covariance of the observation
             mean parameters, one view for each group. If ``self.cov`` is
             ``None``, returns ``None``.
@@ -438,24 +442,24 @@ class PosteriorObsMean(ArrayContainer):
         Raises
         ------
         ValueError
-            If the sum of ``dims`` does not equal the length of ``mean`` or
+            If the sum of ``y_dims`` does not equal the length of ``mean`` or
             ``cov``.
         """
         # Split mean into groups
         group_means = None
         if self.mean is not None:
-            if np.sum(dims) != len(self.mean):
-                msg = "The sum of dims must equal the length of mean."
+            if np.sum(y_dims) != len(self.mean):
+                msg = "The sum of y_dims must equal the length of mean."
                 raise ValueError(msg)
-            group_means = np.split(self.mean, np.cumsum(dims)[:-1], axis=0)
+            group_means = np.split(self.mean, np.cumsum(y_dims)[:-1], axis=0)
 
         # Split cov into groups
         group_covs = None
         if self.cov is not None:
-            if np.sum(dims) != len(self.cov):
-                msg = "The sum of dims must equal the length of cov."
+            if np.sum(y_dims) != len(self.cov):
+                msg = "The sum of y_dims must equal the length of cov."
                 raise ValueError(msg)
-            group_covs = np.split(self.cov, np.cumsum(dims)[:-1], axis=0)
+            group_covs = np.split(self.cov, np.cumsum(y_dims)[:-1], axis=0)
 
         return group_means, group_covs
 
@@ -516,7 +520,7 @@ class PosteriorObsPrec(ArrayContainer):
 
     def get_groups(
         self,
-        dims: np.ndarray,
+        y_dims: np.ndarray,
     ) -> tuple[list[np.ndarray], list[np.ndarray]]:
         """
         Get a list of views into the posterior precision parameters, one for each group.
@@ -526,19 +530,19 @@ class PosteriorObsPrec(ArrayContainer):
 
         Parameters
         ----------
-        dims
-            `ndarray` of `int`, shape ``(num_groups,)``.
+        y_dims
+            `ndarray` of `int`, shape ``(n_groups,)``.
             Dimensionalities of each observed group.
 
         Returns
         -------
         group_means : List[ndarray] | None
-            list of `ndarray`, length ``num_groups``.
+            list of `ndarray`, length ``n_groups``.
             List of views into the posterior mean of the observation
             precision parameters, one view for each group. If ``self.mean`` is
             ``None``, returns ``None``.
         group_bs : List[ndarray] | None
-            list of `ndarray`, length ``num_groups``.
+            list of `ndarray`, length ``n_groups``.
             List of views into the posterior rate parameters of the
             observation precision parameters, one view for each group.
             If ``self.b`` is ``None``, returns ``None``.
@@ -546,24 +550,24 @@ class PosteriorObsPrec(ArrayContainer):
         Raises
         ------
         ValueError
-            If the sum of ``dims`` does not equal the length of ``mean`` or
+            If the sum of ``y_dims`` does not equal the length of ``mean`` or
             ``b``.
         """
         # Split mean into groups
         group_means = None
         if self.mean is not None:
-            if np.sum(dims) != len(self.mean):
-                msg = "The sum of dims must equal the length of mean."
+            if np.sum(y_dims) != len(self.mean):
+                msg = "The sum of y_dims must equal the length of mean."
                 raise ValueError(msg)
-            group_means = np.split(self.mean, np.cumsum(dims)[:-1], axis=0)
+            group_means = np.split(self.mean, np.cumsum(y_dims)[:-1], axis=0)
 
         # Split b into groups
         group_bs = None
         if self.b is not None:
-            if np.sum(dims) != len(self.b):
-                msg = "The sum of dims must equal the length of b."
+            if np.sum(y_dims) != len(self.b):
+                msg = "The sum of y_dims must equal the length of b."
                 raise ValueError(msg)
-            group_bs = np.split(self.b, np.cumsum(dims)[:-1], axis=0)
+            group_bs = np.split(self.b, np.cumsum(y_dims)[:-1], axis=0)
 
         return group_means, group_bs
 
@@ -587,13 +591,14 @@ class PosteriorObsPrec(ArrayContainer):
             `ndarray` of `float`, shape ``(y_dim,)``.
             Posterior mean of the observation precision parameters.
         """
+        floor = stability_floor(self.b.dtype)
         if in_place:
             if self.mean is None:
                 self.mean = np.zeros_like(self.b)
-            self.mean[:] = self.a / self.b
+            self.mean[:] = self.a / np.maximum(self.b, floor)
             return self.mean
 
-        return self.a / self.b
+        return self.a / np.maximum(self.b, floor)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -648,10 +653,10 @@ class SimulationHyperPriors:
     Parameters
     ----------
     a_alpha : np.ndarray
-        Shape parameters for ARD priors, shape ``(num_groups, x_dim)``.
+        Shape parameters for ARD priors, shape ``(n_groups, x_dim)``.
         Use ``np.inf`` to force zero loadings (sparsity pattern).
     b_alpha : np.ndarray
-        Rate parameters for ARD priors, shape ``(num_groups, x_dim)``.
+        Rate parameters for ARD priors, shape ``(n_groups, x_dim)``.
         Typically ones or matched to `a_alpha`.
     d_beta : float
         Precision of observation mean prior. Must be > 0.
@@ -702,7 +707,7 @@ class SimulationHyperPriors:
 
         # Validate 2D
         if self.a_alpha.ndim != 2:
-            msg = f"a_alpha must be 2D (num_groups, x_dim), got {self.a_alpha.ndim}D"
+            msg = f"a_alpha must be 2D (n_groups, x_dim), got {self.a_alpha.ndim}D"
             raise ValueError(msg)
 
         # Validate b_alpha values are positive (a_alpha can have np.inf)
@@ -724,7 +729,7 @@ class SimulationHyperPriors:
                 raise ValueError(msg)
 
     @property
-    def num_groups(self) -> int:
+    def n_groups(self) -> int:
         """Number of observed groups."""
         return self.a_alpha.shape[0]
 
@@ -743,7 +748,7 @@ class ObsParamsARD:
     x_dim
         Number of latent dimensions.
     y_dims
-        `ndarray` of `int`, shape ``(num_groups,)``.
+        `ndarray` of `int`, shape ``(n_groups,)``.
         Dimensionalities of each observed group.
     C
         Posterior loadings.
@@ -856,7 +861,7 @@ class ObsParamsARD:
         Parameters
         ----------
         y_dims
-            `ndarray` of `int`, shape ``(num_groups,)``.
+            `ndarray` of `int`, shape ``(n_groups,)``.
             Dimensionalities of each observed group.
         x_dim
             Number of latent dimensions.
@@ -865,7 +870,7 @@ class ObsParamsARD:
             specify group- and column-specific sparsity patterns in the loading
             matrices. Use ``np.inf`` in ``a_alpha`` to force zero loadings.
         snr
-            `ndarray` of `float`, shape ``(num_groups,)``.
+            `ndarray` of `float`, shape ``(n_groups,)``.
             Signal-to-noise ratios of each group.
         rng
             A random number generator object.
@@ -876,13 +881,13 @@ class ObsParamsARD:
             Generated observation model parameters.
         """
         # Number of observed groups
-        num_groups = len(y_dims)
+        n_groups = len(y_dims)
 
         # Initialize the observation model parameters
         obs_params = cls(x_dim=x_dim, y_dims=y_dims)
 
         # Initialize ARD parameters
-        obs_params.alpha.mean = np.zeros((num_groups, x_dim))
+        obs_params.alpha.mean = np.zeros((n_groups, x_dim))
         # Use the ARD hyperparameters from SimulationHyperPriors (always arrays)
         a_alpha = hyper_priors.a_alpha
         b_alpha = hyper_priors.b_alpha
@@ -902,7 +907,7 @@ class ObsParamsARD:
         # Generate group-specific parameters and observed data
         obs_params.C.mean = np.zeros((y_dims.sum(), x_dim))
         Cs, _, _ = obs_params.C.get_groups(y_dims)
-        for group_idx in range(num_groups):
+        for group_idx in range(n_groups):
             # Generate each ARD parameter and the corresponding column of the
             # loadings matrix for the current group
             for x_idx in range(x_dim):
@@ -950,7 +955,7 @@ class ObsParamsARD:
 
     def get_subset_dims(
         self,
-        dims: np.ndarray,
+        x_indices: np.ndarray,
         in_place: bool = True,
     ) -> Self:
         """
@@ -958,9 +963,9 @@ class ObsParamsARD:
 
         Parameters
         ----------
-        dims
+        x_indices
             1D `ndarray` of `int`, at most length ``x_dim``.
-            Indexes into the latent dimensions to keep.
+            Indices of the latent dimensions to keep.
         in_place
             If ``True``, modify self in place and return self.
             If ``False``, return a new instance with the subset.
@@ -973,16 +978,16 @@ class ObsParamsARD:
             with only the specified latent dimensions.
         """
         if in_place:
-            self.x_dim = len(dims)
-            self.C.get_subset_dims(dims, in_place=True)
-            self.alpha.get_subset_dims(dims, in_place=True)
+            self.x_dim = len(x_indices)
+            self.C.get_subset_dims(x_indices, in_place=True)
+            self.alpha.get_subset_dims(x_indices, in_place=True)
             return self
 
         return self.__class__(
-            x_dim=len(dims),
+            x_dim=len(x_indices),
             y_dims=self.y_dims.copy(),
-            C=self.C.get_subset_dims(dims, in_place=False),
-            alpha=self.alpha.get_subset_dims(dims, in_place=False),
+            C=self.C.get_subset_dims(x_indices, in_place=False),
+            alpha=self.alpha.get_subset_dims(x_indices, in_place=False),
             d=self.d.copy(),
             phi=self.phi.copy(),
         )
@@ -1007,7 +1012,7 @@ class ObsParamsARD:
 
     def compute_snr(
         self,
-        dims: np.ndarray | None = None,
+        y_dims: np.ndarray | None = None,
     ) -> np.ndarray:
         """
         Compute the signal-to-noise ratio (SNR) of specified observation groups.
@@ -1016,36 +1021,36 @@ class ObsParamsARD:
 
         Parameters
         ----------
-        dims
-            `ndarray` of `int`, shape ``(num_groups,)``.
+        y_dims
+            `ndarray` of `int`, shape ``(n_groups,)``.
             Dimensionalities of the observed groups of interest.
             Defaults to ``self.y_dims``.
 
         Returns
         -------
         ndarray
-            `ndarray` of `float`, shape ``(num_groups,)``.
+            `ndarray` of `float`, shape ``(n_groups,)``.
             Signal-to-noise ratio of each observed group.
         """
-        if dims is None:
-            dims = self.y_dims
+        if y_dims is None:
+            y_dims = self.y_dims
 
         # Get views of the loadings matrix and the observation precisions for
         # each group
-        _, _, C_moments = self.C.get_groups(dims)
-        phi_means, _ = self.phi.get_groups(dims)
+        _, _, C_moments = self.C.get_groups(y_dims)
+        phi_means, _ = self.phi.get_groups(y_dims)
 
         # Compute the SNR for each group
         return np.array(
             [
                 np.trace(np.sum(C_moments[group_idx], axis=0))
                 / np.sum(1 / phi_means[group_idx])
-                for group_idx in range(len(dims))
+                for group_idx in range(len(y_dims))
             ]
         )
 
     @staticmethod
-    def get_dim_types(num_groups: int) -> np.ndarray:
+    def get_dim_types(n_groups: int) -> np.ndarray:
         """
         Generate all dimension types for a given number of groups.
 
@@ -1054,22 +1059,22 @@ class ObsParamsARD:
 
         Parameters
         ----------
-        num_groups
+        n_groups
             Number of observed groups.
 
         Returns
         -------
         dim_types : ndarray
-            `ndarray` of `bool`, shape ``(num_groups, num_dim_types)``.
+            `ndarray` of `bool`, shape ``(n_groups, n_dim_types)``.
             ``dim_types[:,j]`` is a Boolean vector indicating the structure of
             dimension type ``j``. ``1`` indicates that a group is involved, ``0``
             otherwise.
         """
-        num_dim_types = 2**num_groups  # Number of dimension types
-        dim_types = np.empty((num_groups, num_dim_types))
+        n_dim_types = 2**n_groups  # Number of dimension types
+        dim_types = np.empty((n_groups, n_dim_types))
 
-        for dim_idx in range(num_dim_types):
-            dim_str = format(dim_idx, f"0{num_groups}b")
+        for dim_idx in range(n_dim_types):
+            dim_str = format(dim_idx, f"0{n_groups}b")
             dim_types[:, dim_idx] = np.array([int(b) for b in dim_str], dtype=bool)
 
         return dim_types
@@ -1098,29 +1103,29 @@ class ObsParamsARD:
         Returns
         -------
         num_dim : ndarray
-            `ndarray` of `int`, shape ``(num_dim_types,)``.
+            `ndarray` of `int`, shape ``(n_dim_types,)``.
             The number of each type of dimension. ``num_dim[i]`` corresponds to
             the dimension type in ``dim_types[:,i]``.
         sig_dims : ndarray
-            `ndarray` of `bool`, shape ``(num_groups, x_dim)``.
+            `ndarray` of `bool`, shape ``(n_groups, x_dim)``.
             ``sig_dims[i,j]`` is ``True`` if latent ``j`` explains a significant
             fraction of the shared variance within group ``i``.
         var_exp : ndarray
-            `ndarray` of `float`, shape ``(num_groups, num_dim_types)``.
+            `ndarray` of `float`, shape ``(n_groups, n_dim_types)``.
             ``var_exp[i,j]`` is the fraction of the shared variance within group
             ``i`` that is explained by dimension type ``j``. ``var_exp[:,j]``
             corresponds to the dimension type in ``dim_types[:,j]``.
         dim_types : ndarray
-            `ndarray` of `bool`, shape ``(num_groups, num_dim_types)``.
+            `ndarray` of `bool`, shape ``(n_groups, n_dim_types)``.
             ``dim_types[:,j]`` is a Boolean vector indicating the structure of
             dimension type ``j``. ``1`` indicates that a group is involved, ``0``
             otherwise.
         """
-        num_groups = len(self.y_dims)  # Number of observed groups
+        n_groups = len(self.y_dims)  # Number of observed groups
 
         # Determine all dimension types
-        dim_types = self.get_dim_types(num_groups)
-        num_dim_types = dim_types.shape[1]
+        dim_types = self.get_dim_types(n_groups)
+        n_dim_types = dim_types.shape[1]
 
         # Compute signal-to-noise ratios
         snr = self.compute_snr()
@@ -1133,9 +1138,9 @@ class ObsParamsARD:
         sig_dims = (alpha_inv_rel > cutoff_shared_var) & (snr > cutoff_snr)[
             :, np.newaxis
         ]
-        num_dim = np.zeros(num_dim_types)
-        var_exp = np.zeros((num_groups, num_dim_types))
-        for dim_idx in range(num_dim_types):
+        num_dim = np.zeros(n_dim_types)
+        var_exp = np.zeros((n_groups, n_dim_types))
+        for dim_idx in range(n_dim_types):
             dims = np.all(sig_dims == dim_types[:, dim_idx, np.newaxis], axis=0)
             num_dim[dim_idx] = np.sum(dims)
             var_exp[:, dim_idx] = np.sum(alpha_inv_rel[:, dims], axis=1)
@@ -1160,16 +1165,16 @@ class ObsParamsARD:
         Parameters
         ----------
         num_dim
-            `ndarray` of `int`, shape ``(num_dim_types,)``.
+            `ndarray` of `int`, shape ``(n_dim_types,)``.
             The number of each type of dimension. ``num_dim[i]`` corresponds to
             the dimension type in ``dim_types[:,i]``.
         dim_types
-            `ndarray` of `bool`, shape ``(num_groups, num_dim_types)``.
+            `ndarray` of `bool`, shape ``(n_groups, n_dim_types)``.
             ``dim_types[:,j]`` is a Boolean vector indicating the structure of
             dimension type ``j``. ``1`` indicates that a group is involved, ``0``
             otherwise.
         var_exp
-            `ndarray` of `float`, shape ``(num_groups, num_dim_types)``.
+            `ndarray` of `float`, shape ``(n_groups, n_dim_types)``.
             ``var_exp[i,j]`` is the fraction of the shared variance within group
             ``i`` that is explained by dimension type ``j``. ``var_exp[:,j]``
             corresponds to the dimension type in ``dim_types[:,j]``.
@@ -1199,14 +1204,14 @@ class ObsParamsARD:
 
             ``pairs[i,1]`` -- index of group ``2`` in pair ``i``.
         """
-        num_groups = dim_types.shape[0]  # Number of observed groups
+        n_groups = dim_types.shape[0]  # Number of observed groups
 
         # For each group, create a list of all dimension types that involve that
         # group
-        group_idxs = [np.nonzero(dim_types[g, :])[0] for g in range(num_groups)]
+        group_idxs = [np.nonzero(dim_types[g, :])[0] for g in range(n_groups)]
 
         # Create a list of all possible pairs
-        pairs = list(combinations(range(num_groups), 2))
+        pairs = list(combinations(range(n_groups), 2))
         num_pairs = len(pairs)
 
         # Count the number of each type of dimension
@@ -1242,16 +1247,16 @@ class ObsParamsARD:
         Parameters
         ----------
         num_dim
-            `ndarray` of `int`, shape ``(num_dim_types,)``.
+            `ndarray` of `int`, shape ``(n_dim_types,)``.
             The number of each type of dimension. ``num_dim[i]`` corresponds to
             the dimension type in ``dim_types[:,i]``.
         dim_types
-            `ndarray` of `bool`, shape ``(num_groups, num_dim_types)``.
+            `ndarray` of `bool`, shape ``(n_groups, n_dim_types)``.
             ``dim_types[:,j]`` is a Boolean vector indicating the structure of
             dimension type ``j``. ``1`` indicates that a group is involved, ``0``
             otherwise.
         sem_dim
-            `ndarray` of `float`, shape ``(num_dim_types,)``.
+            `ndarray` of `float`, shape ``(n_dim_types,)``.
             Standard error of the number of dimensions of each type. Defaults
             to ``None``.
         group_names
@@ -1267,14 +1272,14 @@ class ObsParamsARD:
         ax = ax if ax is not None else plt.gca()
 
         # Determine the number of groups involved in each dimension type
-        num_groups, num_dim_types = dim_types.shape
+        n_groups, n_dim_types = dim_types.shape
         dim_cardinality = dim_types.sum(axis=0)
 
         # Set up labels for the x-axis
         if group_names is None:
-            group_names = [f"{i + 1}" for i in range(num_groups)]
-        xticklbls = ["" for i in range(num_dim_types)]
-        for dim_idx in range(num_dim_types):
+            group_names = [f"{i + 1}" for i in range(n_groups)]
+        xticklbls = ["" for i in range(n_dim_types)]
+        for dim_idx in range(n_dim_types):
             if dim_cardinality[dim_idx] == 0:
                 xticklbls[dim_idx] = "n.s."  # Not significant
             else:
@@ -1286,20 +1291,20 @@ class ObsParamsARD:
         if not plot_zero_dim:
             # Remove dimension types that are not significant in any group
             sort_idxs = sort_idxs[dim_cardinality[sort_idxs] > 0]
-            num_dim_types = len(sort_idxs)
+            n_dim_types = len(sort_idxs)
 
         # Plot dimensionalities
         if sem_dim is None:
-            ax.bar(np.arange(1, num_dim_types + 1), num_dim[sort_idxs])
+            ax.bar(np.arange(1, n_dim_types + 1), num_dim[sort_idxs])
         else:
             ax.bar(
-                np.arange(1, num_dim_types + 1),
+                np.arange(1, n_dim_types + 1),
                 num_dim[sort_idxs],
                 yerr=sem_dim[sort_idxs],
             )
         ax.set_xlabel("Dimension type")
         ax.set_ylabel("Dimensionality")
-        ax.set_xticks(np.arange(1, num_dim_types + 1))
+        ax.set_xticks(np.arange(1, n_dim_types + 1))
         ax.set_xticklabels([xticklbls[i] for i in sort_idxs])
 
         # Adjust appearance of axes
@@ -1321,17 +1326,17 @@ class ObsParamsARD:
         Parameters
         ----------
         var_exp
-            `ndarray` of `float`, shape ``(num_groups, num_dim_types)``.
+            `ndarray` of `float`, shape ``(n_groups, n_dim_types)``.
             ``var_exp[i,j]`` is the fraction of the shared variance within group
             ``i`` that is explained by dimension type ``j``. ``var_exp[:,j]``
             corresponds to the dimension type in ``dim_types[:,j]``.
         dim_types
-            `ndarray` of `bool`, shape ``(num_groups, num_dim_types)``.
+            `ndarray` of `bool`, shape ``(n_groups, n_dim_types)``.
             ``dim_types[:,j]`` is a Boolean vector indicating the structure of
             dimension type ``j``. ``1`` indicates that a group is involved, ``0``
             otherwise.
         sem_var_exp
-            `ndarray` of `float`, shape ``(num_groups, num_dim_types)``.
+            `ndarray` of `float`, shape ``(n_groups, n_dim_types)``.
             Standard error of ``var_exp``. Defaults to ``None``.
         group_names
             Names of the groups. Defaults to ``None``.
@@ -1346,14 +1351,14 @@ class ObsParamsARD:
         fig = fig if fig is not None else plt.gcf()
 
         # Determine the number of groups involved in each dimension type
-        num_groups, num_dim_types = dim_types.shape
+        n_groups, n_dim_types = dim_types.shape
         dim_cardinality = dim_types.sum(axis=0)
 
         # Set up labels for the x-axis
         if group_names is None:
-            group_names = [f"{i + 1}" for i in range(num_groups)]
-        xticklbls = ["" for i in range(num_dim_types)]
-        for dim_idx in range(num_dim_types):
+            group_names = [f"{i + 1}" for i in range(n_groups)]
+        xticklbls = ["" for i in range(n_dim_types)]
+        for dim_idx in range(n_dim_types):
             if dim_cardinality[dim_idx] == 0:
                 xticklbls[dim_idx] = "n.s."  # Not significant
             else:
@@ -1365,25 +1370,23 @@ class ObsParamsARD:
         if not plot_zero_dim:
             # Remove dimension types that are not significant in any group
             sort_idxs = sort_idxs[dim_cardinality[sort_idxs] > 0]
-            num_dim_types = len(sort_idxs)
+            n_dim_types = len(sort_idxs)
 
         # Plot shared variance explained by each dimension type in each group
-        for group_idx in range(num_groups):
-            plt.subplot(num_groups, 1, group_idx + 1)
+        for group_idx in range(n_groups):
+            plt.subplot(n_groups, 1, group_idx + 1)
             if sem_var_exp is None:
-                plt.bar(np.arange(1, num_dim_types + 1), var_exp[group_idx, sort_idxs])
+                plt.bar(np.arange(1, n_dim_types + 1), var_exp[group_idx, sort_idxs])
             else:
                 plt.bar(
-                    np.arange(1, num_dim_types + 1),
+                    np.arange(1, n_dim_types + 1),
                     var_exp[group_idx, sort_idxs],
                     yerr=sem_var_exp[group_idx, sort_idxs],
                 )
             plt.ylim([0, 1])
             plt.xlabel("Dimension type")
             plt.ylabel("Frac. shared var. exp.")
-            plt.xticks(
-                np.arange(1, num_dim_types + 1), [xticklbls[i] for i in sort_idxs]
-            )
+            plt.xticks(np.arange(1, n_dim_types + 1), [xticklbls[i] for i in sort_idxs])
             plt.title(f"Group {group_names[group_idx]}")
 
             # Adjust appearance of axes
@@ -1397,7 +1400,7 @@ class ObsParamsARD:
     def plot_dims_pairs(
         pair_dims: np.ndarray,
         pairs: np.ndarray,
-        num_groups: int,
+        n_groups: int,
         sem_pair_dims: np.ndarray | None = None,
         group_names: list[str] | None = None,
         fig: Figure | None = None,
@@ -1419,7 +1422,7 @@ class ObsParamsARD:
             `ndarray` of `int`, shape ``(num_pairs, 2)``.
             ``pairs[i,0]`` -- index of group ``1`` in pair ``i``.
             ``pairs[i,1]`` -- index of group ``2`` in pair ``i``.
-        num_groups
+        n_groups
             Number of observed groups.
         sem_pair_dims
             `ndarray` of `float`, shape ``(num_pairs, 3)``.
@@ -1437,7 +1440,7 @@ class ObsParamsARD:
 
         # Set up labels for the x-axis
         if group_names is None:
-            group_names = [f"{i + 1}" for i in range(num_groups)]
+            group_names = [f"{i + 1}" for i in range(n_groups)]
         xticklbls = np.full((num_pairs, 3), "", dtype=object)
         for pair_idx in range(num_pairs):
             # Total in group 1
@@ -1476,7 +1479,7 @@ class ObsParamsARD:
     def plot_var_exp_pairs(
         pair_var_exp: np.ndarray,
         pairs: np.ndarray,
-        num_groups: int,
+        n_groups: int,
         sem_pair_var_exp: np.ndarray | None = None,
         group_names: list[str] | None = None,
         fig: Figure | None = None,
@@ -1499,10 +1502,10 @@ class ObsParamsARD:
             `ndarray` of `int`, shape ``(num_pairs, 2)``.
             ``pairs[i,0]`` -- index of group ``1`` in pair ``i``.
             ``pairs[i,1]`` -- index of group ``2`` in pair ``i``.
-        num_groups
+        n_groups
             Number of observed groups.
         sem_pair_var_exp
-            `ndarray` of `float`, shape ``(num_pairs, num_groups)``.
+            `ndarray` of `float`, shape ``(num_pairs, n_groups)``.
             Standard error of ``pair_var_exp``. Defaults to ``None``.
         group_names
             Names of the groups. Defaults to ``None``.
@@ -1516,7 +1519,7 @@ class ObsParamsARD:
 
         # Set up labels for the x-axis
         if group_names is None:
-            group_names = [f"{i + 1}" for i in range(num_groups)]
+            group_names = [f"{i + 1}" for i in range(n_groups)]
 
         pairlbls = np.array(
             [

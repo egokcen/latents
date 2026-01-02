@@ -12,7 +12,7 @@ from latents.observation_model.probabilistic import (
 
 
 def simulate(
-    N: int,
+    n_samples: int,
     y_dims: np.ndarray,
     x_dim: int,
     hyper_priors: SimulationHyperPriors,
@@ -23,10 +23,10 @@ def simulate(
 
     Parameters
     ----------
-    N
+    n_samples
         Number of data points to generate.
     y_dims
-        `ndarray` of `int`, shape ``(num_groups,)``.
+        `ndarray` of `int`, shape ``(n_groups,)``.
         Dimensionalities of each observed group.
     x_dim
         Number of latent dimensions.
@@ -35,7 +35,7 @@ def simulate(
         specify group- and column-specific sparsity patterns in the loading
         matrices. Use ``np.inf`` in ``a_alpha`` to force zero loadings.
     snr
-        `ndarray` of `float`, shape ``(num_groups,)``.
+        `ndarray` of `float`, shape ``(n_groups,)``.
         Signal-to-noise ratios of each group.
     random_seed
         Seed the random number generator for reproducible simulations.
@@ -47,7 +47,7 @@ def simulate(
     Y : ObsStatic
         Generated observed data.
     X : ndarray
-        `ndarray` of `float`, shape ``(x_dim, N)``.
+        `ndarray` of `float`, shape ``(x_dim, n_samples)``.
         Latent data.
     obs_params : ObsParamsARD
         Generated GFA observation model parameters.
@@ -59,7 +59,7 @@ def simulate(
     obs_params = ObsParamsARD.generate(y_dims, x_dim, hyper_priors, snr, rng)
 
     # Generate latent data
-    X = generate_latents(N, x_dim, rng)
+    X = generate_latents(n_samples, x_dim, rng)
 
     # Generate observated data
     Y = generate_observations(X, obs_params, rng)
@@ -68,7 +68,7 @@ def simulate(
 
 
 def generate_latents(
-    N: int,
+    n_samples: int,
     x_dim: int,
     rng: np.random.Generator,
 ) -> np.ndarray:
@@ -77,7 +77,7 @@ def generate_latents(
 
     Parameters
     ----------
-    N
+    n_samples
         Number of data points to generate.
     x_dim
         Number of latent dimensions.
@@ -87,10 +87,10 @@ def generate_latents(
     Returns
     -------
     ndarray
-        `ndarray` of `float`, shape ``(x_dim, N)``.
+        `ndarray` of `float`, shape ``(x_dim, n_samples)``.
         Latent data.
     """
-    return rng.normal(size=(x_dim, N))
+    return rng.normal(size=(x_dim, n_samples))
 
 
 def generate_observations(
@@ -104,7 +104,7 @@ def generate_observations(
     Parameters
     ----------
     X
-        `ndarray` of `float`, shape ``(x_dim, N)``.
+        `ndarray` of `float`, shape ``(x_dim, n_samples)``.
         Latent data.
     obs_params
         GFA observation model parameters.
@@ -117,11 +117,11 @@ def generate_observations(
         Generated observed data.
     """
     # Number of data points
-    N = X.shape[1]
+    n_samples = X.shape[1]
     # Dimensionality of each observed group
     y_dims = obs_params.y_dims
     # Number of observed groups
-    num_groups = len(y_dims)
+    n_groups = len(y_dims)
 
     # Split d, phi, and C according to observed groups
     ds, _ = obs_params.d.get_groups(y_dims)
@@ -129,16 +129,18 @@ def generate_observations(
     Cs, _, _ = obs_params.C.get_groups(y_dims)
 
     # Initialize observed data list
-    Y = ObsStatic(data=np.zeros((y_dims.sum(), N)), dims=y_dims)
+    Y = ObsStatic(data=np.zeros((y_dims.sum(), n_samples)), dims=y_dims)
     Ys = Y.get_groups()
 
     # Generate observated data group by group
-    for group_idx in range(num_groups):
+    for group_idx in range(n_groups):
         Ys[group_idx][:] = (
             Cs[group_idx] @ X
             + ds[group_idx][:, np.newaxis]
             + rng.multivariate_normal(
-                np.zeros(y_dims[group_idx]), np.diag(1 / phis[group_idx]), size=N
+                np.zeros(y_dims[group_idx]),
+                np.diag(1 / phis[group_idx]),
+                size=n_samples,
             ).T
         )
 

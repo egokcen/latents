@@ -24,7 +24,7 @@ def predictive_performance(
     params
         GFA model parameters.
     y_dims
-        `ndarray` of `int`, shape ``(num_groups,)``.
+        `ndarray` of `int`, shape ``(n_groups,)``.
         Dimensionalities of each observed group. Defaults to ``None``, in which
         case the dimensionalities are inferred from ``obs_data``.
 
@@ -50,12 +50,12 @@ def predictive_performance(
     phi_means, _ = params.obs_params.phi.get_groups(y_dims)
     d_means, _ = params.obs_params.d.get_groups(y_dims)
 
-    num_groups = len(y_dims)  # Number of observed groups
-    for group_idx in range(num_groups):
+    n_groups = len(y_dims)  # Number of observed groups
+    for group_idx in range(n_groups):
         # Group to be left out
         target_group = group_idx
         # Groups to be used for prediction
-        source_groups = np.nonzero(np.arange(num_groups) != target_group)[0]
+        source_groups = np.nonzero(np.arange(n_groups) != target_group)[0]
 
         # Construct a new set of parameters that excludes the target group
         source_params = GFAParams(
