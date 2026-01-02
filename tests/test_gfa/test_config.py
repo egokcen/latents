@@ -5,7 +5,7 @@ import pytest
 from dataclasses import FrozenInstanceError
 
 from latents.gfa import GFAFitConfig
-from latents.observation_model.probabilistic import HyperPriors, SimulationHyperPriors
+from latents.observation import ObsParamsHyperPrior, ObsParamsHyperPriorStructured
 
 
 class TestGFAFitConfig:
@@ -116,13 +116,13 @@ class TestGFAFitConfig:
             GFAFitConfig(random_seed=3.14)
 
 
-class TestHyperPriors:
-    """Tests for HyperPriors dataclass."""
+class TestObsParamsHyperPrior:
+    """Tests for ObsParamsHyperPrior dataclass."""
 
     def test_defaults(self):
         """Test default values are set correctly."""
-        hp = HyperPriors()
-        assert hp.d_beta == 1e-12
+        hp = ObsParamsHyperPrior()
+        assert hp.beta_d == 1e-12
         assert hp.a_alpha == 1e-12
         assert hp.b_alpha == 1e-12
         assert hp.a_phi == 1e-12
@@ -130,57 +130,59 @@ class TestHyperPriors:
 
     def test_custom_values(self):
         """Test custom values are accepted."""
-        hp = HyperPriors(d_beta=1.0, a_alpha=0.1, b_alpha=0.1, a_phi=1.0, b_phi=1.0)
-        assert hp.d_beta == 1.0
+        hp = ObsParamsHyperPrior(
+            beta_d=1.0, a_alpha=0.1, b_alpha=0.1, a_phi=1.0, b_phi=1.0
+        )
+        assert hp.beta_d == 1.0
         assert hp.a_alpha == 0.1
         assert hp.b_alpha == 0.1
         assert hp.a_phi == 1.0
         assert hp.b_phi == 1.0
 
     def test_frozen(self):
-        """Test that HyperPriors is immutable."""
-        hp = HyperPriors()
+        """Test that ObsParamsHyperPrior is immutable."""
+        hp = ObsParamsHyperPrior()
         with pytest.raises(FrozenInstanceError):
-            hp.d_beta = 1.0
+            hp.beta_d = 1.0
 
-    def test_d_beta_validation(self):
-        """Test d_beta must be > 0."""
-        with pytest.raises(ValueError, match="d_beta must be a positive number"):
-            HyperPriors(d_beta=0)
-        with pytest.raises(ValueError, match="d_beta must be a positive number"):
-            HyperPriors(d_beta=-1)
+    def test_beta_d_validation(self):
+        """Test beta_d must be > 0."""
+        with pytest.raises(ValueError, match="beta_d must be a positive number"):
+            ObsParamsHyperPrior(beta_d=0)
+        with pytest.raises(ValueError, match="beta_d must be a positive number"):
+            ObsParamsHyperPrior(beta_d=-1)
 
     def test_a_alpha_validation(self):
         """Test a_alpha must be > 0."""
         with pytest.raises(ValueError, match="a_alpha must be a positive number"):
-            HyperPriors(a_alpha=0)
+            ObsParamsHyperPrior(a_alpha=0)
         with pytest.raises(ValueError, match="a_alpha must be a positive number"):
-            HyperPriors(a_alpha=-0.1)
+            ObsParamsHyperPrior(a_alpha=-0.1)
 
     def test_b_alpha_validation(self):
         """Test b_alpha must be > 0."""
         with pytest.raises(ValueError, match="b_alpha must be a positive number"):
-            HyperPriors(b_alpha=0)
+            ObsParamsHyperPrior(b_alpha=0)
         with pytest.raises(ValueError, match="b_alpha must be a positive number"):
-            HyperPriors(b_alpha=-0.1)
+            ObsParamsHyperPrior(b_alpha=-0.1)
 
     def test_a_phi_validation(self):
         """Test a_phi must be > 0."""
         with pytest.raises(ValueError, match="a_phi must be a positive number"):
-            HyperPriors(a_phi=0)
+            ObsParamsHyperPrior(a_phi=0)
         with pytest.raises(ValueError, match="a_phi must be a positive number"):
-            HyperPriors(a_phi=-1)
+            ObsParamsHyperPrior(a_phi=-1)
 
     def test_b_phi_validation(self):
         """Test b_phi must be > 0."""
         with pytest.raises(ValueError, match="b_phi must be a positive number"):
-            HyperPriors(b_phi=0)
+            ObsParamsHyperPrior(b_phi=0)
         with pytest.raises(ValueError, match="b_phi must be a positive number"):
-            HyperPriors(b_phi=-1)
+            ObsParamsHyperPrior(b_phi=-1)
 
 
-class TestSimulationHyperPriors:
-    """Tests for SimulationHyperPriors dataclass."""
+class TestObsParamsHyperPriorStructured:
+    """Tests for ObsParamsHyperPriorStructured dataclass."""
 
     def test_required_arrays(self):
         """Test that a_alpha and b_alpha are required."""
@@ -188,7 +190,7 @@ class TestSimulationHyperPriors:
         a_alpha = np.array([[1.0, 2.0], [3.0, 4.0]])
         b_alpha = np.array([[1.0, 1.0], [1.0, 1.0]])
 
-        hp = SimulationHyperPriors(a_alpha=a_alpha, b_alpha=b_alpha)
+        hp = ObsParamsHyperPriorStructured(a_alpha=a_alpha, b_alpha=b_alpha)
         np.testing.assert_array_equal(hp.a_alpha, a_alpha)
         np.testing.assert_array_equal(hp.b_alpha, b_alpha)
 
@@ -197,8 +199,8 @@ class TestSimulationHyperPriors:
         a_alpha = np.array([[1.0]])
         b_alpha = np.array([[1.0]])
 
-        hp = SimulationHyperPriors(a_alpha=a_alpha, b_alpha=b_alpha)
-        assert hp.d_beta == 1.0
+        hp = ObsParamsHyperPriorStructured(a_alpha=a_alpha, b_alpha=b_alpha)
+        assert hp.beta_d == 1.0
         assert hp.a_phi == 1.0
         assert hp.b_phi == 1.0
 
@@ -207,21 +209,21 @@ class TestSimulationHyperPriors:
         a_alpha = np.array([[1.0]])
         b_alpha = np.array([[1.0]])
 
-        hp = SimulationHyperPriors(
-            a_alpha=a_alpha, b_alpha=b_alpha, d_beta=2.0, a_phi=0.5, b_phi=0.5
+        hp = ObsParamsHyperPriorStructured(
+            a_alpha=a_alpha, b_alpha=b_alpha, beta_d=2.0, a_phi=0.5, b_phi=0.5
         )
-        assert hp.d_beta == 2.0
+        assert hp.beta_d == 2.0
         assert hp.a_phi == 0.5
         assert hp.b_phi == 0.5
 
     def test_frozen(self):
-        """Test that SimulationHyperPriors is immutable."""
+        """Test that ObsParamsHyperPriorStructured is immutable."""
         a_alpha = np.array([[1.0]])
         b_alpha = np.array([[1.0]])
-        hp = SimulationHyperPriors(a_alpha=a_alpha, b_alpha=b_alpha)
+        hp = ObsParamsHyperPriorStructured(a_alpha=a_alpha, b_alpha=b_alpha)
 
         with pytest.raises(FrozenInstanceError):
-            hp.d_beta = 2.0
+            hp.beta_d = 2.0
 
     def test_shape_mismatch_validation(self):
         """Test a_alpha and b_alpha must have matching shapes."""
@@ -231,17 +233,17 @@ class TestSimulationHyperPriors:
         with pytest.raises(
             ValueError, match=r"a_alpha shape.*must match b_alpha shape"
         ):
-            SimulationHyperPriors(a_alpha=a_alpha, b_alpha=b_alpha)
+            ObsParamsHyperPriorStructured(a_alpha=a_alpha, b_alpha=b_alpha)
 
-    def test_d_beta_validation(self):
-        """Test d_beta must be > 0."""
+    def test_beta_d_validation(self):
+        """Test beta_d must be > 0."""
         a_alpha = np.array([[1.0]])
         b_alpha = np.array([[1.0]])
 
-        with pytest.raises(ValueError, match="d_beta must be > 0"):
-            SimulationHyperPriors(a_alpha=a_alpha, b_alpha=b_alpha, d_beta=0)
-        with pytest.raises(ValueError, match="d_beta must be > 0"):
-            SimulationHyperPriors(a_alpha=a_alpha, b_alpha=b_alpha, d_beta=-1)
+        with pytest.raises(ValueError, match="beta_d must be > 0"):
+            ObsParamsHyperPriorStructured(a_alpha=a_alpha, b_alpha=b_alpha, beta_d=0)
+        with pytest.raises(ValueError, match="beta_d must be > 0"):
+            ObsParamsHyperPriorStructured(a_alpha=a_alpha, b_alpha=b_alpha, beta_d=-1)
 
     def test_a_phi_validation(self):
         """Test a_phi must be > 0."""
@@ -249,9 +251,9 @@ class TestSimulationHyperPriors:
         b_alpha = np.array([[1.0]])
 
         with pytest.raises(ValueError, match="a_phi must be > 0"):
-            SimulationHyperPriors(a_alpha=a_alpha, b_alpha=b_alpha, a_phi=0)
+            ObsParamsHyperPriorStructured(a_alpha=a_alpha, b_alpha=b_alpha, a_phi=0)
         with pytest.raises(ValueError, match="a_phi must be > 0"):
-            SimulationHyperPriors(a_alpha=a_alpha, b_alpha=b_alpha, a_phi=-1)
+            ObsParamsHyperPriorStructured(a_alpha=a_alpha, b_alpha=b_alpha, a_phi=-1)
 
     def test_b_phi_validation(self):
         """Test b_phi must be > 0."""
@@ -259,6 +261,6 @@ class TestSimulationHyperPriors:
         b_alpha = np.array([[1.0]])
 
         with pytest.raises(ValueError, match="b_phi must be > 0"):
-            SimulationHyperPriors(a_alpha=a_alpha, b_alpha=b_alpha, b_phi=0)
+            ObsParamsHyperPriorStructured(a_alpha=a_alpha, b_alpha=b_alpha, b_phi=0)
         with pytest.raises(ValueError, match="b_phi must be > 0"):
-            SimulationHyperPriors(a_alpha=a_alpha, b_alpha=b_alpha, b_phi=-1)
+            ObsParamsHyperPriorStructured(a_alpha=a_alpha, b_alpha=b_alpha, b_phi=-1)

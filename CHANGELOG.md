@@ -14,12 +14,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Python 3.14 support
 - Optional `notebook` extra for Jupyter support (`pip install latents[notebook]`)
 - `GFAFitConfig` frozen dataclass for immutable GFA fitting configuration
-- `HyperPriors` frozen dataclass for fitting hyperprior parameters
-- `SimulationHyperPriors` frozen dataclass for simulation hyperprior parameters
+- New `observation/` subpackage with probabilistic hierarchy:
+  - `ObsParamsHyperPrior` and `ObsParamsHyperPriorStructured` for hyperprior configuration
+  - `ObsParamsPrior` with `sample()` method for forward sampling from priors
+  - `ObsParamsRealization` and `ObsParamsPoint` for parameter value containers
+  - `adjust_snr()` utility for signal-to-noise ratio adjustment
+  - Posterior classes: `LoadingPosterior`, `ARDPosterior`, `ObsMeanPosterior`, `ObsPrecPosterior`, `ObsParamsPosterior`
 
 ### Changed
 
 - Internal utilities reorganized into `_core/` subpackage (base classes, fitting infrastructure, numerics)
+- Observation model probabilistic components reorganized into `observation/` subpackage
 - Minimum Python version raised from 3.9 to 3.10
 - Jupyter dependencies (`jupyter`, `ipywidgets`) moved from core to optional extra
 - `GFAModel` now accepts `config` parameter in constructor instead of using `fit_args.set_args()`
@@ -31,7 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Python 3.9 support
 - Unused `pandas` dependency
 - `GFAFitArgs` class (replaced by `GFAFitConfig`)
-- `HyperPriorParams` class (replaced by `HyperPriors` and `SimulationHyperPriors`)
+- `HyperPriorParams` class (replaced by `ObsParamsHyperPrior` and `ObsParamsHyperPriorStructured`)
+- `observation_model/probabilistic` module (classes moved to `observation/` subpackage)
 
 ## [0.0.4] - 2024-10-31
 

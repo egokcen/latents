@@ -79,11 +79,32 @@ def test_observation_model_namespace():
 
     # Check that submodules are in the namespace of observation_model
     assert "observations" in dir(observation_model)
-    assert "probabilistic" in dir(observation_model)
 
     # Check other assets exposed to the user
     assert "ObsStatic" in dir(observation_model.observations)
     assert "ObsTimeSeries" in dir(observation_model.observations)
+
+
+def test_observation_namespace():
+    """Test that the observation subpackage has the expected namespace."""
+    from latents import observation
+
+    # Check posterior classes
+    assert "LoadingPosterior" in dir(observation)
+    assert "ARDPosterior" in dir(observation)
+    assert "ObsMeanPosterior" in dir(observation)
+    assert "ObsPrecPosterior" in dir(observation)
+    assert "ObsParamsPosterior" in dir(observation)
+
+    # Check hyperprior classes
+    assert "ObsParamsHyperPrior" in dir(observation)
+    assert "ObsParamsHyperPriorStructured" in dir(observation)
+    assert "ObsParamsPrior" in dir(observation)
+
+    # Check realization classes and utilities
+    assert "ObsParamsRealization" in dir(observation)
+    assert "ObsParamsPoint" in dir(observation)
+    assert "adjust_snr" in dir(observation)
 
 
 def test_state_model_namespace():

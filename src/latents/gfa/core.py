@@ -18,14 +18,14 @@ from latents.gfa.data_types import (
     GFAFitTracker,
     GFAParams,
 )
-from latents.observation_model.observations import ObsStatic
-from latents.observation_model.probabilistic import (
-    HyperPriors,
-    PosteriorARD,
-    PosteriorLoading,
-    PosteriorObsMean,
-    PosteriorObsPrec,
+from latents.observation import (
+    ARDPosterior,
+    LoadingPosterior,
+    ObsMeanPosterior,
+    ObsParamsHyperPrior,
+    ObsPrecPosterior,
 )
+from latents.observation_model.observations import ObsStatic
 from latents.state_model.latents import PosteriorLatentStatic
 
 jsonpickle_numpy.register_handlers()
@@ -35,7 +35,7 @@ def fit(
     Y: ObsStatic,
     params: GFAParams,
     config: GFAFitConfig | None = None,
-    hyper_priors: HyperPriors | None = None,
+    hyper_priors: ObsParamsHyperPrior | None = None,
 ) -> tuple[GFAParams, GFAFitTracker, GFAFitFlags]:
     """Fit a GFA model to data.
 
@@ -51,7 +51,7 @@ def fit(
     config
         Fitting configuration. If None, uses default GFAFitConfig().
     hyper_priors
-        Prior hyperparameters. If None, uses default HyperPriors().
+        Prior hyperparameters. If None, uses default ObsParamsHyperPrior().
 
     Returns
     -------
@@ -72,7 +72,7 @@ def fit(
     if config is None:
         config = GFAFitConfig()
     if hyper_priors is None:
-        hyper_priors = HyperPriors()
+        hyper_priors = ObsParamsHyperPrior()
 
     # Unpack config for local use (maintains readability in existing code)
     x_dim_init = config.x_dim_init
@@ -264,7 +264,7 @@ def fit(
 def init(
     Y: ObsStatic,
     config: GFAFitConfig | None = None,
-    hyper_priors: HyperPriors | None = None,
+    hyper_priors: ObsParamsHyperPrior | None = None,
 ) -> GFAParams:
     """Initialize GFA model parameters for fitting.
 
@@ -275,7 +275,7 @@ def init(
     config
         Fitting configuration. If None, uses default GFAFitConfig().
     hyper_priors
-        Prior hyperparameters. If None, uses default HyperPriors().
+        Prior hyperparameters. If None, uses default ObsParamsHyperPrior().
 
     Returns
     -------
@@ -286,7 +286,7 @@ def init(
     if config is None:
         config = GFAFitConfig()
     if hyper_priors is None:
-        hyper_priors = HyperPriors()
+        hyper_priors = ObsParamsHyperPrior()
 
     # Unpack config for local use
     x_dim_init = config.x_dim_init
@@ -320,7 +320,7 @@ def init(
 
     # Mean parameter
     obs_params.d.mean = np.mean(Y.data, axis=1)
-    obs_params.d.cov = np.full(y_dim, 1 / hyper_priors.d_beta)
+    obs_params.d.cov = np.full(y_dim, 1 / hyper_priors.beta_d)
 
     # Noise precisions
     obs_params.phi.a = hyper_priors.a_phi + n_samples / 2
@@ -443,7 +443,7 @@ def infer_loadings(
     params: GFAParams,
     in_place: bool = True,
     XY: np.ndarray | None = None,
-) -> PosteriorLoading:
+) -> LoadingPosterior:
     """
     Infer loadings :math:`C` given current params and observed data.
 
@@ -485,7 +485,7 @@ def infer_loadings(
             obs_params.C.moment = np.zeros((y_dim, x_dim, x_dim))
         C = obs_params.C
     else:
-        C = PosteriorLoading(
+        C = LoadingPosterior(
             mean=np.zeros((y_dim, x_dim)),
             cov=np.zeros((y_dim, x_dim, x_dim)),
             moment=np.zeros((y_dim, x_dim, x_dim)),
@@ -523,10 +523,10 @@ def infer_loadings(
 
 def infer_ard(
     params: GFAParams,
-    hyper_priors: HyperPriors,
+    hyper_priors: ObsParamsHyperPrior,
     in_place: bool = True,
     C_norm: np.ndarray | None = None,
-) -> PosteriorARD:
+) -> ARDPosterior:
     """
     Infer ARD parameters alpha given current params.
 
@@ -564,7 +564,7 @@ def infer_ard(
             obs_params.alpha.mean = np.zeros((n_groups, obs_params.x_dim))
         alpha = obs_params.alpha
     else:
-        alpha = PosteriorARD(
+        alpha = ARDPosterior(
             a=hyper_priors.a_alpha + obs_params.y_dims / 2,
             b=np.zeros((n_groups, obs_params.x_dim)),
             mean=np.zeros((n_groups, obs_params.x_dim)),
@@ -586,9 +586,9 @@ def infer_ard(
 def infer_obs_mean(
     Y: ObsStatic,
     params: GFAParams,
-    hyper_priors: HyperPriors,
+    hyper_priors: ObsParamsHyperPrior,
     in_place: bool = True,
-) -> PosteriorObsMean:
+) -> ObsMeanPosterior:
     """
     Infer observation mean parameter given GFA model parameters and observed data.
 
@@ -622,10 +622,10 @@ def infer_obs_mean(
             obs_params.d.cov = np.zeros(y_dim)
         d = obs_params.d
     else:
-        d = PosteriorObsMean(mean=np.zeros(y_dim), cov=np.zeros(y_dim))
+        d = ObsMeanPosterior(mean=np.zeros(y_dim), cov=np.zeros(y_dim))
 
     # Covariance
-    d.cov[:] = 1 / (hyper_priors.d_beta + n_samples * obs_params.phi.mean)
+    d.cov[:] = 1 / (hyper_priors.beta_d + n_samples * obs_params.phi.mean)
     d.mean[:] = (
         d.cov
         * obs_params.phi.mean
@@ -638,12 +638,12 @@ def infer_obs_mean(
 def infer_obs_prec(
     Y: ObsStatic,
     params: GFAParams,
-    hyper_priors: HyperPriors,
+    hyper_priors: ObsParamsHyperPrior,
     in_place: bool = True,
     d_moment: np.ndarray | None = None,
     XY: np.ndarray | None = None,
     Y2: np.ndarray | None = None,
-) -> PosteriorObsPrec:
+) -> ObsPrecPosterior:
     """
     Infer observation precision parameters given GFA model parameters and observed data.
 
@@ -692,7 +692,7 @@ def infer_obs_prec(
             obs_params.phi.b = np.zeros(y_dim)
         phi = obs_params.phi
     else:
-        phi = PosteriorObsPrec(
+        phi = ObsPrecPosterior(
             mean=np.zeros(y_dim),
             a=hyper_priors.a_phi + n_samples / 2,
             b=np.zeros(y_dim),
@@ -731,7 +731,7 @@ def infer_obs_prec(
 def compute_lower_bound(
     Y: ObsStatic,
     params: GFAParams,
-    hyper_priors: HyperPriors,
+    hyper_priors: ObsParamsHyperPrior,
     consts: tuple | None = None,
     logdet_C: float | None = None,
     C_norm: np.ndarray | None = None,
@@ -855,7 +855,7 @@ def compute_lower_bound(
 
     # d KL term
     lb += const_d + 0.5 * (
-        np.sum(np.log(obs_params.d.cov)) - hyper_priors.d_beta * np.sum(d_moment)
+        np.sum(np.log(obs_params.d.cov)) - hyper_priors.beta_d * np.sum(d_moment)
     )
 
     return lb
@@ -864,7 +864,7 @@ def compute_lower_bound(
 def compute_lower_bound_constants(
     n_samples: int,
     params: GFAParams,
-    hyper_priors: HyperPriors,
+    hyper_priors: ObsParamsHyperPrior,
 ) -> tuple[
     float, float, float, float, float, float, float, float, np.ndarray, np.ndarray
 ]:
@@ -910,7 +910,7 @@ def compute_lower_bound_constants(
     # Related to the likelihood
     const_lik = -(y_dim * n_samples / 2) * np.log(2 * np.pi)
     # Related to observation mean parameters
-    const_d = 0.5 * y_dim + 0.5 * y_dim * np.log(hyper_priors.d_beta)
+    const_d = 0.5 * y_dim + 0.5 * y_dim * np.log(hyper_priors.beta_d)
     # Related to observation precision parameters
     alogb_phi = hyper_priors.a_phi * np.log(hyper_priors.b_phi)
     loggamma_a_phi_prior = gammaln(hyper_priors.a_phi)
@@ -950,7 +950,7 @@ class GFAModel:
     config
         Fitting configuration. If None, uses default GFAFitConfig().
     hyper_priors
-        Prior hyperparameters. If None, uses default HyperPriors().
+        Prior hyperparameters. If None, uses default ObsParamsHyperPrior().
 
     Attributes
     ----------
@@ -979,7 +979,7 @@ class GFAModel:
         tracker: GFAFitTracker | None = None,
         flags: GFAFitFlags | None = None,
         config: GFAFitConfig | None = None,
-        hyper_priors: HyperPriors | None = None,
+        hyper_priors: ObsParamsHyperPrior | None = None,
     ):
         # Estimated parameters
         if params is None:
@@ -1012,7 +1012,9 @@ class GFAModel:
         self.config = config if config is not None else GFAFitConfig()
 
         # Prior hyperparameters (immutable)
-        self.hyper_priors = hyper_priors if hyper_priors is not None else HyperPriors()
+        self.hyper_priors = (
+            hyper_priors if hyper_priors is not None else ObsParamsHyperPrior()
+        )
 
     def __repr__(self) -> str:
         return (
@@ -1114,7 +1116,7 @@ class GFAModel:
         self,
         Y: ObsStatic,
         in_place: bool = True,
-    ) -> PosteriorLoading:
+    ) -> LoadingPosterior:
         """
         Infer loadings C given current params and observed data.
 
@@ -1137,7 +1139,7 @@ class GFAModel:
     def infer_ard(
         self,
         in_place: bool = True,
-    ) -> PosteriorARD:
+    ) -> ARDPosterior:
         """
         Infer ARD parameters alpha given current params.
 
@@ -1159,7 +1161,7 @@ class GFAModel:
         self,
         Y: ObsStatic,
         in_place: bool = True,
-    ) -> PosteriorObsMean:
+    ) -> ObsMeanPosterior:
         """
         Infer observation mean parameters given current params and observed data.
 
@@ -1183,7 +1185,7 @@ class GFAModel:
         self,
         Y: ObsStatic,
         in_place: bool = True,
-    ) -> PosteriorObsPrec:
+    ) -> ObsPrecPosterior:
         """
         Infer observation precision parameters given current params and observed data.
 

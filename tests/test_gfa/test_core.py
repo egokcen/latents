@@ -7,7 +7,7 @@ import pytest
 
 import latents.gfa.simulation as gfa_sim
 from latents.gfa import GFAFitConfig, GFAModel
-from latents.observation_model.probabilistic import SimulationHyperPriors
+from latents.observation import ObsParamsHyperPriorStructured
 
 
 # --- Fixtures ---
@@ -36,12 +36,12 @@ def simulation_data():
         ],
     )
     MAG = 100  # Controls variance of alpha (larger = less variance)
-    sim_priors = SimulationHyperPriors(
+    sim_priors = ObsParamsHyperPriorStructured(
         a_alpha=MAG * sparsity_pattern,
         b_alpha=MAG * np.ones_like(sparsity_pattern),
         a_phi=1.0,
         b_phi=1.0,
-        d_beta=1.0,
+        beta_d=1.0,
     )
 
     Y, X_true, obs_params_true = gfa_sim.simulate(
@@ -101,7 +101,7 @@ def test_fit(fitted_model):
     # x_dim_init=10, true x_dim=7, so 3 latents pruned.
     assert model.flags.x_dims_removed == 3
     # Iteration count for convergence with fit_tol=1e-8.
-    assert len(model.tracker.iter_time) == 2521
+    assert len(model.tracker.iter_time) == 2268
 
 
 def test_elbo_monotonicity(fitted_model):
@@ -142,10 +142,10 @@ def test_parameter_recovery(simulation_data, fitted_model):
 
     # Column reordering and sign flips for this seed combination
     # (simulation_seed=1, fitting_seed=0)
-    reorder = np.array([4, 2, 1, 5, 3, 6, 0])
-    rescale = np.array([-1, -1, 1, -1, 1, -1, 1])
+    reorder = np.array([0, 3, 5, 1, 4, 2, 6])
+    rescale = np.array([1, -1, 1, -1, -1, -1, 1])
 
-    C_true = obs_params_true.C.mean
+    C_true = obs_params_true.C
     C_est = model.params.obs_params.C.mean[:, reorder] * rescale
 
     # Compute per-column correlation

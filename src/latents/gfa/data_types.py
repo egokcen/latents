@@ -15,7 +15,7 @@ from latents._core.fitting import (
     FitFlags,
     FitTracker,
 )
-from latents.observation_model.probabilistic import ObsParamsARD
+from latents.observation import ObsParamsPosterior
 from latents.state_model.latents import (
     StateParamsStatic,
 )
@@ -35,7 +35,7 @@ class GFAParams:
 
     Attributes
     ----------
-    obs_params : ObsParamsARD
+    obs_params : ObsParamsPosterior
         Posterior observation parameters.
     state_params : StateParamsStatic
         Posterior state parameters.
@@ -57,7 +57,7 @@ class GFAParams:
             raise TypeError(msg)
 
         # Observation model parameters
-        self.obs_params = ObsParamsARD(x_dim=x_dim, y_dims=y_dims)
+        self.obs_params = ObsParamsPosterior(x_dim=x_dim, y_dims=y_dims)
 
         # State model parameters
         self.state_params = StateParamsStatic(x_dim=x_dim)

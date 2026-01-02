@@ -4,21 +4,23 @@ from __future__ import annotations
 
 import numpy as np
 
-from latents.observation_model.observations import ObsStatic
-from latents.observation_model.probabilistic import (
-    ObsParamsARD,
-    SimulationHyperPriors,
+from latents.observation import (
+    ObsParamsHyperPriorStructured,
+    ObsParamsPrior,
+    ObsParamsRealization,
+    adjust_snr,
 )
+from latents.observation_model.observations import ObsStatic
 
 
 def simulate(
     n_samples: int,
     y_dims: np.ndarray,
     x_dim: int,
-    hyper_priors: SimulationHyperPriors,
+    hyper_priors: ObsParamsHyperPriorStructured,
     snr: np.ndarray,
     random_seed: int | None = None,
-) -> tuple[ObsStatic, np.ndarray, ObsParamsARD]:
+) -> tuple[ObsStatic, np.ndarray, ObsParamsRealization]:
     """Generate samples from the full group factor analysis model.
 
     Parameters
@@ -49,14 +51,16 @@ def simulate(
     X : ndarray
         `ndarray` of `float`, shape ``(x_dim, n_samples)``.
         Latent data.
-    obs_params : ObsParamsARD
+    obs_params : ObsParamsRealization
         Generated GFA observation model parameters.
     """
     # Seed the random number generator for reproducibility
     rng = np.random.default_rng(random_seed)
 
-    # Generate observation model parameters
-    obs_params = ObsParamsARD.generate(y_dims, x_dim, hyper_priors, snr, rng)
+    # Sample from the prior and adjust SNR
+    prior = ObsParamsPrior(hyperprior=hyper_priors)
+    obs_params = prior.sample(y_dims, x_dim, rng)
+    obs_params = adjust_snr(obs_params, snr)
 
     # Generate latent data
     X = generate_latents(n_samples, x_dim, rng)
@@ -95,7 +99,7 @@ def generate_latents(
 
 def generate_observations(
     X: np.ndarray,
-    obs_params: ObsParamsARD,
+    obs_params: ObsParamsRealization,
     rng: np.random.Generator,
 ) -> ObsStatic:
     """
@@ -124,9 +128,10 @@ def generate_observations(
     n_groups = len(y_dims)
 
     # Split d, phi, and C according to observed groups
-    ds, _ = obs_params.d.get_groups(y_dims)
-    phis, _ = obs_params.phi.get_groups(y_dims)
-    Cs, _, _ = obs_params.C.get_groups(y_dims)
+    y_boundaries = np.cumsum(y_dims)[:-1]
+    ds = np.split(obs_params.d, y_boundaries)
+    phis = np.split(obs_params.phi, y_boundaries)
+    Cs = np.split(obs_params.C, y_boundaries, axis=0)
 
     # Initialize observed data list
     Y = ObsStatic(data=np.zeros((y_dims.sum(), n_samples)), dims=y_dims)

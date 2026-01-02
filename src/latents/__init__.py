@@ -6,6 +6,7 @@ from importlib.metadata import PackageNotFoundError, version
 from latents import (
     gfa,
     mdlag,
+    observation,
     observation_model,
     plotting,
     state_model,
@@ -17,6 +18,7 @@ with contextlib.suppress(PackageNotFoundError):
 __all__ = [
     "gfa",
     "mdlag",
+    "observation",
     "observation_model",
     "plotting",
     "state_model",
