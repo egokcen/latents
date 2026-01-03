@@ -1,4 +1,4 @@
-"""General plotting support across the latents package."""
+"""Hinton diagram visualization."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ import numpy as np
 from matplotlib.axes import Axes
 
 
-def hinton(
+def hinton_diagram(
     matrix: np.ndarray,
     max_weight: float | None = None,
     ax: Axes | None = None,
@@ -36,9 +36,9 @@ def hinton(
     Examples
     --------
     >>> import numpy as np
-    >>> from latents.plotting import hinton
+    >>> from latents.plotting import hinton_diagram
     >>> C = np.random.normal(size=(10, 5))
-    >>> hinton(C)
+    >>> hinton_diagram(C)
     """
     # If no axis is provided, then get an existing one or create a new one
     ax = ax if ax is not None else plt.gca()

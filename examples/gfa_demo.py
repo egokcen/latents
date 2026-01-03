@@ -17,7 +17,13 @@ import latents.gfa.descriptive_stats as gfa_stats
 import latents.gfa.simulation as gfa_sim
 from latents.gfa import GFAFitConfig, GFAModel
 from latents.observation import ObsParamsHyperPriorStructured, ObsParamsPosterior
-from latents.plotting import hinton
+from latents.plotting import (
+    hinton_diagram,
+    plot_dimensionalities,
+    plot_dims_pairs,
+    plot_var_exp,
+    plot_var_exp_pairs,
+)
 
 # %%
 # Generate Data from the GFA Model
@@ -124,12 +130,12 @@ rescale = np.array([-1, -1, 1, -1, 1, -1, 1])
 plt.figure(figsize=(3, 5))
 plt.subplot(1, 2, 1)
 plt.title("Ground truth C")
-hinton(obs_params_true.C.mean)
+hinton_diagram(obs_params_true.C.mean)
 
 # Plot estimated C, reordered and rescaled to match ground truth
 plt.subplot(1, 2, 2)
 plt.title("Estimated C")
-hinton(model.params.obs_params.C.mean[:, reorder] * rescale)
+hinton_diagram(model.params.obs_params.C.mean[:, reorder] * rescale)
 
 plt.tight_layout()
 plt.show()
@@ -152,12 +158,12 @@ alpha_inv_rel_est = alpha_inv_est / np.sum(alpha_inv_est, axis=1, keepdims=True)
 plt.figure(figsize=(5, 3))
 plt.subplot(2, 1, 1)
 plt.title("Ground truth ARD")
-hinton(alpha_inv_rel_true)
+hinton_diagram(alpha_inv_rel_true)
 
 # Plot estimated ARD, reordered to match ground truth
 plt.subplot(2, 1, 2)
 plt.title("Estimated ARD")
-hinton(alpha_inv_rel_est[:, reorder])
+hinton_diagram(alpha_inv_rel_est[:, reorder])
 
 plt.tight_layout()
 plt.show()
@@ -214,16 +220,14 @@ for group_idx in range(n_groups):
 
 # Visualize the number of each type of dimension
 plt.figure(figsize=(4, 2))
-ObsParamsPosterior.plot_dimensionalities(
+plot_dimensionalities(
     num_dim, dim_types, group_names=["A", "B", "C"], plot_zero_dim=False
 )
 plt.show()
 
 # Visualize the shared variance explained by each dimension type
 plt.figure(figsize=(4, 6))
-ObsParamsPosterior.plot_var_exp(
-    var_exp, dim_types, group_names=["A", "B", "C"], plot_zero_dim=False
-)
+plot_var_exp(var_exp, dim_types, group_names=["A", "B", "C"], plot_zero_dim=False)
 plt.show()
 
 # %%
@@ -239,14 +243,12 @@ pair_dims, pair_var_exp, pairs = ObsParamsPosterior.compute_dims_pairs(
 
 # Visualize pairwise dimensionalities
 plt.figure(figsize=(7, 2.5))
-ObsParamsPosterior.plot_dims_pairs(
-    pair_dims, pairs, n_groups, group_names=["A", "B", "C"]
-)
+plot_dims_pairs(pair_dims, pairs, n_groups, group_names=["A", "B", "C"])
 plt.show()
 
 # Visualize pairwise shared variances
 plt.figure(figsize=(5, 2.5))
-ObsParamsPosterior.plot_var_exp_pairs(
+plot_var_exp_pairs(
     pair_var_exp, pairs, n_groups, group_names=["A", "B", "C"], sem_pair_var_exp=None
 )
 plt.show()

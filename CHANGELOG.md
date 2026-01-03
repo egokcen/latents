@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `LatentsPosteriorStatic` with `sample()` and `posterior_mean` for posterior inference
   - `LatentsRealization` for sampled latent values
   - GP prior/posterior stubs for future GPFA/mDLAG support
+- New `plotting/` subpackage for visualization utilities:
+  - `hinton_diagram()` for matrix visualization (renamed from `hinton()`)
+  - `plot_dimensionalities()`, `plot_var_exp()`, `plot_dims_pairs()`, `plot_var_exp_pairs()` for observation model results
 
 ### Changed
 
@@ -48,6 +51,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `observation_model/` subpackage (probabilistic classes moved to `observation/`, data containers moved to `data`)
 - `state_model/` subpackage (classes moved to `state/` subpackage)
 - `StateParamsStatic` class (functionality absorbed into `LatentsPosteriorStatic`)
+- `plotting.py` module (replaced by `plotting/` subpackage)
+- `ObsParamsPosterior` plotting methods (moved to `plotting/` subpackage as standalone functions)
 
 ## [0.0.4] - 2024-10-31
 

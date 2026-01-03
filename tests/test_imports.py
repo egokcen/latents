@@ -123,3 +123,15 @@ def test_state_namespace():
 
     # Check realization classes
     assert "LatentsRealization" in dir(state)
+
+
+def test_plotting_namespace():
+    """Test that the plotting subpackage has the expected namespace."""
+    from latents import plotting
+
+    # Check visualization functions
+    assert "hinton_diagram" in dir(plotting)
+    assert "plot_dimensionalities" in dir(plotting)
+    assert "plot_var_exp" in dir(plotting)
+    assert "plot_dims_pairs" in dir(plotting)
+    assert "plot_var_exp_pairs" in dir(plotting)
