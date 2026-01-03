@@ -12,6 +12,7 @@ from scipy.special import gammaln, psi
 from scipy.stats import gmean
 
 from latents._core.numerics import stability_floor, validate_tolerance
+from latents.data import ObsStatic
 from latents.gfa.config import GFAFitConfig
 from latents.gfa.data_types import (
     GFAFitFlags,
@@ -25,7 +26,6 @@ from latents.observation import (
     ObsParamsHyperPrior,
     ObsPrecPosterior,
 )
-from latents.observation_model.observations import ObsStatic
 from latents.state import LatentsPosteriorStatic
 
 jsonpickle_numpy.register_handlers()

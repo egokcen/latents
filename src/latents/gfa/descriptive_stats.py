@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import numpy as np
 
+from latents.data import ObsStatic
 from latents.gfa.core import infer_latents
 from latents.gfa.data_types import GFAParams
-from latents.observation_model.observations import ObsStatic
 
 
 def predictive_performance(

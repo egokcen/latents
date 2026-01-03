@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import numpy as np
 
+from latents.data import ObsStatic
 from latents.observation import (
     ObsParamsHyperPriorStructured,
     ObsParamsPrior,
     ObsParamsRealization,
     adjust_snr,
 )
-from latents.observation_model.observations import ObsStatic
 from latents.state import LatentsPriorStatic, LatentsRealization
 
 

@@ -1,18 +1,16 @@
-"""Test the observations submodule."""
+"""Test the data module."""
 
 import numpy as np
 import pytest
 
-from latents.observation_model.observations import (
-    ObsStatic,
-)
+from latents.data import ObsStatic, ObsTimeSeries
 
 
 # ------------------
 # Test ObsStatic class
 # ------------------
-def test_obsstaticinit_correct() -> None:
-    """Test the correct instantation of an ObsStatic class object."""
+def test_obsstatic_init_correct() -> None:
+    """Test the correct instantiation of an ObsStatic class object."""
     # Create an ObsStatic object
     data = np.ones((10, 20))
     dims = np.array([5, 5])
@@ -70,3 +68,14 @@ def test_obsstatic_get_groups() -> None:
     for group_idx in range(len(groups)):
         assert not groups[group_idx].flags.owndata  # Data is not owned by the group
         assert groups[group_idx].base is Y.data  # Data is a view of the original data
+
+
+# ------------------
+# Test ObsTimeSeries class
+# ------------------
+def test_obstimeseries_not_implemented() -> None:
+    """Test that ObsTimeSeries raises NotImplementedError."""
+    with pytest.raises(
+        NotImplementedError, match=r"ObsTimeSeries is not yet implemented"
+    ):
+        ObsTimeSeries()

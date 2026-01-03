@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Internal utilities reorganized into `_core/` subpackage (base classes, fitting infrastructure, numerics)
 - Observation model probabilistic components reorganized into `observation/` subpackage
+- Observation data containers (`ObsStatic`, `ObsTimeSeries`) moved to `latents.data` module
 - State model classes reorganized into `state/` subpackage
 - `simulate()` now returns `LatentsRealization` instead of raw ndarray
 - Minimum Python version raised from 3.9 to 3.10
@@ -44,7 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unused `pandas` dependency
 - `GFAFitArgs` class (replaced by `GFAFitConfig`)
 - `HyperPriorParams` class (replaced by `ObsParamsHyperPrior` and `ObsParamsHyperPriorStructured`)
-- `observation_model/probabilistic` module (classes moved to `observation/` subpackage)
+- `observation_model/` subpackage (probabilistic classes moved to `observation/`, data containers moved to `data`)
 - `state_model/` subpackage (classes moved to `state/` subpackage)
 - `StateParamsStatic` class (functionality absorbed into `LatentsPosteriorStatic`)
 

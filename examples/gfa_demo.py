@@ -16,7 +16,7 @@ import numpy as np
 import latents.gfa.descriptive_stats as gfa_stats
 import latents.gfa.simulation as gfa_sim
 from latents.gfa import GFAFitConfig, GFAModel
-from latents.observation_model.probabilistic import ObsParamsARD, SimulationHyperPriors
+from latents.observation import ObsParamsHyperPriorStructured, ObsParamsPosterior
 from latents.plotting import hinton
 
 # %%
@@ -50,12 +50,12 @@ sparsity_pattern = np.array(
 
 # Set up simulation hyperpriors
 MAG = 100  # Control the variance of alpha parameters (larger = less variance)
-sim_priors = SimulationHyperPriors(
+sim_priors = ObsParamsHyperPriorStructured(
     a_alpha=MAG * sparsity_pattern,
     b_alpha=MAG * np.ones_like(sparsity_pattern),
     a_phi=1.0,
     b_phi=1.0,
-    d_beta=1.0,
+    beta_d=1.0,
 )
 
 # Simulate data
@@ -214,14 +214,14 @@ for group_idx in range(n_groups):
 
 # Visualize the number of each type of dimension
 plt.figure(figsize=(4, 2))
-ObsParamsARD.plot_dimensionalities(
+ObsParamsPosterior.plot_dimensionalities(
     num_dim, dim_types, group_names=["A", "B", "C"], plot_zero_dim=False
 )
 plt.show()
 
 # Visualize the shared variance explained by each dimension type
 plt.figure(figsize=(4, 6))
-ObsParamsARD.plot_var_exp(
+ObsParamsPosterior.plot_var_exp(
     var_exp, dim_types, group_names=["A", "B", "C"], plot_zero_dim=False
 )
 plt.show()
@@ -233,18 +233,20 @@ plt.show()
 # Analyze interactions between pairs of groups.
 
 # Compute pairwise dimensionalities and shared variances
-pair_dims, pair_var_exp, pairs = ObsParamsARD.compute_dims_pairs(
+pair_dims, pair_var_exp, pairs = ObsParamsPosterior.compute_dims_pairs(
     num_dim, dim_types, var_exp
 )
 
 # Visualize pairwise dimensionalities
 plt.figure(figsize=(7, 2.5))
-ObsParamsARD.plot_dims_pairs(pair_dims, pairs, n_groups, group_names=["A", "B", "C"])
+ObsParamsPosterior.plot_dims_pairs(
+    pair_dims, pairs, n_groups, group_names=["A", "B", "C"]
+)
 plt.show()
 
 # Visualize pairwise shared variances
 plt.figure(figsize=(5, 2.5))
-ObsParamsARD.plot_var_exp_pairs(
+ObsParamsPosterior.plot_var_exp_pairs(
     pair_var_exp, pairs, n_groups, group_names=["A", "B", "C"], sem_pair_var_exp=None
 )
 plt.show()

@@ -1,4 +1,4 @@
-"""Store and manipulate different types of observed data."""
+"""Observation data containers for latent variable models."""
 
 from __future__ import annotations
 
@@ -78,6 +78,15 @@ class ObsStatic:
 
 
 class ObsTimeSeries:
-    """Store and manipulate views of observed time series data."""
+    """
+    Store and manipulate views of observed time series data.
 
-    pass
+    Raises
+    ------
+    NotImplementedError
+        This class is not yet implemented.
+    """
+
+    def __init__(self, *args, **kwargs):
+        msg = "ObsTimeSeries is not yet implemented."
+        raise NotImplementedError(msg)

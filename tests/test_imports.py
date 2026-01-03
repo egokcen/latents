@@ -22,26 +22,29 @@ def test_latents_namespace():
     """Test that the latents package has the expected namespace."""
     import latents
 
-    # Check that subpackages are in the namespace of latents
+    # Check that subpackages/modules are in the namespace of latents
+    assert "data" in dir(latents)
     assert "gfa" in dir(latents)
     assert "mdlag" in dir(latents)
-    assert "observation_model" in dir(latents)
+    assert "observation" in dir(latents)
     assert "state" in dir(latents)
 
 
 def test_latents_import_subpackages():
     """Test the 'from latents import' mechanism."""
     from latents import (
+        data,  # noqa: F401
         gfa,  # noqa: F401
         mdlag,  # noqa: F401
-        observation_model,  # noqa: F401
+        observation,  # noqa: F401
         state,  # noqa: F401
     )
 
-    # Check that subpackages are in the current namespace
+    # Check that subpackages/modules are in the current namespace
+    assert "data" in dir()
     assert "gfa" in dir()
     assert "mdlag" in dir()
-    assert "observation_model" in dir()
+    assert "observation" in dir()
     assert "state" in dir()
 
 
@@ -73,16 +76,13 @@ def test_mdlag_namespace():
     assert "mDLAGModel" in dir(mdlag)
 
 
-def test_observation_model_namespace():
-    """Test that the observation_model subpackage has the expected namespace."""
-    from latents import observation_model
+def test_data_namespace():
+    """Test that the data module has the expected namespace."""
+    from latents import data
 
-    # Check that submodules are in the namespace of observation_model
-    assert "observations" in dir(observation_model)
-
-    # Check other assets exposed to the user
-    assert "ObsStatic" in dir(observation_model.observations)
-    assert "ObsTimeSeries" in dir(observation_model.observations)
+    # Check that data classes are in the namespace of data
+    assert "ObsStatic" in dir(data)
+    assert "ObsTimeSeries" in dir(data)
 
 
 def test_observation_namespace():
