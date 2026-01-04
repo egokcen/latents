@@ -110,7 +110,7 @@ def test_elbo_monotonicity(fitted_model):
     Uses sqrt(machine epsilon) as tolerance to account for floating-point
     accumulation errors while remaining precision-aware.
     """
-    from conftest import testing_tols
+    from tests.conftest import testing_tols
 
     model = fitted_model["model"]
     lb = np.array(model.tracker.lb)
