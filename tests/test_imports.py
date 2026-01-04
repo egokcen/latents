@@ -61,14 +61,9 @@ def test_mdlag_namespace():
     """Test that the mdlag subpackage has the expected namespace."""
     from latents import mdlag
 
-    # Check that submodules are in the namespace of mdlag
-    assert "core" in dir(mdlag)
-    assert "data_types" in dir(mdlag)
-    assert "descriptive_stats" in dir(mdlag)
-    assert "simulation" in dir(mdlag)
-
-    # Check other assets exposed to the user
+    # Check primary exports
     assert "mDLAGModel" in dir(mdlag)
+    assert "mDLAGFitConfig" in dir(mdlag)
 
 
 def test_data_namespace():

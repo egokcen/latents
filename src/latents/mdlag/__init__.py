@@ -1,17 +1,9 @@
 """Delayed latents across multiple groups (mDLAG) subpackage."""
 
-from latents.mdlag import (
-    core,
-    data_types,
-    descriptive_stats,
-    simulation,
-)
-from latents.mdlag.core import mDLAGModel
+from latents.mdlag.config import mDLAGFitConfig
+from latents.mdlag.model import mDLAGModel
 
 __all__ = [
-    "core",
-    "data_types",
-    "descriptive_stats",
+    "mDLAGFitConfig",
     "mDLAGModel",
-    "simulation",
 ]
