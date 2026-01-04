@@ -20,7 +20,7 @@ def simulation_data():
     Uses fixed seeds for reproducibility. Returns data and ground truth
     parameters for regression testing.
     """
-    random_seed = 1
+    random_seed = 0
     rng = np.random.default_rng(random_seed)
     n_samples = 100
     y_dims = np.array([10, 10, 10])
@@ -101,7 +101,7 @@ def test_fit(fitted_model):
     # x_dim_init=10, true x_dim=7, so 3 latents pruned.
     assert model.flags.x_dims_removed == 3
     # Iteration count for convergence with fit_tol=1e-8.
-    assert len(model.tracker.iter_time) == 2268
+    assert len(model.tracker.iter_time) == 2530
 
 
 def test_elbo_monotonicity(fitted_model):
@@ -142,8 +142,8 @@ def test_parameter_recovery(simulation_data, fitted_model):
 
     # Column reordering and sign flips for this seed combination
     # (simulation_seed=1, fitting_seed=0)
-    reorder = np.array([0, 3, 5, 1, 4, 2, 6])
-    rescale = np.array([1, -1, 1, -1, -1, -1, 1])
+    reorder = np.array([1, 6, 4, 0, 3, 5, 2])
+    rescale = np.array([-1, -1, 1, 1, 1, -1, 1])
 
     C_true = obs_params_true.C
     C_est = model.obs_posterior.C.mean[:, reorder] * rescale
