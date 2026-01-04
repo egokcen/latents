@@ -21,6 +21,7 @@ def simulation_data():
     parameters for regression testing.
     """
     random_seed = 1
+    rng = np.random.default_rng(random_seed)
     n_samples = 100
     y_dims = np.array([10, 10, 10])
     n_groups = len(y_dims)
@@ -45,7 +46,7 @@ def simulation_data():
     )
 
     Y, X_true, obs_params_true = gfa_sim.simulate(
-        n_samples, y_dims, x_dim, sim_priors, snr, random_seed=random_seed
+        n_samples, y_dims, x_dim, sim_priors, snr, rng=rng
     )
 
     return {
@@ -81,7 +82,6 @@ def fitted_model(simulation_data):
     )
 
     model = GFAModel(config=config)
-    model.init(Y)
     model.fit(Y)
 
     return {"model": model}
@@ -146,7 +146,7 @@ def test_parameter_recovery(simulation_data, fitted_model):
     rescale = np.array([1, -1, 1, -1, -1, -1, 1])
 
     C_true = obs_params_true.C
-    C_est = model.params.obs_params.C.mean[:, reorder] * rescale
+    C_est = model.obs_posterior.C.mean[:, reorder] * rescale
 
     # Compute per-column correlation
     n_cols = C_true.shape[1]

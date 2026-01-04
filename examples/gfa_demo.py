@@ -13,7 +13,7 @@ discover shared and group-specific latent structure in multi-group data.
 import matplotlib.pyplot as plt
 import numpy as np
 
-import latents.gfa.descriptive_stats as gfa_stats
+import latents.gfa.analysis as gfa_stats
 import latents.gfa.simulation as gfa_sim
 from latents.gfa import GFAFitConfig, GFAModel
 from latents.observation import ObsParamsHyperPriorStructured, ObsParamsPosterior
@@ -34,6 +34,7 @@ from latents.plotting import (
 
 # Set a random seed for reproducibility
 random_seed = 1
+rng = np.random.default_rng(random_seed)
 
 # Dataset characteristics
 n_samples = 100  # Total number of samples
@@ -71,7 +72,7 @@ Y, X_true, obs_params_true = gfa_sim.simulate(
     x_dim,
     sim_priors,
     snr,
-    random_seed=random_seed,
+    rng=rng,
 )
 
 # %%

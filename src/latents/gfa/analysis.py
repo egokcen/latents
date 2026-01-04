@@ -5,33 +5,30 @@ from __future__ import annotations
 import numpy as np
 
 from latents.data import ObsStatic
-from latents.gfa.core import infer_latents
-from latents.gfa.data_types import GFAParams
+from latents.gfa.inference import infer_latents
+from latents.observation import ObsParamsPosterior
 
 
 def predictive_performance(
     obs_data: ObsStatic,
-    params: GFAParams,
+    obs_posterior: ObsParamsPosterior,
     y_dims: np.ndarray | None = None,
 ) -> tuple[float, float]:
-    """
-    Compute the leave-group-out predictive performance of a GFA model.
+    """Compute the leave-group-out predictive performance of a GFA model.
 
     Parameters
     ----------
     obs_data
         Observed data.
-    params
-        GFA model parameters.
+    obs_posterior
+        Fitted observation model posterior.
     y_dims
-        `ndarray` of `int`, shape ``(n_groups,)``.
-        Dimensionalities of each observed group. Defaults to ``None``, in which
-        case the dimensionalities are inferred from ``obs_data``.
+        Dimensionalities of each observed group. If None, inferred from obs_data.
 
     Returns
     -------
     R2 : float
-        Leave-group-out :math:`R^2`.
+        Leave-group-out R^2.
     MSE : float
         Leave-group-out mean squared error.
     """
@@ -46,33 +43,31 @@ def predictive_performance(
     Ys_pred = Y_pred.get_groups()
 
     # Get views for relevant parameters into each group
-    C_means, _, C_moments = params.obs_params.C.get_groups(y_dims)
-    phi_means, _ = params.obs_params.phi.get_groups(y_dims)
-    d_means, _ = params.obs_params.d.get_groups(y_dims)
+    C_means, _, C_moments = obs_posterior.C.get_groups(y_dims)
+    phi_means, _ = obs_posterior.phi.get_groups(y_dims)
+    d_means, _ = obs_posterior.d.get_groups(y_dims)
 
-    n_groups = len(y_dims)  # Number of observed groups
+    n_groups = len(y_dims)
     for group_idx in range(n_groups):
         # Group to be left out
         target_group = group_idx
         # Groups to be used for prediction
         source_groups = np.nonzero(np.arange(n_groups) != target_group)[0]
 
-        # Construct a new set of parameters that excludes the target group
-        source_params = GFAParams(
-            x_dim=params.obs_params.x_dim, y_dims=y_dims[source_groups]
+        # Construct a new posterior that excludes the target group
+        source_posterior = ObsParamsPosterior(
+            x_dim=obs_posterior.x_dim, y_dims=y_dims[source_groups]
         )
-        source_params.obs_params.C.mean = np.concatenate(
+        source_posterior.C.mean = np.concatenate(
             [C_means[g] for g in source_groups], axis=0
         )
-        source_params.obs_params.C.moment = np.concatenate(
+        source_posterior.C.moment = np.concatenate(
             [C_moments[g] for g in source_groups], axis=0
         )
-        source_params.obs_params.phi.mean = np.concatenate(
+        source_posterior.phi.mean = np.concatenate(
             [phi_means[g] for g in source_groups]
         )
-        source_params.obs_params.d.mean = np.concatenate(
-            [d_means[g] for g in source_groups]
-        )
+        source_posterior.d.mean = np.concatenate([d_means[g] for g in source_groups])
 
         # Construct a new set of observed data that excludes the target group
         Y_source = ObsStatic(
@@ -81,7 +76,7 @@ def predictive_performance(
         )
 
         # Infer latent variables given the source groups
-        X = infer_latents(Y_source, source_params, in_place=False)
+        X = infer_latents(Y_source, source_posterior)
 
         # Predict the target group
         Ys_pred[target_group][:] = (

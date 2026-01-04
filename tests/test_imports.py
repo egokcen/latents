@@ -52,14 +52,9 @@ def test_gfa_namespace():
     """Test that the gfa subpackage has the expected namespace."""
     from latents import gfa
 
-    # Check that submodules are in the namespace of gfa
-    assert "core" in dir(gfa)
-    assert "data_types" in dir(gfa)
-    assert "descriptive_stats" in dir(gfa)
-    assert "simulation" in dir(gfa)
-
-    # Check other assets exposed to the user
+    # Check primary exports
     assert "GFAModel" in dir(gfa)
+    assert "GFAFitConfig" in dir(gfa)
 
 
 def test_mdlag_namespace():

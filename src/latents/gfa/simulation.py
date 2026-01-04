@@ -6,7 +6,9 @@ import numpy as np
 
 from latents.data import ObsStatic
 from latents.observation import (
+    ObsParamsHyperPrior,
     ObsParamsHyperPriorStructured,
+    ObsParamsPoint,
     ObsParamsPrior,
     ObsParamsRealization,
     adjust_snr,
@@ -18,9 +20,9 @@ def simulate(
     n_samples: int,
     y_dims: np.ndarray,
     x_dim: int,
-    hyper_priors: ObsParamsHyperPriorStructured,
+    obs_hyperprior: ObsParamsHyperPrior | ObsParamsHyperPriorStructured,
     snr: np.ndarray,
-    random_seed: int | None = None,
+    rng: np.random.Generator | None = None,
 ) -> tuple[ObsStatic, LatentsRealization, ObsParamsRealization]:
     """Generate samples from the full group factor analysis model.
 
@@ -33,17 +35,17 @@ def simulate(
         Dimensionalities of each observed group.
     x_dim
         Number of latent dimensions.
-    hyper_priors
-        Simulation hyperparameters. The ``a_alpha`` and ``b_alpha`` arrays
-        specify group- and column-specific sparsity patterns in the loading
+    obs_hyperprior
+        Simulation hyperparameters. For structured sparsity patterns, use
+        ``ObsParamsHyperPriorStructured`` where the ``a_alpha`` and ``b_alpha``
+        arrays specify group- and column-specific patterns in the loading
         matrices. Use ``np.inf`` in ``a_alpha`` to force zero loadings.
     snr
         `ndarray` of `float`, shape ``(n_groups,)``.
         Signal-to-noise ratios of each group.
-    random_seed
-        Seed the random number generator for reproducible simulations.
-        Defaults to ``None``, in which case the generated data will be
-        different each run.
+    rng
+        NumPy random number generator for reproducible simulations.
+        If None, a new default generator is created.
 
     Returns
     -------
@@ -54,11 +56,11 @@ def simulate(
     obs_params : ObsParamsRealization
         Generated GFA observation model parameters.
     """
-    # Seed the random number generator for reproducibility
-    rng = np.random.default_rng(random_seed)
+    if rng is None:
+        rng = np.random.default_rng()
 
     # Sample from the prior and adjust SNR
-    prior = ObsParamsPrior(hyperprior=hyper_priors)
+    prior = ObsParamsPrior(hyperprior=obs_hyperprior)
     obs_params = prior.sample(y_dims, x_dim, rng)
     obs_params = adjust_snr(obs_params, snr)
 
@@ -67,27 +69,27 @@ def simulate(
     latents = latents_prior.sample(x_dim, n_samples, rng)
 
     # Generate observed data
-    Y = generate_observations(latents, obs_params, rng)
+    Y = sample_observations(latents, obs_params, rng)
 
     return Y, latents, obs_params
 
 
-def generate_observations(
+def sample_observations(
     latents: LatentsRealization,
-    obs_params: ObsParamsRealization,
+    obs_params: ObsParamsRealization | ObsParamsPoint,
     rng: np.random.Generator,
 ) -> ObsStatic:
-    """
-    Generate observed data via the GFA observation model, given latents and parameters.
+    """Generate observed data via the GFA observation model.
 
     Parameters
     ----------
     latents
         Sampled latent data.
     obs_params
-        GFA observation model parameters.
+        GFA observation model parameters, either as a full realization
+        or as point estimates.
     rng
-        A random number generator object.
+        NumPy random number generator.
 
     Returns
     -------

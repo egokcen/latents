@@ -20,6 +20,9 @@ class FitTracker(ArrayContainer):
     iter_time
         `ndarray` of `float`, shape ``(num_iter,)``.
         Runtime on each iteration.
+    lb_base
+        Baseline lower bound for convergence checking. Set during initial
+        iterations of a fresh fit and preserved during resume.
 
     Attributes
     ----------
@@ -27,15 +30,19 @@ class FitTracker(ArrayContainer):
         Same as **lb**, above.
     iter_time
         Same as **iter_time**, above.
+    lb_base
+        Same as **lb_base**, above.
     """
 
     def __init__(
         self,
         lb: np.ndarray | None = None,
         iter_time: np.ndarray | None = None,
+        lb_base: float | None = None,
     ):
         self.lb = lb
         self.iter_time = iter_time
+        self.lb_base = lb_base
 
     def plot_lb(self) -> None:
         """Plot the variational lower bound each iteration."""
