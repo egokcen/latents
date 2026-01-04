@@ -39,7 +39,7 @@ stable. The API is subject to frequent change.
 
         +++
 
-        .. button-ref:: user_guide
+        .. button-ref:: user-guide
             :ref-type: ref
             :click-parent:
             :color: secondary

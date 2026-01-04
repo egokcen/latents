@@ -7,5 +7,7 @@ API reference
     :maxdepth: 2
 
     models/index
-    model_building_blocks/index
-    general_utilities/index
+    data
+    observation/index
+    state/index
+    plotting/index

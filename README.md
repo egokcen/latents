@@ -55,7 +55,8 @@ model.fit(Y)
 
 # Check convergence and access results
 model.flags.display()       # Fitting status
-model.params                # Fitted parameters
+model.obs_posterior         # Observation model posterior
+model.latents_posterior     # Latent variable posterior
 model.tracker.plot_lb()     # Plot lower bound convergence
 ```
 

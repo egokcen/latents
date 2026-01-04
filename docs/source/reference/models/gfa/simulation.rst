@@ -14,13 +14,10 @@ gfa.simulation
    :nosignatures:
 
    simulate
-   generate_latents
-   generate_observations
+   sample_observations
 
 ----
 
 .. autofunction:: simulate
 
-.. autofunction:: generate_latents
-
-.. autofunction:: generate_observations
+.. autofunction:: sample_observations

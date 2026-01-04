@@ -1,12 +1,20 @@
-.. _gfa_core:
+.. _gfa_inference:
 
-gfa.core
-========
+gfa.inference
+=============
 
-.. automodule:: latents.gfa.core
+.. automodule:: latents.gfa.inference
    :no-members:
 
-.. currentmodule:: latents.gfa.core
+.. currentmodule:: latents.gfa.inference
+
+.. rubric:: Classes
+
+.. autosummary::
+   :nosignatures:
+
+   GFAFitTracker
+   GFAFitFlags
 
 .. rubric:: Functions
 
@@ -14,7 +22,7 @@ gfa.core
    :nosignatures:
 
    fit
-   init
+   init_posteriors
    infer_latents
    infer_loadings
    infer_ard
@@ -23,18 +31,21 @@ gfa.core
    compute_lower_bound
    compute_lower_bound_constants
 
-.. rubric:: Classes
-
-.. autosummary::
-   :nosignatures:
-
-   GFAModel
-
 ----
+
+.. autoclass:: GFAFitTracker
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. autoclass:: GFAFitFlags
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 .. autofunction:: fit
 
-.. autofunction:: init
+.. autofunction:: init_posteriors
 
 .. autofunction:: infer_latents
 
@@ -49,8 +60,3 @@ gfa.core
 .. autofunction:: compute_lower_bound
 
 .. autofunction:: compute_lower_bound_constants
-
-.. autoclass:: GFAModel
-   :members:
-   :undoc-members:
-   :show-inheritance:

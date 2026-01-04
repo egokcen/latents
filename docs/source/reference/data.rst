@@ -1,12 +1,12 @@
-.. _observations:
+.. _data:
 
-observation\_model.observations
-===============================
+data
+====
 
-.. automodule:: latents.observation_model.observations
+.. automodule:: latents.data
    :no-members:
 
-.. currentmodule:: latents.observation_model.observations
+.. currentmodule:: latents.data
 
 .. rubric:: Classes
 
