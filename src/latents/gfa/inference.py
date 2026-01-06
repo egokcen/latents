@@ -8,6 +8,7 @@ import numpy as np
 from scipy.linalg import eigh
 from scipy.special import gammaln, psi
 from scipy.stats import gmean
+from tqdm.auto import tqdm
 
 from latents._core.fitting import FitFlags, FitTracker
 from latents._core.numerics import stability_floor, validate_tolerance
@@ -214,8 +215,11 @@ def fit(
             tracker.lb = np.empty(max_iter)
             tracker.iter_time = np.empty(max_iter)
 
+    # Progress bar (disabled when not verbose)
+    pbar = tqdm(range(max_iter), desc="Fitting", disable=not verbose)
+
     fit_iter = 0
-    for fit_iter in range(max_iter):
+    for fit_iter in pbar:
         # Check if any latents need to be removed
         if prune_x:
             kept_x_dims = np.nonzero(
@@ -288,13 +292,17 @@ def fit(
             tracker.iter_time[iter_offset + fit_iter] = end_time - start_time
             tracker.lb[iter_offset + fit_iter] = lb_curr
 
-        # Display progress
-        if verbose:
-            print(
-                f"\rIteration {fit_iter + 1} of {max_iter}        lb {lb_curr}",
-                end="",
-                flush=True,
-            )
+        # Update progress bar postfix
+        postfix = {"lb": f"{lb_curr:.2e}"}
+        # Relative change: quantity compared to fit_tol for convergence
+        # Only compute after burn-in and when denominator is non-zero
+        denom = lb_old - tracker.lb_base if tracker.lb_base is not None else 0.0
+        if fit_iter > 1 and denom != 0.0:
+            rel_change = (lb_curr - lb_old) / denom
+            postfix["Δ"] = f"{rel_change:.1e}"
+        if prune_x:
+            postfix["x_dim"] = x_dim
+        pbar.set_postfix(postfix)
 
         # Check stopping conditions
         # Set lb_base during burn-in period (fresh fit only)
@@ -306,6 +314,9 @@ def fit(
             flags.converged = True
             break
 
+    # Close progress bar before final messages
+    pbar.close()
+
     # Truncate pre-allocated arrays to actual iteration count
     if save_fit_progress:
         total_iters = iter_offset + fit_iter + 1
@@ -315,11 +326,11 @@ def fit(
     # Display reasons for stopping
     if verbose:
         if flags.converged:
-            print(f"\nLower bound converged after {fit_iter + 1} iterations.")
+            print(f"Lower bound converged after {fit_iter + 1} iterations.")
         elif ((fit_iter + 1) < max_iter) and obs_posterior.x_dim <= 0:
-            print("\nFitting stopped because no significant latent dimensions remain.")
+            print("Fitting stopped because no significant latent dimensions remain.")
         else:
-            print(f"\nFitting stopped after max_iter ({max_iter}) was reached.")
+            print(f"Fitting stopped after max_iter ({max_iter}) was reached.")
 
     # Check if the variance floor was reached
     if np.any(obs_posterior.phi.mean == 1 / var_floor):

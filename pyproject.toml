@@ -38,6 +38,7 @@ dependencies = [
     "scipy",
     "matplotlib",
     "jsonpickle",
+    "tqdm",
     "typing_extensions>=4.0; python_version < '3.11'",
 ]
 
