@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -86,51 +88,26 @@ class FitTracker(ArrayContainer):
             print("No runtime to plot.")
 
 
+@dataclass
 class FitFlags:
-    """
-    A class for status messages during a model fit.
-
-    Parameters
-    ----------
-    converged
-        ``True`` if the lower bound converged before reaching ``max_iter``
-        iterations.
-    decreasing_lb
-        ``True`` if lower bound decreased during fitting.
-    private_var_floor
-        ``True`` if the private variance floor was used on any values of
-        ``phi``.
+    """Status flags from a model fit.
 
     Attributes
     ----------
     converged
-        Same as **converged**, above.
+        True if the lower bound converged before reaching max_iter.
     decreasing_lb
-        Same as **decreasing_lb**, above.
+        True if lower bound decreased during fitting.
     private_var_floor
-        Same as **private_var_floor**, above.
+        True if the private variance floor was used on any values of phi.
     """
 
-    def __init__(
-        self,
-        converged: bool = False,
-        decreasing_lb: bool = False,
-        private_var_floor: bool = False,
-    ):
-        self.converged = converged
-        self.decreasing_lb = decreasing_lb
-        self.private_var_floor = private_var_floor
-
-    def __repr__(self) -> str:
-        return (
-            f"{type(self).__name__}("
-            f"converged={self.converged}, "
-            f"decreasing_lb={self.decreasing_lb}, "
-            f"private_var_floor={self.private_var_floor})"
-        )
+    converged: bool = False
+    decreasing_lb: bool = False
+    private_var_floor: bool = False
 
     def display(self) -> None:
-        """Print out the fit flags."""
+        """Print the fit flags."""
         print(f"Converged: {self.converged}")
         print(f"Decreasing lower bound: {self.decreasing_lb}")
         print(f"Private variance floor: {self.private_var_floor}")

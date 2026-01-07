@@ -308,16 +308,9 @@ class GFAModel:
             if self.tracker.lb_base is not None:
                 metadata["tracker.lb_base"] = str(self.tracker.lb_base)
 
-        # Flags (not a dataclass, serialize manually)
+        # Flags
         if self.flags is not None:
-            metadata["flags"] = json.dumps(
-                {
-                    "converged": self.flags.converged,
-                    "decreasing_lb": self.flags.decreasing_lb,
-                    "private_var_floor": self.flags.private_var_floor,
-                    "x_dims_removed": self.flags.x_dims_removed,
-                }
-            )
+            metadata["flags"] = json.dumps(asdict(self.flags))
 
         save_file(tensors, path, metadata=metadata)
 

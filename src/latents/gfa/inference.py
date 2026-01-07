@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from dataclasses import dataclass
 
 import numpy as np
 from scipy.linalg import eigh
@@ -43,42 +44,26 @@ class GFAFitTracker(FitTracker):
     pass
 
 
+@dataclass
 class GFAFitFlags(FitFlags):
-    """Status messages during a GFA model fit.
+    """Status flags from a GFA model fit.
 
     Attributes
     ----------
-    converged : bool
+    converged
         True if the lower bound converged before reaching max_iter.
-    decreasing_lb : bool
+    decreasing_lb
         True if lower bound decreased during fitting.
-    private_var_floor : bool
+    private_var_floor
         True if the private variance floor was used on any values of phi.
-    x_dims_removed : int
+    x_dims_removed
         Number of latent dimensions removed due to low variance.
     """
 
-    def __init__(
-        self,
-        converged: bool = False,
-        decreasing_lb: bool = False,
-        private_var_floor: bool = False,
-        x_dims_removed: int = 0,
-    ):
-        super().__init__(converged, decreasing_lb, private_var_floor)
-        self.x_dims_removed = x_dims_removed
-
-    def __repr__(self) -> str:
-        return (
-            f"GFAFitFlags("
-            f"converged={self.converged}, "
-            f"decreasing_lb={self.decreasing_lb}, "
-            f"private_var_floor={self.private_var_floor}, "
-            f"x_dims_removed={self.x_dims_removed})"
-        )
+    x_dims_removed: int = 0
 
     def display(self) -> None:
-        """Print out the fit flags."""
+        """Print the fit flags."""
         super().display()
         print(f"Latent dimensions removed: {self.x_dims_removed}")
 
