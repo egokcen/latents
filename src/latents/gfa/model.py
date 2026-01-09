@@ -22,6 +22,7 @@ from latents.gfa.inference import (
     GFAFitTracker,
     fit,
     infer_latents,
+    infer_loadings,
     init_posteriors,
 )
 from latents.observation import (
@@ -225,6 +226,73 @@ class GFAModel:
             msg = "Model must be fitted before inferring latents."
             raise ValueError(msg)
         return infer_latents(Y, self.obs_posterior)
+
+    def recompute_latents(self, Y: ObsStatic) -> Self:
+        """Recompute latents from data. Updates self.latents_posterior.
+
+        Use this to restore latents after loading a model saved with
+        save_x=False.
+
+        Parameters
+        ----------
+        Y
+            Observed data (typically the training data).
+
+        Returns
+        -------
+        Self
+            The model (for method chaining).
+
+        Raises
+        ------
+        ValueError
+            If model has not been fitted.
+        """
+        if self.obs_posterior is None:
+            msg = "Model must be fitted before recomputing latents."
+            raise ValueError(msg)
+        if self.latents_posterior is None:
+            self.latents_posterior = LatentsPosteriorStatic()
+        infer_latents(Y, self.obs_posterior, self.latents_posterior)
+        return self
+
+    def recompute_loadings(self, Y: ObsStatic) -> Self:
+        """Recompute loading posterior from data. Updates self.obs_posterior.C.
+
+        Use this to restore C.cov after loading a model saved with
+        save_c_cov=False.
+
+        Note: At convergence, the recomputed values are essentially identical
+        to the original fitted values. Pre-convergence, there may be non-negligible
+        differences because the reconstruction uses the final latents posterior rather
+        than the latents posterior from the previous iteration.
+
+        Parameters
+        ----------
+        Y
+            Observed data (typically the training data).
+
+        Returns
+        -------
+        Self
+            The model (for method chaining).
+
+        Raises
+        ------
+        ValueError
+            If model has not been fitted, or if latents are not available.
+        """
+        if self.obs_posterior is None:
+            msg = "Model must be fitted before recomputing loadings."
+            raise ValueError(msg)
+        if (
+            self.latents_posterior is None
+            or not self.latents_posterior.is_initialized()
+        ):
+            msg = "Latents must be available. Call recompute_latents(Y) first."
+            raise ValueError(msg)
+        infer_loadings(Y, self.obs_posterior, self.latents_posterior)
+        return self
 
     def _init_posteriors(self, Y: ObsStatic) -> None:
         """Initialize posteriors from data."""

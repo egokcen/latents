@@ -124,8 +124,8 @@ model.tracker.plot_runtime()
 # Note: Columns may be reordered and sign-flipped.
 
 # Define column reordering and sign flips for comparison
-reorder = np.array([1, 6, 4, 0, 3, 5, 2])
-rescale = np.array([-1, -1, 1, 1, 1, -1, 1])
+reorder = np.array([1, 4, 3, 6, 0, 2, 5])
+rescale = np.array([-1, -1, 1, 1, 1, 1, 1])
 
 # Ground truth
 plt.figure(figsize=(3, 5))

@@ -28,9 +28,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New `plotting/` subpackage for visualization utilities:
   - `hinton_diagram()` for matrix visualization (renamed from `hinton()`)
   - `plot_dimensionalities()`, `plot_var_exp()`, `plot_dims_pairs()`, `plot_var_exp_pairs()` for observation model results
+- `GFAModel.recompute_latents(Y)` to restore latents after loading a model saved with `save_x=False`
+- `GFAModel.recompute_loadings(Y)` to restore loading covariances after loading a model saved with `save_c_cov=False`
 
 ### Changed
 
+- GFA variational inference iteration order changed from d → X → C → α → φ to d → C → α → φ → X. This enables exact reconstruction of cleared latents from saved observation parameters, allowing `resume_fit()` and `compute_lower_bound()` to work with `save_x=False`.
 - Internal utilities reorganized into `_core/` subpackage (base classes, fitting infrastructure, numerics)
 - Observation model probabilistic components reorganized into `observation/` subpackage
 - Observation data containers (`ObsStatic`, `ObsTimeSeries`) moved to `latents.data` module

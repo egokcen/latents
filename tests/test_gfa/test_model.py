@@ -228,3 +228,117 @@ class TestSaveLoad:
 
         # Should have more iterations now
         assert len(loaded.tracker.lb) > n_iter_before
+
+
+class TestRecompute:
+    """Tests for GFAModel.recompute_latents() and recompute_loadings().
+
+    Uses fitted_model_copy (function-scoped deep copy) for test isolation.
+    Each test gets its own copy of the converged model to mutate freely.
+    """
+
+    def test_recompute_latents(self, simulation_data, fitted_model_copy):
+        """Test latent reconstruction.
+
+        Since X is the final update during fitting, reconstruction from saved parameters
+        should be exact.
+        """
+        from tests.conftest import testing_tols
+
+        model = fitted_model_copy["model"]
+        Y = simulation_data["Y"]
+
+        # Store original latents
+        X_original = model.latents_posterior.mean.copy()
+        X_cov_original = model.latents_posterior.cov.copy()
+
+        # Clear and recompute
+        model.latents_posterior.clear()
+        model.recompute_latents(Y)
+
+        # Should be exact within numerical tolerance
+        tols = testing_tols(X_original.dtype)
+        np.testing.assert_allclose(model.latents_posterior.mean, X_original, **tols)
+        np.testing.assert_allclose(model.latents_posterior.cov, X_cov_original, **tols)
+
+    def test_recompute_latents_error_if_not_fitted(self, simulation_data):
+        """Test that recompute_latents raises if model not fitted."""
+        Y = simulation_data["Y"]
+        model = GFAModel()
+
+        with pytest.raises(ValueError, match="must be fitted"):
+            model.recompute_latents(Y)
+
+    def test_recompute_loadings(self, simulation_data, fitted_model_copy):
+        """Test loadings reconstruction.
+
+        At convergence, the recomputed C should be close to original. Not exact
+        because reconstruction uses final X rather than X from previous iteration.
+        """
+        model = fitted_model_copy["model"]
+        Y = simulation_data["Y"]
+
+        # Store original loadings
+        C_mean_original = model.obs_posterior.C.mean.copy()
+        C_cov_original = model.obs_posterior.C.cov.copy()
+
+        # Clear C.cov and recompute
+        model.obs_posterior.C.cov = None
+        model.recompute_loadings(Y)
+
+        # Looser tolerance than X - reconstruction uses X_N instead of X_{N-1}
+        np.testing.assert_allclose(
+            model.obs_posterior.C.mean, C_mean_original, rtol=1e-3, atol=1e-10
+        )
+        np.testing.assert_allclose(
+            model.obs_posterior.C.cov, C_cov_original, rtol=1e-3, atol=1e-10
+        )
+
+    def test_recompute_loadings_error_if_not_fitted(self, simulation_data):
+        """Test that recompute_loadings raises if model not fitted."""
+        Y = simulation_data["Y"]
+        model = GFAModel()
+
+        with pytest.raises(ValueError, match="must be fitted"):
+            model.recompute_loadings(Y)
+
+    def test_recompute_loadings_error_if_no_latents(
+        self, simulation_data, fitted_model_copy
+    ):
+        """Test that recompute_loadings raises if latents not available."""
+        model = fitted_model_copy["model"]
+        Y = simulation_data["Y"]
+
+        # Clear latents
+        model.latents_posterior.clear()
+
+        with pytest.raises(ValueError, match="Latents must be available"):
+            model.recompute_loadings(Y)
+
+    def test_recompute_chaining(self, simulation_data, fitted_model_copy):
+        """Test that recompute methods support method chaining."""
+        from tests.conftest import testing_tols
+
+        model = fitted_model_copy["model"]
+        Y = simulation_data["Y"]
+
+        # Store originals
+        X_original = model.latents_posterior.mean.copy()
+        C_cov_original = model.obs_posterior.C.cov.copy()
+
+        # Clear both
+        model.latents_posterior.clear()
+        model.obs_posterior.C.cov = None
+
+        # Chain recompute calls
+        result = model.recompute_latents(Y).recompute_loadings(Y)
+
+        # Should return self for chaining
+        assert result is model
+
+        # Both should be restored (X exact, C approximate)
+        tols = testing_tols(X_original.dtype)
+        np.testing.assert_allclose(model.latents_posterior.mean, X_original, **tols)
+        np.testing.assert_allclose(
+            model.obs_posterior.C.cov, C_cov_original, rtol=1e-3, atol=1e-10
+        )

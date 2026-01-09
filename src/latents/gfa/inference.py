@@ -175,6 +175,10 @@ def fit(
     if obs_posterior.C.cov is None:
         obs_posterior.C.cov = np.zeros((y_dim, x_dim, x_dim))
 
+    # Reconstruct latents if cleared (enables seamless resume with save_x=False)
+    if not latents_posterior.is_initialized():
+        infer_latents(Y, obs_posterior, latents_posterior)
+
     # Compute the variance floor for each observed dimension
     floor = stability_floor(Y.data.dtype)
     var_floor = np.maximum(min_var_frac * np.var(Y.data, axis=1, ddof=1), floor)
@@ -228,8 +232,6 @@ def fit(
         # Second moments for phi updates and lower bound
         d_moment = obs_posterior.d.cov + obs_posterior.d.mean**2
 
-        # Latent variables, X
-        infer_latents(Y, obs_posterior, latents_posterior)
         # Correlation matrix between latents and zero-centered observations
         # X.mean: (x_dim, n_samples), d.mean: (y_dim,) -> XY: (x_dim, y_dim)
         XY = latents_posterior.mean @ (Y.data - obs_posterior.d.mean[:, np.newaxis]).T
@@ -257,6 +259,9 @@ def fit(
         # Set minimum private variance
         obs_posterior.phi.mean[:] = np.minimum(1 / var_floor, obs_posterior.phi.mean)
         obs_posterior.phi.b[:] = obs_posterior.phi.a / obs_posterior.phi.mean
+
+        # Latent variables, X
+        infer_latents(Y, obs_posterior, latents_posterior)
 
         # Compute the lower bound
         lb_old = lb_curr
@@ -382,7 +387,9 @@ def init_posteriors(
 
     # Latent variables
     latents_posterior.mean = rng.normal(size=(x_dim, n_samples))
-    latents_posterior.cov = np.eye(x_dim)
+    # Choose a small initial covariance
+    latents_posterior.cov = stability_floor(Y.data.dtype) * np.eye(x_dim)
+    latents_posterior.compute_moment()
 
     # Mean parameter d
     obs_posterior.d.mean = np.mean(Y.data, axis=1)
