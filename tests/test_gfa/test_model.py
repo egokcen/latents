@@ -7,6 +7,7 @@ import pytest
 
 import latents.gfa.simulation as gfa_sim
 from latents.gfa import GFAFitConfig, GFAModel
+from latents.gfa.config import GFASimConfig
 from latents.observation import ObsParamsHyperPrior
 
 
@@ -35,21 +36,19 @@ def unfitted_model():
 @pytest.fixture
 def fitted_model():
     """Fit a small GFA model for testing save/load."""
-    rng = np.random.default_rng(42)
-    n_samples = 50
-    y_dims = np.array([8, 8])
-    x_dim = 3
-    snr = np.ones(len(y_dims))
-    # Use reasonable hyperprior values for stable simulation
-    sim_hyperprior = ObsParamsHyperPrior(
+    hyperprior = ObsParamsHyperPrior(
         a_alpha=1.0, b_alpha=1.0, a_phi=1.0, b_phi=1.0, beta_d=1.0
     )
-
-    Y, _, _ = gfa_sim.simulate(
-        n_samples, y_dims, x_dim, sim_hyperprior, snr=snr, rng=rng
+    sim_config = GFASimConfig(
+        n_samples=50,
+        y_dims=np.array([8, 8]),
+        x_dim=3,
+        snr=1.0,
+        random_seed=42,
     )
+    sim_result = gfa_sim.simulate(sim_config, hyperprior)
 
-    config = GFAFitConfig(
+    fit_config = GFAFitConfig(
         x_dim_init=5,
         fit_tol=1e-4,
         max_iter=100,
@@ -60,8 +59,8 @@ def fitted_model():
         save_fit_progress=True,
     )
 
-    model = GFAModel(config=config)
-    model.fit(Y)
+    model = GFAModel(config=fit_config)
+    model.fit(sim_result.observations)
     return model
 
 
@@ -80,8 +79,8 @@ class TestSaveLoad:
         """Test round-trip for unfitted model preserves config and hyperprior."""
         path = tmp_path / "unfitted.safetensors"
 
-        unfitted_model.save(str(path))
-        loaded = GFAModel.load(str(path))
+        unfitted_model.save(path)
+        loaded = GFAModel.load(path)
 
         # Config preserved
         assert loaded.config.x_dim_init == unfitted_model.config.x_dim_init
@@ -106,8 +105,8 @@ class TestSaveLoad:
         """Test round-trip for fitted model preserves all state."""
         path = tmp_path / "fitted.safetensors"
 
-        fitted_model.save(str(path))
-        loaded = GFAModel.load(str(path))
+        fitted_model.save(path)
+        loaded = GFAModel.load(path)
 
         # Config preserved
         assert loaded.config == fitted_model.config
@@ -163,46 +162,48 @@ class TestSaveLoad:
         """Test that loaded model can perform inference on new data."""
         path = tmp_path / "fitted.safetensors"
 
-        fitted_model.save(str(path))
-        loaded = GFAModel.load(str(path))
+        fitted_model.save(path)
+        loaded = GFAModel.load(path)
 
         # Generate new data with same structure
-        rng = np.random.default_rng(123)
-        n_samples_new = 20
         y_dims = fitted_model.obs_posterior.y_dims
         x_dim = fitted_model.obs_posterior.x_dim
-        snr = np.ones(len(y_dims))
-        sim_hyperprior = ObsParamsHyperPrior(
+        n_samples_new = 20
+
+        hyperprior = ObsParamsHyperPrior(
             a_alpha=1.0, b_alpha=1.0, a_phi=1.0, b_phi=1.0, beta_d=1.0
         )
-
-        Y_new, _, _ = gfa_sim.simulate(
-            n_samples_new, y_dims, x_dim, sim_hyperprior, snr=snr, rng=rng
+        sim_config = GFASimConfig(
+            n_samples=n_samples_new,
+            y_dims=y_dims,
+            x_dim=x_dim,
+            snr=1.0,
+            random_seed=123,
         )
+        sim_result = gfa_sim.simulate(sim_config, hyperprior)
 
         # Infer latents with loaded model
-        latents_new = loaded.infer_latents(Y_new)
+        latents_new = loaded.infer_latents(sim_result.observations)
 
         # Verify shape
         assert latents_new.mean.shape == (x_dim, n_samples_new)
 
     def test_loaded_model_can_resume_fit(self, tmp_path):
         """Test that loaded model can resume fitting."""
-        rng = np.random.default_rng(42)
-        n_samples = 50
-        y_dims = np.array([8, 8])
-        x_dim = 3
-        snr = np.ones(len(y_dims))
-        sim_hyperprior = ObsParamsHyperPrior(
+        hyperprior = ObsParamsHyperPrior(
             a_alpha=1.0, b_alpha=1.0, a_phi=1.0, b_phi=1.0, beta_d=1.0
         )
-
-        Y, _, _ = gfa_sim.simulate(
-            n_samples, y_dims, x_dim, sim_hyperprior, snr=snr, rng=rng
+        sim_config = GFASimConfig(
+            n_samples=50,
+            y_dims=np.array([8, 8]),
+            x_dim=3,
+            snr=1.0,
+            random_seed=42,
         )
+        sim_result = gfa_sim.simulate(sim_config, hyperprior)
 
         # Fit for a few iterations (won't converge)
-        config = GFAFitConfig(
+        fit_config = GFAFitConfig(
             x_dim_init=5,
             fit_tol=1e-10,  # Very tight tolerance
             max_iter=10,  # Few iterations
@@ -211,8 +212,8 @@ class TestSaveLoad:
             save_x=True,  # Required for resume_fit
             save_fit_progress=True,
         )
-        model = GFAModel(config=config)
-        model.fit(Y)
+        model = GFAModel(config=fit_config)
+        model.fit(sim_result.observations)
 
         # Should not have converged
         assert not model.flags.converged
@@ -220,11 +221,11 @@ class TestSaveLoad:
 
         # Save and reload
         path = tmp_path / "partial.safetensors"
-        model.save(str(path))
-        loaded = GFAModel.load(str(path))
+        model.save(path)
+        loaded = GFAModel.load(path)
 
         # Resume fitting
-        loaded.resume_fit(Y, max_iter=10)
+        loaded.resume_fit(sim_result.observations, max_iter=10)
 
         # Should have more iterations now
         assert len(loaded.tracker.lb) > n_iter_before
@@ -237,7 +238,7 @@ class TestRecompute:
     Each test gets its own copy of the converged model to mutate freely.
     """
 
-    def test_recompute_latents(self, simulation_data, fitted_model_copy):
+    def test_recompute_latents(self, simulation_result, fitted_model_copy):
         """Test latent reconstruction.
 
         Since X is the final update during fitting, reconstruction from saved parameters
@@ -245,8 +246,8 @@ class TestRecompute:
         """
         from tests.conftest import testing_tols
 
-        model = fitted_model_copy["model"]
-        Y = simulation_data["Y"]
+        model = fitted_model_copy
+        Y = simulation_result.observations
 
         # Store original latents
         X_original = model.latents_posterior.mean.copy()
@@ -261,22 +262,21 @@ class TestRecompute:
         np.testing.assert_allclose(model.latents_posterior.mean, X_original, **tols)
         np.testing.assert_allclose(model.latents_posterior.cov, X_cov_original, **tols)
 
-    def test_recompute_latents_error_if_not_fitted(self, simulation_data):
+    def test_recompute_latents_error_if_not_fitted(self, simulation_result):
         """Test that recompute_latents raises if model not fitted."""
-        Y = simulation_data["Y"]
         model = GFAModel()
 
         with pytest.raises(ValueError, match="must be fitted"):
-            model.recompute_latents(Y)
+            model.recompute_latents(simulation_result.observations)
 
-    def test_recompute_loadings(self, simulation_data, fitted_model_copy):
+    def test_recompute_loadings(self, simulation_result, fitted_model_copy):
         """Test loadings reconstruction.
 
         At convergence, the recomputed C should be close to original. Not exact
         because reconstruction uses final X rather than X from previous iteration.
         """
-        model = fitted_model_copy["model"]
-        Y = simulation_data["Y"]
+        model = fitted_model_copy
+        Y = simulation_result.observations
 
         # Store original loadings
         C_mean_original = model.obs_posterior.C.mean.copy()
@@ -294,33 +294,31 @@ class TestRecompute:
             model.obs_posterior.C.cov, C_cov_original, rtol=1e-3, atol=1e-10
         )
 
-    def test_recompute_loadings_error_if_not_fitted(self, simulation_data):
+    def test_recompute_loadings_error_if_not_fitted(self, simulation_result):
         """Test that recompute_loadings raises if model not fitted."""
-        Y = simulation_data["Y"]
         model = GFAModel()
 
         with pytest.raises(ValueError, match="must be fitted"):
-            model.recompute_loadings(Y)
+            model.recompute_loadings(simulation_result.observations)
 
     def test_recompute_loadings_error_if_no_latents(
-        self, simulation_data, fitted_model_copy
+        self, simulation_result, fitted_model_copy
     ):
         """Test that recompute_loadings raises if latents not available."""
-        model = fitted_model_copy["model"]
-        Y = simulation_data["Y"]
+        model = fitted_model_copy
 
         # Clear latents
         model.latents_posterior.clear()
 
         with pytest.raises(ValueError, match="Latents must be available"):
-            model.recompute_loadings(Y)
+            model.recompute_loadings(simulation_result.observations)
 
-    def test_recompute_chaining(self, simulation_data, fitted_model_copy):
+    def test_recompute_chaining(self, simulation_result, fitted_model_copy):
         """Test that recompute methods support method chaining."""
         from tests.conftest import testing_tols
 
-        model = fitted_model_copy["model"]
-        Y = simulation_data["Y"]
+        model = fitted_model_copy
+        Y = simulation_result.observations
 
         # Store originals
         X_original = model.latents_posterior.mean.copy()

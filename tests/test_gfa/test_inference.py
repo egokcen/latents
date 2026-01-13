@@ -10,12 +10,12 @@ import numpy as np
 
 def test_fit(fitted_model_converged):
     """Test basic fitting: convergence flags and iteration count."""
-    model = fitted_model_converged["model"]
+    model = fitted_model_converged
 
     assert model.flags.converged
     assert not model.flags.decreasing_lb
     assert not model.flags.private_var_floor
-    # Regression baselines for fixed seeds (simulation_seed=1, fitting_seed=0).
+    # Regression baselines for fixed seeds (simulation_seed=0, fitting_seed=0).
     # x_dim_init=10, true x_dim=7, so 3 latents pruned.
     assert model.flags.x_dims_removed == 3
     # Iteration count for convergence with fit_tol=1e-8.
@@ -30,7 +30,7 @@ def test_elbo_monotonicity(fitted_model_converged):
     """
     from tests.conftest import testing_tols
 
-    model = fitted_model_converged["model"]
+    model = fitted_model_converged
     lb = np.array(model.tracker.lb)
 
     # Use rtol from testing_tols (sqrt(eps)) as absolute tolerance for differences
@@ -44,7 +44,7 @@ def test_elbo_monotonicity(fitted_model_converged):
     )
 
 
-def test_parameter_recovery(simulation_data, fitted_model_converged):
+def test_parameter_recovery(simulation_result, fitted_model_converged):
     """Test that fitted parameters recover ground truth loading matrix.
 
     Compares estimated C matrix against ground truth using per-column
@@ -55,11 +55,11 @@ def test_parameter_recovery(simulation_data, fitted_model_converged):
     - Min per-column correlation: 0.77 (column 0, group-specific latent)
     - Mean correlation: 0.94
     """
-    model = fitted_model_converged["model"]
-    obs_params_true = simulation_data["obs_params_true"]
+    model = fitted_model_converged
+    obs_params_true = simulation_result.obs_params
 
     # Column reordering and sign flips for this seed combination
-    # (simulation_seed=1, fitting_seed=0)
+    # (simulation_seed=0, fitting_seed=0)
     reorder = np.array([1, 4, 3, 6, 0, 2, 5])
     rescale = np.array([-1, -1, 1, 1, 1, 1, 1])
 

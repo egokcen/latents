@@ -90,7 +90,7 @@ class ObsParamsPoint:
 
 def adjust_snr(
     realization: ObsParamsRealization,
-    snr: np.ndarray,
+    snr: float | np.ndarray,
     y_dims: np.ndarray | None = None,
 ) -> ObsParamsRealization:
     """Scale observation precisions to achieve target signal-to-noise ratios.
@@ -104,7 +104,8 @@ def adjust_snr(
     realization
         Observation parameters to adjust.
     snr
-        Target SNR for each group, shape (n_groups,).
+        Target SNR. Either a scalar (broadcast to all groups) or per-group
+        array of shape ``(n_groups,)``.
     y_dims
         Dimensionalities of each group, shape (n_groups,). If None, uses
         realization.y_dims.
@@ -118,6 +119,11 @@ def adjust_snr(
         y_dims = realization.y_dims
 
     n_groups = len(y_dims)
+
+    # Normalize snr to array
+    snr = np.atleast_1d(snr)
+    if snr.size == 1:
+        snr = np.broadcast_to(snr, (n_groups,))
 
     # Split C and phi by group
     C_split = np.split(realization.C, np.cumsum(y_dims)[:-1], axis=0)
