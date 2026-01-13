@@ -4,22 +4,22 @@ import contextlib
 from importlib.metadata import PackageNotFoundError, version
 
 from latents import (
-    base,
+    data,
     gfa,
     mdlag,
-    observation_model,
+    observation,
     plotting,
-    state_model,
+    state,
 )
 
 with contextlib.suppress(PackageNotFoundError):
     __version__ = version("latents")
 
 __all__ = [
-    "base",
+    "data",
     "gfa",
     "mdlag",
-    "observation_model",
+    "observation",
     "plotting",
-    "state_model",
+    "state",
 ]

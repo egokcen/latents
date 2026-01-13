@@ -1,0 +1,1 @@
+"""Test Hinton diagram plotting."""

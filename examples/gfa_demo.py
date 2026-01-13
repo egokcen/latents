@@ -13,11 +13,18 @@ discover shared and group-specific latent structure in multi-group data.
 import matplotlib.pyplot as plt
 import numpy as np
 
-import latents.gfa.descriptive_stats as gfa_stats
+import latents.gfa.analysis as gfa_stats
 import latents.gfa.simulation as gfa_sim
 from latents.gfa import GFAFitConfig, GFAModel
-from latents.observation_model.probabilistic import ObsParamsARD, SimulationHyperPriors
-from latents.plotting import hinton
+from latents.gfa.inference import compute_lower_bound
+from latents.observation import ObsParamsHyperPriorStructured, ObsParamsPosterior
+from latents.plotting import (
+    hinton_diagram,
+    plot_dimensionalities,
+    plot_dims_pairs,
+    plot_var_exp,
+    plot_var_exp_pairs,
+)
 
 # %%
 # Generate Data from the GFA Model
@@ -27,7 +34,8 @@ from latents.plotting import hinton
 # with known ground truth.
 
 # Set a random seed for reproducibility
-random_seed = 1
+random_seed = 0
+rng = np.random.default_rng(random_seed)
 
 # Dataset characteristics
 n_samples = 100  # Total number of samples
@@ -50,12 +58,12 @@ sparsity_pattern = np.array(
 
 # Set up simulation hyperpriors
 MAG = 100  # Control the variance of alpha parameters (larger = less variance)
-sim_priors = SimulationHyperPriors(
+sim_priors = ObsParamsHyperPriorStructured(
     a_alpha=MAG * sparsity_pattern,
     b_alpha=MAG * np.ones_like(sparsity_pattern),
     a_phi=1.0,
     b_phi=1.0,
-    d_beta=1.0,
+    beta_d=1.0,
 )
 
 # Simulate data
@@ -65,7 +73,7 @@ Y, X_true, obs_params_true = gfa_sim.simulate(
     x_dim,
     sim_priors,
     snr,
-    random_seed=random_seed,
+    rng=rng,
 )
 
 # %%
@@ -92,8 +100,7 @@ config = GFAFitConfig(
 # Instantiate a GFA model with config
 model = GFAModel(config=config)
 
-# Initialize and fit the model
-model.init(Y)
+# Fit the model (automatically initializes if needed)
 model.fit(Y)
 
 # %%
@@ -117,19 +124,19 @@ model.tracker.plot_runtime()
 # Note: Columns may be reordered and sign-flipped.
 
 # Define column reordering and sign flips for comparison
-reorder = np.array([4, 2, 1, 5, 3, 6, 0])
-rescale = np.array([-1, -1, 1, -1, 1, -1, 1])
+reorder = np.array([1, 4, 3, 6, 0, 2, 5])
+rescale = np.array([-1, -1, 1, 1, 1, 1, 1])
 
 # Ground truth
 plt.figure(figsize=(3, 5))
 plt.subplot(1, 2, 1)
 plt.title("Ground truth C")
-hinton(obs_params_true.C.mean)
+hinton_diagram(obs_params_true.C)
 
 # Plot estimated C, reordered and rescaled to match ground truth
 plt.subplot(1, 2, 2)
 plt.title("Estimated C")
-hinton(model.params.obs_params.C.mean[:, reorder] * rescale)
+hinton_diagram(model.obs_posterior.C.mean[:, reorder] * rescale)
 
 plt.tight_layout()
 plt.show()
@@ -142,22 +149,22 @@ plt.show()
 # with ground truth.
 
 # Compute relative shared variance explained by each latent in each group
-alpha_inv_true = 1 / obs_params_true.alpha.mean
+alpha_inv_true = 1 / obs_params_true.alpha
 alpha_inv_rel_true = alpha_inv_true / np.sum(alpha_inv_true, axis=1, keepdims=True)
 
-alpha_inv_est = 1 / model.params.obs_params.alpha.mean
+alpha_inv_est = 1 / model.obs_posterior.alpha.mean
 alpha_inv_rel_est = alpha_inv_est / np.sum(alpha_inv_est, axis=1, keepdims=True)
 
 # Ground truth
 plt.figure(figsize=(5, 3))
 plt.subplot(2, 1, 1)
 plt.title("Ground truth ARD")
-hinton(alpha_inv_rel_true)
+hinton_diagram(alpha_inv_rel_true)
 
 # Plot estimated ARD, reordered to match ground truth
 plt.subplot(2, 1, 2)
 plt.title("Estimated ARD")
-hinton(alpha_inv_rel_est[:, reorder])
+hinton_diagram(alpha_inv_rel_est[:, reorder])
 
 plt.tight_layout()
 plt.show()
@@ -169,17 +176,19 @@ plt.show()
 # Evaluate the model using the evidence lower bound and predictive performance.
 
 # Evidence lower bound
-lb = model.compute_lower_bound(Y)
+lb = compute_lower_bound(
+    Y, model.obs_posterior, model.latents_posterior, model.obs_hyperprior
+)
 print(f"Lower bound:         {lb:.4f}")
 
 # Leave-group-out prediction
-R2, MSE = gfa_stats.predictive_performance(Y, model.params)
+R2, MSE = gfa_stats.predictive_performance(Y, model.obs_posterior)
 print(f"Leave-group-out R²:  {R2:.4f}")
 print(f"                MSE: {MSE:.4f}")
 
 # Leave-one-out prediction
 R2, MSE = gfa_stats.predictive_performance(
-    Y, model.params, y_dims=np.ones(y_dims.sum(), dtype=int)
+    Y, model.obs_posterior, y_dims=np.ones(y_dims.sum(), dtype=int)
 )
 print(f"Leave-one-out R²:    {R2:.4f}")
 print(f"              MSE:   {MSE:.4f}")
@@ -190,7 +199,7 @@ print(f"              MSE:   {MSE:.4f}")
 #
 # Examine the estimated signal-to-noise ratios for each group.
 
-snr_est = model.params.obs_params.compute_snr()
+snr_est = model.obs_posterior.compute_snr()
 
 print("Estimated SNRs:")
 for group_idx in range(n_groups):
@@ -208,22 +217,20 @@ for group_idx in range(n_groups):
     sig_dims,
     var_exp,
     dim_types,
-) = model.params.obs_params.compute_dimensionalities(
+) = model.obs_posterior.compute_dimensionalities(
     cutoff_shared_var=0.02, cutoff_snr=0.001
 )
 
 # Visualize the number of each type of dimension
 plt.figure(figsize=(4, 2))
-ObsParamsARD.plot_dimensionalities(
+plot_dimensionalities(
     num_dim, dim_types, group_names=["A", "B", "C"], plot_zero_dim=False
 )
 plt.show()
 
 # Visualize the shared variance explained by each dimension type
 plt.figure(figsize=(4, 6))
-ObsParamsARD.plot_var_exp(
-    var_exp, dim_types, group_names=["A", "B", "C"], plot_zero_dim=False
-)
+plot_var_exp(var_exp, dim_types, group_names=["A", "B", "C"], plot_zero_dim=False)
 plt.show()
 
 # %%
@@ -233,18 +240,18 @@ plt.show()
 # Analyze interactions between pairs of groups.
 
 # Compute pairwise dimensionalities and shared variances
-pair_dims, pair_var_exp, pairs = ObsParamsARD.compute_dims_pairs(
+pair_dims, pair_var_exp, pairs = ObsParamsPosterior.compute_dims_pairs(
     num_dim, dim_types, var_exp
 )
 
 # Visualize pairwise dimensionalities
 plt.figure(figsize=(7, 2.5))
-ObsParamsARD.plot_dims_pairs(pair_dims, pairs, n_groups, group_names=["A", "B", "C"])
+plot_dims_pairs(pair_dims, pairs, n_groups, group_names=["A", "B", "C"])
 plt.show()
 
 # Visualize pairwise shared variances
 plt.figure(figsize=(5, 2.5))
-ObsParamsARD.plot_var_exp_pairs(
+plot_var_exp_pairs(
     pair_var_exp, pairs, n_groups, group_names=["A", "B", "C"], sem_pair_var_exp=None
 )
 plt.show()

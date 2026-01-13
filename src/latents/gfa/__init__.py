@@ -1,21 +1,9 @@
-"""Group factor analysis (GFA) subpackage."""
+"""Group Factor Analysis (GFA) subpackage."""
 
-from latents.gfa import (
-    config,
-    core,
-    data_types,
-    descriptive_stats,
-    simulation,
-)
 from latents.gfa.config import GFAFitConfig
-from latents.gfa.core import GFAModel
+from latents.gfa.model import GFAModel
 
 __all__ = [
     "GFAFitConfig",
     "GFAModel",
-    "config",
-    "core",
-    "data_types",
-    "descriptive_stats",
-    "simulation",
 ]

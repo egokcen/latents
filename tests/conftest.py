@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from latents._numerics import stability_floor
+from latents._core.numerics import stability_floor
 
 
 def testing_tols(dtype) -> dict:
