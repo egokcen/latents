@@ -14,10 +14,16 @@ gfa.config
    :nosignatures:
 
    GFAFitConfig
+   GFASimConfig
 
 ----
 
 .. autoclass:: GFAFitConfig
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+.. autoclass:: GFASimConfig
    :members:
    :undoc-members:
    :show-inheritance:

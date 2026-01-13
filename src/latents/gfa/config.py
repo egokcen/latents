@@ -1,8 +1,129 @@
-"""Configuration classes for GFA model fitting."""
+"""Configuration classes for GFA model fitting and simulation."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+
+import numpy as np
+
+
+@dataclass(frozen=True, slots=True, kw_only=True)
+class GFASimConfig:
+    """Experimental design parameters for GFA simulation.
+
+    Defines the structure and reproducibility settings for generating synthetic
+    GFA data. The probabilistic model specification (hyperprior) is provided
+    separately to `simulate()`.
+
+    All parameters except `random_seed` are required. Instances are immutable
+    (frozen).
+
+    Parameters
+    ----------
+    n_samples : int
+        Number of data points to generate. Must be >= 1.
+    y_dims : np.ndarray
+        Dimensionalities of each observed group, shape ``(n_groups,)``.
+        Must be 1D array of positive integers.
+    x_dim : int
+        Number of latent dimensions. Must be >= 1.
+    snr : float | np.ndarray
+        Signal-to-noise ratio. Either a scalar (broadcast to all groups) or
+        per-group array of shape ``(n_groups,)``. Must be > 0.
+    random_seed : int | None
+        RNG seed for reproducibility. None uses a random seed.
+        Required for reproducible recipe saves.
+
+    Examples
+    --------
+    >>> config = GFASimConfig(
+    ...     n_samples=100,
+    ...     y_dims=np.array([10, 10, 10]),
+    ...     x_dim=5,
+    ...     snr=1.0,
+    ...     random_seed=42,
+    ... )
+    >>> config.n_groups
+    3
+    >>> config.y_dim
+    30
+    """
+
+    n_samples: int
+    y_dims: np.ndarray
+    x_dim: int
+    snr: float | np.ndarray = 1.0
+    random_seed: int | None = None
+
+    @property
+    def n_groups(self) -> int:
+        """Number of observed groups."""
+        return len(self.y_dims)
+
+    @property
+    def y_dim(self) -> int:
+        """Total observed dimensionality (sum of y_dims)."""
+        return int(self.y_dims.sum())
+
+    def __post_init__(self) -> None:
+        """Validate configuration values."""
+        # Validate n_samples
+        if not isinstance(self.n_samples, int) or self.n_samples < 1:
+            msg = f"n_samples must be an integer >= 1, got {self.n_samples!r}"
+            raise ValueError(msg)
+
+        # Validate y_dims: must be 1D array of positive integers
+        if not isinstance(self.y_dims, np.ndarray):
+            msg = f"y_dims must be a numpy array, got {type(self.y_dims).__name__}"
+            raise TypeError(msg)
+        if self.y_dims.ndim != 1:
+            msg = f"y_dims must be 1D, got shape {self.y_dims.shape}"
+            raise ValueError(msg)
+        if len(self.y_dims) == 0:
+            msg = "y_dims must have at least one element"
+            raise ValueError(msg)
+        if not np.issubdtype(self.y_dims.dtype, np.integer):
+            msg = f"y_dims must have integer dtype, got {self.y_dims.dtype}"
+            raise TypeError(msg)
+        if not np.all(self.y_dims >= 1):
+            msg = f"y_dims values must be >= 1, got {self.y_dims}"
+            raise ValueError(msg)
+
+        # Validate x_dim
+        if not isinstance(self.x_dim, int) or self.x_dim < 1:
+            msg = f"x_dim must be an integer >= 1, got {self.x_dim!r}"
+            raise ValueError(msg)
+
+        # Validate snr: scalar or array, must be > 0
+        snr = self.snr
+        if isinstance(snr, np.ndarray):
+            if snr.ndim != 1:
+                msg = f"snr array must be 1D, got shape {snr.shape}"
+                raise ValueError(msg)
+            if len(snr) != 1 and len(snr) != len(self.y_dims):
+                msg = (
+                    f"snr array must have length 1 or n_groups={len(self.y_dims)}, "
+                    f"got {len(snr)}"
+                )
+                raise ValueError(msg)
+            if not np.all(snr > 0):
+                msg = f"snr values must be > 0, got {snr}"
+                raise ValueError(msg)
+        else:
+            # Scalar
+            if not isinstance(snr, (int, float)) or snr <= 0:
+                msg = f"snr must be > 0, got {snr}"
+                raise ValueError(msg)
+
+        # Validate random_seed
+        if self.random_seed is not None and (
+            not isinstance(self.random_seed, int) or self.random_seed < 0
+        ):
+            msg = (
+                f"random_seed must be a non-negative integer or None, "
+                f"got {self.random_seed!r}"
+            )
+            raise ValueError(msg)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)

@@ -9,24 +9,17 @@ import pytest
 
 import latents.gfa.simulation as gfa_sim
 from latents.gfa import GFAFitConfig, GFAModel
+from latents.gfa.config import GFASimConfig
 from latents.observation import ObsParamsHyperPriorStructured
 
 
 @pytest.fixture(scope="module")
-def simulation_data():
+def simulation_result():
     """Generate simulated GFA data with known ground truth.
 
-    Uses fixed seeds for reproducibility. Returns data and ground truth
-    parameters for regression testing.
+    Uses fixed seed for reproducibility. Returns GFASimulationResult
+    for regression testing.
     """
-    random_seed = 0
-    rng = np.random.default_rng(random_seed)
-    n_samples = 100
-    y_dims = np.array([10, 10, 10])
-    n_groups = len(y_dims)
-    x_dim = 7
-    snr = 1.0 * np.ones(n_groups)
-
     # Sparsity pattern: rows=groups, cols=latents. np.inf means latent absent.
     sparsity_pattern = np.array(
         [
@@ -36,7 +29,7 @@ def simulation_data():
         ],
     )
     MAG = 100  # Controls variance of alpha (larger = less variance)
-    sim_priors = ObsParamsHyperPriorStructured(
+    hyperprior = ObsParamsHyperPriorStructured(
         a_alpha=MAG * sparsity_pattern,
         b_alpha=MAG * np.ones_like(sparsity_pattern),
         a_phi=1.0,
@@ -44,28 +37,24 @@ def simulation_data():
         beta_d=1.0,
     )
 
-    Y, X_true, obs_params_true = gfa_sim.simulate(
-        n_samples, y_dims, x_dim, sim_priors, snr, rng=rng
+    config = GFASimConfig(
+        n_samples=100,
+        y_dims=np.array([10, 10, 10]),
+        x_dim=7,
+        snr=1.0,
+        random_seed=0,
     )
 
-    return {
-        "Y": Y,
-        "X_true": X_true,
-        "obs_params_true": obs_params_true,
-        "y_dims": y_dims,
-        "x_dim": x_dim,
-    }
+    return gfa_sim.simulate(config, hyperprior)
 
 
 @pytest.fixture(scope="module")
-def fitted_model_converged(simulation_data):
+def fitted_model_converged(simulation_result):
     """Fit a GFA model to convergence.
 
     Uses tight tolerance (fit_tol=1e-8) for numerical accuracy tests.
     Fixed fitting seed for reproducibility.
     """
-    Y = simulation_data["Y"]
-
     config = GFAFitConfig(
         x_dim_init=10,
         fit_tol=1e-8,
@@ -81,9 +70,9 @@ def fitted_model_converged(simulation_data):
     )
 
     model = GFAModel(config=config)
-    model.fit(Y)
+    model.fit(simulation_result.observations)
 
-    return {"model": model}
+    return model
 
 
 @pytest.fixture
@@ -93,4 +82,4 @@ def fitted_model_copy(fitted_model_converged):
     Function-scoped (default), so each test gets its own isolated copy.
     The original fitted_model_converged is never modified.
     """
-    return {"model": copy.deepcopy(fitted_model_converged["model"])}
+    return copy.deepcopy(fitted_model_converged)

@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Python 3.14 support
 - Optional `notebook` extra for Jupyter support (`pip install latents[notebook]`)
 - `GFAFitConfig` frozen dataclass for immutable GFA fitting configuration
+- `GFASimConfig` frozen dataclass for immutable GFA simulation configuration
+- `GFASimulationResult` dataclass bundling simulation outputs (config, hyperprior, obs_params, latents, observations)
+- Simulation persistence functions: `save_simulation()`, `load_simulation()` for full snapshots; `save_simulation_recipe()`, `load_simulation_recipe()` for reproducible recipes
 - New `observation/` subpackage with probabilistic hierarchy:
   - `ObsParamsHyperPrior` and `ObsParamsHyperPriorStructured` for hyperprior configuration
   - `ObsParamsPrior` with `sample()` method for forward sampling from priors
@@ -38,7 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Observation model probabilistic components reorganized into `observation/` subpackage
 - Observation data containers (`ObsStatic`, `ObsTimeSeries`) moved to `latents.data` module
 - State model classes reorganized into `state/` subpackage
-- `simulate()` now returns `LatentsRealization` instead of raw ndarray
+- `simulate()` signature changed to `simulate(config, hyperprior)` returning `GFASimulationResult` instead of tuple
 - Minimum Python version raised from 3.9 to 3.10
 - Jupyter dependencies (`jupyter`, `ipywidgets`) moved from core to optional extra
 - `GFAModel` now accepts `config` parameter in constructor instead of using `fit_args.set_args()`

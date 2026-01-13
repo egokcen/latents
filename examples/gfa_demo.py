@@ -16,6 +16,7 @@ import numpy as np
 import latents.gfa.analysis as gfa_stats
 import latents.gfa.simulation as gfa_sim
 from latents.gfa import GFAFitConfig, GFAModel
+from latents.gfa.config import GFASimConfig
 from latents.gfa.inference import compute_lower_bound
 from latents.observation import ObsParamsHyperPriorStructured, ObsParamsPosterior
 from latents.plotting import (
@@ -33,16 +34,11 @@ from latents.plotting import (
 # First, we set up the simulation parameters and generate synthetic data
 # with known ground truth.
 
-# Set a random seed for reproducibility
-random_seed = 0
-rng = np.random.default_rng(random_seed)
-
 # Dataset characteristics
 n_samples = 100  # Total number of samples
 y_dims = np.array([10, 10, 10])  # Dimensionality of each observed group
 n_groups = len(y_dims)
 x_dim = 7  # Latent dimensionality
-snr = 1.0 * np.ones(n_groups)  # Signal-to-noise ratio of each group
 
 # Build the desired sparsity pattern of the loading matrices.
 # A (n_groups x x_dim) array where row i corresponds to group i,
@@ -56,9 +52,9 @@ sparsity_pattern = np.array(
     ],
 )
 
-# Set up simulation hyperpriors
+# Set up simulation hyperprior
 MAG = 100  # Control the variance of alpha parameters (larger = less variance)
-sim_priors = ObsParamsHyperPriorStructured(
+hyperprior = ObsParamsHyperPriorStructured(
     a_alpha=MAG * sparsity_pattern,
     b_alpha=MAG * np.ones_like(sparsity_pattern),
     a_phi=1.0,
@@ -66,15 +62,19 @@ sim_priors = ObsParamsHyperPriorStructured(
     beta_d=1.0,
 )
 
-# Simulate data
-Y, X_true, obs_params_true = gfa_sim.simulate(
-    n_samples,
-    y_dims,
-    x_dim,
-    sim_priors,
-    snr,
-    rng=rng,
+# Configure simulation
+sim_config = GFASimConfig(
+    n_samples=n_samples,
+    y_dims=y_dims,
+    x_dim=x_dim,
+    snr=1.0,
+    random_seed=0,
 )
+
+# Simulate data
+sim_result = gfa_sim.simulate(sim_config, hyperprior)
+Y = sim_result.observations
+obs_params_true = sim_result.obs_params
 
 # %%
 # Fit a GFA Model

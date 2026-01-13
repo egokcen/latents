@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 from dataclasses import asdict
 
@@ -300,7 +301,7 @@ class GFAModel:
             Y, config=self.config, obs_hyperprior=self.obs_hyperprior
         )
 
-    def save(self, path: str) -> None:
+    def save(self, path: str | os.PathLike[str]) -> None:
         """Save model to a safetensors file.
 
         Uses safetensors format for secure serialization (no arbitrary code
@@ -383,7 +384,7 @@ class GFAModel:
         save_file(tensors, path, metadata=metadata)
 
     @classmethod
-    def load(cls, path: str) -> GFAModel:
+    def load(cls, path: str | os.PathLike[str]) -> GFAModel:
         """Load model from a safetensors file.
 
         Parameters
