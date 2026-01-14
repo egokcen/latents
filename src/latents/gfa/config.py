@@ -157,14 +157,12 @@ class GFAFitConfig:
         If True, track ELBO and runtime per iteration.
     random_seed : int | None
         RNG seed for reproducibility. None for random initialization.
-    verbose : bool
-        If True, display fitting progress.
     min_var_frac : float
         Private variance floor as fraction of data variance. Must be in (0, 1).
 
     Examples
     --------
-    >>> config = GFAFitConfig(x_dim_init=10, verbose=True)
+    >>> config = GFAFitConfig(x_dim_init=10)
     >>> config.x_dim_init
     10
 
@@ -194,8 +192,7 @@ class GFAFitConfig:
     # Reproducibility
     random_seed: int | None = None
 
-    # Runtime
-    verbose: bool = False
+    # Numerical stability
     min_var_frac: float = 0.001
 
     def __post_init__(self) -> None:

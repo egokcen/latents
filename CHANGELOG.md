@@ -33,11 +33,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `plot_dimensionalities()`, `plot_var_exp()`, `plot_dims_pairs()`, `plot_var_exp_pairs()` for observation model results
 - `GFAModel.recompute_latents(Y)` to restore latents after loading a model saved with `save_x=False`
 - `GFAModel.recompute_loadings(Y)` to restore loading covariances after loading a model saved with `save_c_cov=False`
+- Callback system for model fitting (`latents.callbacks`):
+  - `ProgressCallback` for tqdm progress bar during fitting
+  - `LoggingCallback` for structured logging to the `latents` logger
+  - `CheckpointCallback` for periodic model checkpointing with safetensors format
+- `GFAFitContext` dataclass providing model state to callbacks
 
 ### Changed
 
 - GFA variational inference iteration order changed from d → X → C → α → φ to d → C → α → φ → X. This enables exact reconstruction of cleared latents from saved observation parameters, allowing `resume_fit()` and `compute_lower_bound()` to work with `save_x=False`.
-- Internal utilities reorganized into `_core/` subpackage (base classes, fitting infrastructure, numerics)
+- Internal utilities reorganized into `_internal/` subpackage (base classes, fitting infrastructure, numerics, logging)
 - Observation model probabilistic components reorganized into `observation/` subpackage
 - Observation data containers (`ObsStatic`, `ObsTimeSeries`) moved to `latents.data` module
 - State model classes reorganized into `state/` subpackage
@@ -53,6 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Python 3.9 support
 - Unused `pandas` dependency
 - `GFAFitArgs` class (replaced by `GFAFitConfig`)
+- `verbose` parameter from `GFAFitConfig` (use `ProgressCallback` instead)
 - `HyperPriorParams` class (replaced by `ObsParamsHyperPrior` and `ObsParamsHyperPriorStructured`)
 - `observation_model/` subpackage (probabilistic classes moved to `observation/`, data containers moved to `data`)
 - `state_model/` subpackage (classes moved to `state/` subpackage)

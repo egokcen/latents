@@ -11,3 +11,4 @@ Group factor analysis (GFA)
     inference
     simulation
     analysis
+    tracking
