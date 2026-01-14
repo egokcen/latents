@@ -21,7 +21,6 @@ def unfitted_model():
         x_dim_init=15,
         fit_tol=1e-6,
         max_iter=500,
-        verbose=False,
     )
     obs_hyperprior = ObsParamsHyperPrior(
         a_alpha=1e-10,
@@ -52,7 +51,6 @@ def fitted_model():
         x_dim_init=5,
         fit_tol=1e-4,
         max_iter=100,
-        verbose=False,
         random_seed=0,
         save_x=True,
         save_c_cov=True,
@@ -86,7 +84,7 @@ class TestSaveLoad:
         assert loaded.config.x_dim_init == unfitted_model.config.x_dim_init
         assert loaded.config.fit_tol == unfitted_model.config.fit_tol
         assert loaded.config.max_iter == unfitted_model.config.max_iter
-        assert loaded.config.verbose == unfitted_model.config.verbose
+        assert loaded.config.min_var_frac == unfitted_model.config.min_var_frac
 
         # Hyperprior preserved
         assert loaded.obs_hyperprior.a_alpha == unfitted_model.obs_hyperprior.a_alpha
@@ -207,7 +205,6 @@ class TestSaveLoad:
             x_dim_init=5,
             fit_tol=1e-10,  # Very tight tolerance
             max_iter=10,  # Few iterations
-            verbose=False,
             random_seed=0,
             save_x=True,  # Required for resume_fit
             save_fit_progress=True,

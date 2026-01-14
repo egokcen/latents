@@ -21,7 +21,6 @@ class TestGFAFitConfig:
         assert config.save_c_cov is False
         assert config.save_fit_progress is True
         assert config.random_seed is None
-        assert config.verbose is False
         assert config.min_var_frac == 0.001
 
     def test_custom_values(self):
@@ -36,7 +35,6 @@ class TestGFAFitConfig:
             save_c_cov=True,
             save_fit_progress=False,
             random_seed=42,
-            verbose=True,
             min_var_frac=0.01,
         )
         assert config.x_dim_init == 10
@@ -48,7 +46,6 @@ class TestGFAFitConfig:
         assert config.save_c_cov is True
         assert config.save_fit_progress is False
         assert config.random_seed == 42
-        assert config.verbose is True
         assert config.min_var_frac == 0.01
 
     def test_frozen(self):

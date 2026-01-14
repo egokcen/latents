@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from latents._core.fitting import FitFlags, FitTracker
+from latents.tracking import FitFlags, FitTracker
 
 _NOT_IMPLEMENTED_MSG = "mDLAG not yet implemented"
 

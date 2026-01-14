@@ -11,3 +11,5 @@ API reference
     observation/index
     state/index
     plotting/index
+    callbacks
+    tracking

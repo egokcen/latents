@@ -12,8 +12,8 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import Self
 
-from latents._core.base import ArrayContainer
-from latents._core.numerics import stability_floor
+from latents._internal.base import ArrayContainer
+from latents._internal.numerics import stability_floor
 from latents.observation.realizations import ObsParamsRealization
 
 

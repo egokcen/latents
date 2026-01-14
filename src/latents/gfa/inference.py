@@ -3,18 +3,17 @@
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass
 
 import numpy as np
 from scipy.linalg import eigh
 from scipy.special import gammaln, psi
 from scipy.stats import gmean
-from tqdm.auto import tqdm
 
-from latents._core.fitting import FitFlags, FitTracker
-from latents._core.numerics import stability_floor, validate_tolerance
+from latents._internal.numerics import stability_floor, validate_tolerance
+from latents.callbacks import invoke_callbacks
 from latents.data import ObsStatic
 from latents.gfa.config import GFAFitConfig
+from latents.gfa.tracking import GFAFitContext, GFAFitFlags, GFAFitTracker
 from latents.observation import (
     ARDPosterior,
     LoadingPosterior,
@@ -24,49 +23,6 @@ from latents.observation import (
     ObsPrecPosterior,
 )
 from latents.state import LatentsPosteriorStatic
-
-# -----------------------------------------------------------------------------
-# Tracker and Flags classes
-# -----------------------------------------------------------------------------
-
-
-class GFAFitTracker(FitTracker):
-    """Quantities tracked during a GFA model fit.
-
-    Attributes
-    ----------
-    lb : ndarray of float, shape (num_iter,)
-        Variational lower bound at each iteration.
-    iter_time : ndarray of float, shape (num_iter,)
-        Runtime on each iteration.
-    """
-
-    pass
-
-
-@dataclass
-class GFAFitFlags(FitFlags):
-    """Status flags from a GFA model fit.
-
-    Attributes
-    ----------
-    converged
-        True if the lower bound converged before reaching max_iter.
-    decreasing_lb
-        True if lower bound decreased during fitting.
-    private_var_floor
-        True if the private variance floor was used on any values of phi.
-    x_dims_removed
-        Number of latent dimensions removed due to low variance.
-    """
-
-    x_dims_removed: int = 0
-
-    def display(self) -> None:
-        """Print the fit flags."""
-        super().display()
-        print(f"Latent dimensions removed: {self.x_dims_removed}")
-
 
 # -----------------------------------------------------------------------------
 # Main fit function
@@ -82,6 +38,7 @@ def fit(
     tracker: GFAFitTracker | None = None,
     flags: GFAFitFlags | None = None,
     max_iter: int | None = None,
+    callbacks: list | None = None,
 ) -> tuple[ObsParamsPosterior, LatentsPosteriorStatic, GFAFitTracker, GFAFitFlags]:
     """Fit a GFA model to data via variational inference.
 
@@ -103,6 +60,8 @@ def fit(
         If provided, preserve existing flags (resume). If None, create fresh.
     max_iter
         Override config.max_iter. Useful for resume with different budget.
+    callbacks
+        List of callback objects. See latents.callbacks module.
 
     Returns
     -------
@@ -126,6 +85,8 @@ def fit(
         config = GFAFitConfig()
     if obs_hyperprior is None:
         obs_hyperprior = ObsParamsHyperPrior()
+    if callbacks is None:
+        callbacks = []
 
     # Validate tracker/flags consistency for resume
     if (tracker is None) != (flags is None):
@@ -140,7 +101,6 @@ def fit(
     fit_tol = config.fit_tol
     if max_iter is None:
         max_iter = config.max_iter
-    verbose = config.verbose
     min_var_frac = config.min_var_frac
     prune_x = config.prune_x
     prune_tol = config.prune_tol
@@ -204,11 +164,21 @@ def fit(
             tracker.lb = np.empty(max_iter)
             tracker.iter_time = np.empty(max_iter)
 
-    # Progress bar (disabled when not verbose)
-    pbar = tqdm(range(max_iter), desc="Fitting", disable=not verbose)
+    # Create context for callbacks (holds references, reflects current state)
+    ctx = GFAFitContext(
+        config=config,
+        obs_hyperprior=obs_hyperprior,
+        obs_posterior=obs_posterior,
+        latents_posterior=latents_posterior,
+        tracker=tracker,
+        flags=flags,
+    )
+
+    # Callback: fit started
+    invoke_callbacks(callbacks, "on_fit_start", ctx=ctx)
 
     fit_iter = 0
-    for fit_iter in pbar:
+    for fit_iter in range(max_iter):
         # Check if any latents need to be removed
         if prune_x:
             kept_x_dims = np.nonzero(
@@ -216,10 +186,22 @@ def fit(
             )[0]
             if len(kept_x_dims) < x_dim:
                 # Remove inactive latents
+                n_removed = x_dim - len(kept_x_dims)
                 obs_posterior.get_subset_dims(kept_x_dims, in_place=True)
                 latents_posterior.get_subset_dims(kept_x_dims, in_place=True)
-                flags.x_dims_removed += x_dim - obs_posterior.x_dim
+                flags.x_dims_removed += n_removed
                 x_dim = obs_posterior.x_dim
+
+                # Callback: x_dim pruned
+                invoke_callbacks(
+                    callbacks,
+                    "on_x_dim_pruned",
+                    ctx=ctx,
+                    n_removed=n_removed,
+                    x_dim_remaining=x_dim,
+                    iteration=fit_iter,
+                )
+
                 if x_dim <= 0:
                     break
 
@@ -282,30 +264,43 @@ def fit(
             tracker.iter_time[iter_offset + fit_iter] = end_time - start_time
             tracker.lb[iter_offset + fit_iter] = lb_curr
 
-        # Update progress bar postfix
-        postfix = {"lb": f"{lb_curr:.2e}"}
-        # Relative change: quantity compared to fit_tol for convergence
-        # Only compute after burn-in and when denominator is non-zero
-        denom = lb_old - tracker.lb_base if tracker.lb_base is not None else 0.0
-        if fit_iter > 1 and denom != 0.0:
-            rel_change = (lb_curr - lb_old) / denom
-            postfix["Δ"] = f"{rel_change:.1e}"
-        if prune_x:
-            postfix["x_dim"] = x_dim
-        pbar.set_postfix(postfix)
+        # Callback: iteration end
+        invoke_callbacks(
+            callbacks,
+            "on_iteration_end",
+            ctx=ctx,
+            iteration=fit_iter,
+            lb=lb_curr,
+            lb_prev=lb_old,
+        )
 
         # Check stopping conditions
         # Set lb_base during burn-in period (fresh fit only)
         if not resuming and fit_iter <= 1:
             tracker.lb_base = lb_curr
         elif lb_curr < lb_old:
-            flags.decreasing_lb = True
+            if not flags.decreasing_lb:
+                flags.decreasing_lb = True
+                invoke_callbacks(
+                    callbacks,
+                    "on_flag_changed",
+                    ctx=ctx,
+                    flag="decreasing_lb",
+                    value=True,
+                    iteration=fit_iter,
+                )
         elif (lb_curr - tracker.lb_base) < (1 + fit_tol) * (lb_old - tracker.lb_base):
-            flags.converged = True
+            if not flags.converged:
+                flags.converged = True
+                invoke_callbacks(
+                    callbacks,
+                    "on_flag_changed",
+                    ctx=ctx,
+                    flag="converged",
+                    value=True,
+                    iteration=fit_iter,
+                )
             break
-
-    # Close progress bar before final messages
-    pbar.close()
 
     # Truncate pre-allocated arrays to actual iteration count
     if save_fit_progress:
@@ -313,18 +308,28 @@ def fit(
         tracker.lb = tracker.lb[:total_iters]
         tracker.iter_time = tracker.iter_time[:total_iters]
 
-    # Display reasons for stopping
-    if verbose:
-        if flags.converged:
-            print(f"Lower bound converged after {fit_iter + 1} iterations.")
-        elif ((fit_iter + 1) < max_iter) and obs_posterior.x_dim <= 0:
-            print("Fitting stopped because no significant latent dimensions remain.")
-        else:
-            print(f"Fitting stopped after max_iter ({max_iter}) was reached.")
-
-    # Check if the variance floor was reached
-    if np.any(obs_posterior.phi.mean == 1 / var_floor):
+    # Check if the variance floor was reached (post-fit check)
+    if np.any(obs_posterior.phi.mean == 1 / var_floor) and not flags.private_var_floor:
         flags.private_var_floor = True
+        invoke_callbacks(
+            callbacks,
+            "on_flag_changed",
+            ctx=ctx,
+            flag="private_var_floor",
+            value=True,
+            iteration=None,  # Post-fit check, no specific iteration
+        )
+
+    # Determine stop reason
+    if flags.converged:
+        reason = "converged"
+    elif x_dim <= 0:
+        reason = "no_latents"
+    else:
+        reason = "max_iter"
+
+    # Callback: fit ended
+    invoke_callbacks(callbacks, "on_fit_end", ctx=ctx, reason=reason)
 
     if not save_c_cov:
         obs_posterior.C.cov = None
@@ -670,7 +675,7 @@ def infer_obs_prec(
     XY: np.ndarray | None = None,
     Y2: np.ndarray | None = None,
 ) -> ObsPrecPosterior:
-    """Infer precision posterior q(φ). Updates obs_posterior.phi in-place.
+    """Infer precision posterior q(phi). Updates obs_posterior.phi in-place.
 
     Parameters
     ----------

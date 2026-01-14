@@ -1,4 +1,4 @@
-"""Base classes for model fitting infrastructure."""
+"""Base classes for fit tracking infrastructure."""
 
 from __future__ import annotations
 
@@ -7,12 +7,11 @@ from dataclasses import dataclass
 import matplotlib.pyplot as plt
 import numpy as np
 
-from latents._core.base import ArrayContainer
+from latents._internal.base import ArrayContainer
 
 
 class FitTracker(ArrayContainer):
-    """
-    A class for quantities tracked during a model fit.
+    """Base class for quantities tracked during a model fit.
 
     Parameters
     ----------

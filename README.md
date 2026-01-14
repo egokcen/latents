@@ -41,17 +41,15 @@ pip install latents[notebook]
 ## Quick Start
 
 ```python
+from latents.callbacks import ProgressCallback
 from latents.gfa import GFAFitConfig, GFAModel
 
 # Configure fitting parameters
-config = GFAFitConfig(
-    x_dim_init=10,  # Initial latent dimensionality
-    verbose=True,
-)
+config = GFAFitConfig(x_dim_init=10)  # Initial latent dimensionality
 
 # Instantiate and fit to multi-group observation data Y
 model = GFAModel(config=config)
-model.fit(Y)
+model.fit(Y, callbacks=[ProgressCallback()])  # Progress bar during fitting
 
 # Check convergence and access results
 model.flags.display()       # Fitting status

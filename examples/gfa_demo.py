@@ -15,6 +15,7 @@ import numpy as np
 
 import latents.gfa.analysis as gfa_stats
 import latents.gfa.simulation as gfa_sim
+from latents.callbacks import ProgressCallback
 from latents.gfa import GFAFitConfig, GFAModel
 from latents.gfa.config import GFASimConfig
 from latents.gfa.inference import compute_lower_bound
@@ -87,7 +88,6 @@ config = GFAFitConfig(
     x_dim_init=10,  # Set larger than the hypothesized latent dimensionality
     fit_tol=1e-8,
     max_iter=20000,
-    verbose=True,
     random_seed=0,
     min_var_frac=0.001,
     prune_x=True,
@@ -101,7 +101,8 @@ config = GFAFitConfig(
 model = GFAModel(config=config)
 
 # Fit the model (automatically initializes if needed)
-model.fit(Y)
+# Use ProgressCallback for a progress bar during fitting
+model.fit(Y, callbacks=[ProgressCallback()])
 
 # %%
 # Check Fitting Results
