@@ -33,11 +33,11 @@ class LatentsPriorStatic:
 
         Parameters
         ----------
-        x_dim
+        x_dim : int
             Number of latent dimensions.
-        n_samples
+        n_samples : int
             Number of samples to generate.
-        rng
+        rng : numpy.random.Generator
             Random number generator.
 
         Returns
@@ -57,11 +57,11 @@ class LatentsHyperPriorGP:
 
     Parameters
     ----------
-    kernel
-        Kernel type (e.g., "rbf").
-    timescale
+    kernel : str, default "rbf"
+        Kernel type.
+    timescale : float, default 50.0
         Characteristic timescale of the GP kernel.
-    variance
+    variance : float, default 1.0
         Signal variance of the GP kernel.
     """
 
@@ -78,7 +78,7 @@ class LatentsPriorGP:
 
     Parameters
     ----------
-    hyperprior
+    hyperprior : LatentsHyperPriorGP, default LatentsHyperPriorGP()
         GP kernel hyperpriors.
     """
 
@@ -95,13 +95,13 @@ class LatentsPriorGP:
 
         Parameters
         ----------
-        x_dim
+        x_dim : int
             Number of latent dimensions.
-        n_samples
+        n_samples : int
             Number of samples (trials).
-        n_timepoints
+        n_timepoints : int
             Number of time points per sample.
-        rng
+        rng : numpy.random.Generator
             Random number generator.
 
         Returns

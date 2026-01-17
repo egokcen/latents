@@ -15,8 +15,8 @@ class LatentsRealization:
 
     Parameters
     ----------
-    X
-        Latent variables, shape (x_dim, n_samples).
+    X : ndarray of float, shape (x_dim, n_samples)
+        Latent variables.
     """
 
     X: np.ndarray

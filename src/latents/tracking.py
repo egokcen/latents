@@ -7,7 +7,7 @@ from dataclasses import dataclass
 import matplotlib.pyplot as plt
 import numpy as np
 
-from latents._internal.base import ArrayContainer
+from latents.base import ArrayContainer
 
 
 class FitTracker(ArrayContainer):
@@ -15,24 +15,22 @@ class FitTracker(ArrayContainer):
 
     Parameters
     ----------
-    lb
-        `ndarray` of `float`, shape ``(num_iter,)``.
+    lb : ndarray of float, shape (num_iter,) or None, default None
         Variational lower bound at each iteration.
-    iter_time
-        `ndarray` of `float`, shape ``(num_iter,)``.
+    iter_time : ndarray of float, shape (num_iter,) or None, default None
         Runtime on each iteration.
-    lb_base
+    lb_base : float or None, default None
         Baseline lower bound for convergence checking. Set during initial
         iterations of a fresh fit and preserved during resume.
 
     Attributes
     ----------
-    lb
-        Same as **lb**, above.
-    iter_time
-        Same as **iter_time**, above.
-    lb_base
-        Same as **lb_base**, above.
+    lb : ndarray of float, shape (num_iter,) or None
+        Variational lower bound at each iteration.
+    iter_time : ndarray of float, shape (num_iter,) or None
+        Runtime on each iteration.
+    lb_base : float or None
+        Baseline lower bound for convergence checking.
     """
 
     def __init__(
@@ -91,13 +89,13 @@ class FitTracker(ArrayContainer):
 class FitFlags:
     """Status flags from a model fit.
 
-    Attributes
+    Parameters
     ----------
-    converged
+    converged : bool, default False
         True if the lower bound converged before reaching max_iter.
-    decreasing_lb
+    decreasing_lb : bool, default False
         True if lower bound decreased during fitting.
-    private_var_floor
+    private_var_floor : bool, default False
         True if the private variance floor was used on any values of phi.
     """
 

@@ -15,19 +15,25 @@ copyright = f"{datetime.now().year}, {author}"
 release = get_version("latents")
 version = ".".join(release.split(".")[:2])  # Take only major/minor
 
-# General configuration
+# Single backticks render as inline code
+default_role = "code"
+
+# =============================================================================
+# Extensions
+# =============================================================================
 extensions = [
     # Core Sphinx extensions
-    "sphinx.ext.autodoc",
-    "sphinx.ext.autosummary",
-    "sphinx.ext.intersphinx",
-    "sphinx.ext.mathjax",
-    "sphinx.ext.viewcode",
+    "sphinx.ext.autodoc",  # Extract docstrings from source code
+    "sphinx.ext.autosummary",  # Generate summary tables for modules/classes
+    "sphinx.ext.intersphinx",  # Link to external project docs (numpy, scipy)
+    "sphinx.ext.mathjax",  # Render LaTeX math in docs
+    "sphinx.ext.viewcode",  # Add [source] links to API docs
     # Third-party extensions
-    "numpydoc",
-    "myst_parser",
-    "sphinx_design",
-    "sphinx_gallery.gen_gallery",
+    "autodocsumm",  # Short method names in class summary tables
+    "numpydoc",  # Parse NumPy-style docstrings
+    "myst_parser",  # Markdown support (.md files)
+    "sphinx_design",  # Cards, grids, tabs for landing pages
+    "sphinx_gallery.gen_gallery",  # Generate example gallery from scripts
 ]
 
 # MyST Parser configuration
@@ -62,7 +68,9 @@ sphinx_gallery_conf = {
     "matplotlib_animations": True,
 }
 
-# HTML theme options
+# =============================================================================
+# HTML Theme (pydata-sphinx-theme)
+# =============================================================================
 html_theme = "pydata_sphinx_theme"
 html_js_files = [
     "pypi-icon.js",
@@ -100,7 +108,7 @@ html_theme_options = {
     "footer_center": ["sphinx-version"],
     # Primary navigation bar
     "show_nav_level": 0,
-    "navigation_depth": 2,
+    "navigation_depth": 3,
     # Set up the sidebar
     # Sidebar: page-toc for all pages, plus download links for examples
     "secondary_sidebar_items": ["page-toc", "sg_download_links"],
@@ -115,12 +123,31 @@ html_context = {
 html_static_path = ["_static"]
 html_css_files = ["latents.css"]
 
+# =============================================================================
 # Autodoc settings
-autodoc_typehints = "none"  # numpydoc handles type documentation
+# =============================================================================
+# Show type hints in function signatures
+autodoc_typehints = "signature"
+# Use short names without module prefix
+add_module_names = False
+# Wrap long signatures across multiple lines (one parameter per line)
+maximum_signature_line_length = 80
 autodoc_member_order = "bysource"
+# Exclude undocumented members (prevents empty attribute blocks)
+autodoc_default_options = {
+    "members": True,
+    "undoc-members": False,  # Don't show members without docstrings
+}
 
+# =============================================================================
 # Numpydoc settings
-numpydoc_show_class_members = True
+# =============================================================================
+# NOTE: show_class_members=False suppresses auto-generated Attributes section
+# and individual attribute blocks. Properties with docstrings still appear.
+# For dataclasses, document fields in Parameters section instead.
+numpydoc_show_class_members = False
 numpydoc_class_members_toctree = False
 numpydoc_attributes_as_param_list = True
 numpydoc_xref_param_type = True
+# Prevent common words from rendering as type badges
+numpydoc_xref_ignore = {"of", "default", "optional"}

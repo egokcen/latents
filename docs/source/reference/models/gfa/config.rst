@@ -19,11 +19,7 @@ gfa.config
 ----
 
 .. autoclass:: GFAFitConfig
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   :no-members:
 
 .. autoclass:: GFASimConfig
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   :no-members:

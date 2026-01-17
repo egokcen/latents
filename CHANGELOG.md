@@ -38,11 +38,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `LoggingCallback` for structured logging to the `latents` logger
   - `CheckpointCallback` for periodic model checkpointing with safetensors format
 - `GFAFitContext` dataclass providing model state to callbacks
+- New `latents.base` module with `ArrayContainer` base class for array-holding containers
+- New `latents.tracking` module with base `FitTracker` and `FitFlags` classes
+- New `latents.mdlag.tracking` module with `mDLAGFitTracker` and `mDLAGFitFlags` stubs
+- Package root now exports `base`, `callbacks`, and `tracking` modules
 
 ### Changed
 
 - GFA variational inference iteration order changed from d → X → C → α → φ to d → C → α → φ → X. This enables exact reconstruction of cleared latents from saved observation parameters, allowing `resume_fit()` and `compute_lower_bound()` to work with `save_x=False`.
-- Internal utilities reorganized into `_internal/` subpackage (base classes, fitting infrastructure, numerics, logging)
+- Internal utilities reorganized into `_internal/` subpackage (numerics, logging)
 - Observation model probabilistic components reorganized into `observation/` subpackage
 - Observation data containers (`ObsStatic`, `ObsTimeSeries`) moved to `latents.data` module
 - State model classes reorganized into `state/` subpackage

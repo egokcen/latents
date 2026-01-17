@@ -29,13 +29,13 @@ class GFASimulationResult:
 
     Bundles the specification (config + hyperprior) with the sampled outputs
     (obs_params, latents, observations). This is a run artifact analogous to
-    a fitted GFAModel.
+    a fitted :class:`GFAModel`.
 
-    Attributes
+    Parameters
     ----------
     config : GFASimConfig
         Experimental design parameters used for simulation.
-    hyperprior : ObsParamsHyperPrior | ObsParamsHyperPriorStructured
+    hyperprior : ObsParamsHyperPrior or ObsParamsHyperPriorStructured
         Probabilistic model specification.
     obs_params : ObsParamsRealization
         Sampled observation model parameters (C, d, phi, alpha).
@@ -60,11 +60,11 @@ def simulate(
 
     Parameters
     ----------
-    config
+    config : GFASimConfig
         Experimental design parameters (n_samples, y_dims, x_dim, snr, seed).
-    hyperprior
+    hyperprior : ObsParamsHyperPrior or ObsParamsHyperPriorStructured
         Probabilistic model specification. For structured sparsity patterns,
-        use ``ObsParamsHyperPriorStructured`` where ``a_alpha`` and ``b_alpha``
+        use :class:`ObsParamsHyperPriorStructured` where ``a_alpha`` and ``b_alpha``
         arrays specify group- and column-specific patterns. Use ``np.inf`` in
         ``a_alpha`` to force zero loadings.
 
@@ -126,12 +126,12 @@ def sample_observations(
 
     Parameters
     ----------
-    latents
+    latents : LatentsRealization
         Sampled latent data.
-    obs_params
+    obs_params : ObsParamsRealization or ObsParamsPoint
         GFA observation model parameters, either as a full realization
         or as point estimates.
-    rng
+    rng : numpy.random.Generator
         NumPy random number generator.
 
     Returns
@@ -264,13 +264,13 @@ def save_simulation(path: str | os.PathLike[str], result: GFASimulationResult) -
     """Save complete simulation result to safetensors file.
 
     Saves the full snapshot: config, hyperprior, obs_params, latents, and
-    observations. Use `load_simulation()` to restore.
+    observations. Use :func:`~latents.gfa.simulation.load_simulation` to restore.
 
     Parameters
     ----------
-    path
+    path : str or PathLike
         Output file path (conventionally ends in .safetensors).
-    result
+    result : GFASimulationResult
         Complete simulation result to save.
 
     See Also
@@ -310,15 +310,16 @@ def save_simulation_recipe(
     """Save simulation recipe (config + hyperprior only).
 
     Saves a minimal file that can regenerate the full simulation when
-    passed to `simulate()`. Requires `config.random_seed` to be set.
+    passed to :func:`~latents.gfa.simulation.simulate`. Requires ``config.random_seed``
+    to be set.
 
     Parameters
     ----------
-    path
+    path : str or PathLike
         Output file path (conventionally ends in .safetensors).
-    config
+    config : GFASimConfig
         Simulation configuration. Must have random_seed set.
-    hyperprior
+    hyperprior : ObsParamsHyperPrior or ObsParamsHyperPriorStructured
         Probabilistic model specification.
 
     Raises
@@ -348,8 +349,9 @@ def load_simulation(path: str | os.PathLike[str]) -> GFASimulationResult:
 
     Parameters
     ----------
-    path
-        Path to .safetensors file saved with `save_simulation()`.
+    path : str or PathLike
+        Path to .safetensors file saved with
+        :func:`~latents.gfa.simulation.save_simulation`.
 
     Returns
     -------
@@ -359,8 +361,9 @@ def load_simulation(path: str | os.PathLike[str]) -> GFASimulationResult:
     Raises
     ------
     ValueError
-        If file contains only a recipe. Use `load_simulation_recipe()` and
-        `simulate()` to regenerate.
+        If file contains only a recipe. Use
+        :func:`~latents.gfa.simulation.load_simulation_recipe` and
+        :func:`~latents.gfa.simulation.simulate` to regenerate.
 
     See Also
     --------
@@ -415,14 +418,14 @@ def load_simulation_recipe(
 
     Parameters
     ----------
-    path
+    path : str or PathLike
         Path to .safetensors file.
 
     Returns
     -------
     config : GFASimConfig
         Simulation configuration.
-    hyperprior : ObsParamsHyperPrior | ObsParamsHyperPriorStructured
+    hyperprior : ObsParamsHyperPrior or ObsParamsHyperPriorStructured
         Probabilistic model specification.
 
     Examples

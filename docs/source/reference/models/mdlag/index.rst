@@ -14,5 +14,6 @@ Delayed latents across multiple groups (mDLAG)
     model
     config
     inference
+    tracking
     simulation
     analysis

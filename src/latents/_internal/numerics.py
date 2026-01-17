@@ -16,13 +16,13 @@ def stability_floor(dtype=np.float64) -> float:
 
     Parameters
     ----------
-    dtype
-        NumPy dtype to determine precision. Defaults to float64.
+    dtype : dtype, default np.float64
+        NumPy dtype to determine precision.
 
     Returns
     -------
     float
-        1e-10 for float64, 1e-6 for float32.
+        Stability floor (1e-10 for float64, 1e-6 for float32).
     """
     eps = np.finfo(dtype).eps
     return 1e-10 if eps < 1e-10 else 1e-6
@@ -37,11 +37,11 @@ def validate_tolerance(tol: float, dtype, name: str) -> None:
 
     Parameters
     ----------
-    tol
+    tol : float
         Tolerance value to validate.
-    dtype
+    dtype : dtype
         NumPy dtype to determine precision floor.
-    name
+    name : str
         Parameter name for the warning message.
 
     Warns

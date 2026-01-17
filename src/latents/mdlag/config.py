@@ -7,6 +7,9 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True, slots=True, kw_only=True)
 class mDLAGFitConfig:
-    """Configuration for mDLAG model fitting."""
+    """Configuration for mDLAG model fitting.
+
+    Stub for future implementation. Currently has no parameters.
+    """
 
     pass

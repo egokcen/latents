@@ -57,11 +57,11 @@ def invoke_callbacks(callbacks: list, method: str, **kwargs: Any) -> None:
 
     Parameters
     ----------
-    callbacks
+    callbacks : list
         List of callback objects.
-    method
+    method : str
         Method name to call.
-    **kwargs
+    **kwargs : Any
         Arguments passed to the method.
     """
     for cb in callbacks:
@@ -90,6 +90,13 @@ class LoggingCallback:
     """
 
     def on_fit_start(self, ctx: Any) -> None:
+        """Log fit start event with data dimensions.
+
+        Parameters
+        ----------
+        ctx : Any
+            Fitting context providing obs_posterior, latents_posterior, tracker.
+        """
         # Log data shape info: n_samples from latents, y_dims per group, x_dim
         n_samples = ctx.latents_posterior.mean.shape[1]
         y_dims = ctx.obs_posterior.y_dims
@@ -97,6 +104,15 @@ class LoggingCallback:
         log_event(FitEvent.STARTED, n_samples=n_samples, y_dims=y_dims, x_dim=x_dim)
 
     def on_fit_end(self, ctx: Any, reason: str) -> None:
+        """Log fit end event with termination reason.
+
+        Parameters
+        ----------
+        ctx : Any
+            Fitting context providing tracker.
+        reason : str
+            Termination reason ("converged", "max_iter", or "no_latents").
+        """
         event_map = {
             "converged": FitEvent.CONVERGED,
             "max_iter": FitEvent.MAX_ITER,
@@ -111,6 +127,19 @@ class LoggingCallback:
         log_event(event, level=level, iteration=iteration)
 
     def on_flag_changed(self, ctx: Any, flag: str, value: Any, iteration: int) -> None:
+        """Log flag change events (warnings for decreasing_lb, private_var_floor).
+
+        Parameters
+        ----------
+        ctx : Any
+            Fitting context (unused by this callback).
+        flag : str
+            Name of the flag that changed.
+        value : Any
+            New value of the flag.
+        iteration : int
+            Current iteration number.
+        """
         # converged is redundant with on_fit_end
         if flag == "converged":
             return
@@ -127,6 +156,19 @@ class LoggingCallback:
     def on_x_dim_pruned(
         self, ctx: Any, n_removed: int, x_dim_remaining: int, iteration: int
     ) -> None:
+        """Log latent dimension pruning event.
+
+        Parameters
+        ----------
+        ctx : Any
+            Fitting context (unused by this callback).
+        n_removed : int
+            Number of dimensions removed.
+        x_dim_remaining : int
+            Number of dimensions remaining.
+        iteration : int
+            Current iteration number.
+        """
         log_event(
             FitEvent.X_DIM_PRUNED,
             n_removed=n_removed,
@@ -146,7 +188,7 @@ class ProgressCallback:
 
     Parameters
     ----------
-    desc
+    desc : str, default "Fitting"
         Description shown next to the progress bar.
     """
 
@@ -158,6 +200,13 @@ class ProgressCallback:
     _lb_base: float | None = field(default=None, init=False, repr=False)
 
     def on_fit_start(self, ctx: Any) -> None:
+        """Initialize progress bar.
+
+        Parameters
+        ----------
+        ctx : Any
+            Fitting context providing config, obs_posterior, tracker.
+        """
         max_iter = ctx.config.max_iter
         self._pbar = tqdm(total=max_iter, desc=self.desc)
         self._x_dim = ctx.obs_posterior.x_dim
@@ -167,6 +216,19 @@ class ProgressCallback:
     def on_iteration_end(
         self, ctx: Any, iteration: int, lb: float, lb_prev: float
     ) -> None:
+        """Update progress bar with current lower bound and relative change.
+
+        Parameters
+        ----------
+        ctx : Any
+            Fitting context providing config, tracker.
+        iteration : int
+            Current iteration number.
+        lb : float
+            Current lower bound value.
+        lb_prev : float
+            Previous iteration's lower bound value.
+        """
         if self._pbar is None:
             return
 
@@ -199,9 +261,31 @@ class ProgressCallback:
     def on_x_dim_pruned(
         self, ctx: Any, n_removed: int, x_dim_remaining: int, iteration: int
     ) -> None:
+        """Update tracked x_dim for progress bar display.
+
+        Parameters
+        ----------
+        ctx : Any
+            Fitting context (unused by this callback).
+        n_removed : int
+            Number of dimensions removed.
+        x_dim_remaining : int
+            Number of dimensions remaining.
+        iteration : int
+            Current iteration number.
+        """
         self._x_dim = x_dim_remaining
 
     def on_fit_end(self, ctx: Any, reason: str) -> None:
+        """Close progress bar.
+
+        Parameters
+        ----------
+        ctx : Any
+            Fitting context (unused by this callback).
+        reason : str
+            Termination reason.
+        """
         if self._pbar is not None:
             self._pbar.close()
             self._pbar = None
@@ -217,26 +301,26 @@ class CheckpointCallback:
     """Save model checkpoints during fitting.
 
     Checkpoints are saved in safetensors format and can be loaded via
-    ``GFAModel.load(path)``.
+    :meth:`GFAModel.load`.
 
     Parameters
     ----------
-    save_dir
+    save_dir : str or Path
         Directory for checkpoint files. Created if it doesn't exist.
-    every_n_iter
+    every_n_iter : int, default 5000
         Save every N iterations. Set to 0 to disable periodic saves.
-    save_initial
+    save_initial : bool, default True
         If True, save immediately after initialization (before iteration 0).
-    save_final
+    save_final : bool, default True
         If True, save after fit completes.
-    save_on_interrupt
+    save_on_interrupt : bool, default True
         If True, save checkpoint when Ctrl+C is pressed. Only works in the
         main process; in parallel workers, rely on periodic checkpoints.
-    max_checkpoints
+    max_checkpoints : int, default 3
         Maximum periodic checkpoints to keep. Older ones are deleted.
         Set to 0 to keep all. Does not affect initial, final, or interrupt
         checkpoints.
-    prefix
+    prefix : str, default ""
         Optional prefix for checkpoint filenames.
 
     Examples
@@ -277,6 +361,13 @@ class CheckpointCallback:
         return multiprocessing.current_process().name == "MainProcess"
 
     def on_fit_start(self, ctx: Any) -> None:
+        """Initialize checkpointing, register interrupt handler, save initial.
+
+        Parameters
+        ----------
+        ctx : Any
+            Fitting context providing save() method.
+        """
         self._ctx = ctx
         self._iteration = 0
         self._periodic_paths = []
@@ -301,6 +392,19 @@ class CheckpointCallback:
     def on_iteration_end(
         self, ctx: Any, iteration: int, lb: float, lb_prev: float
     ) -> None:
+        """Save periodic checkpoint if iteration matches every_n_iter.
+
+        Parameters
+        ----------
+        ctx : Any
+            Fitting context (unused, uses stored context).
+        iteration : int
+            Current iteration number.
+        lb : float
+            Current lower bound value (unused).
+        lb_prev : float
+            Previous lower bound value (unused).
+        """
         self._iteration = iteration
 
         # Periodic checkpoint (iteration is 0-indexed, so add 1 for display)
@@ -311,6 +415,15 @@ class CheckpointCallback:
             self._prune_old_checkpoints()
 
     def on_fit_end(self, ctx: Any, reason: str) -> None:
+        """Save final checkpoint and restore signal handler.
+
+        Parameters
+        ----------
+        ctx : Any
+            Fitting context (unused, uses stored context).
+        reason : str
+            Termination reason (unused).
+        """
         if self.save_final:
             self._save("final")
         self._restore_signal_handler()

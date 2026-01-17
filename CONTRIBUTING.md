@@ -250,7 +250,7 @@ for more details.
 ### Sphinx
 
 We use [Sphinx](https://www.sphinx-doc.org/en/master/) to build our documentation.
-As a developer, if you're mostly just working on code, then the documentation [style guide](#documentation-1) is the most important information for you to keep in mind.
+As a developer, if you're mostly just working on code, then the [docstring conventions](#docstrings) are the most important information for you to keep in mind.
 If you keep to the style guide, then Sphinx will do much of the heavy lifting based
 on your docstrings.
 
@@ -334,11 +334,128 @@ Use semantic dimension names:
 | Observed dims | `y_dim` | Observation space dimensionality |
 | Groups | `n_groups` | Number of observation groups |
 
-### Documentation
+### Docstrings
 
-To facilitate [Sphinx's](https://www.sphinx-doc.org/en/master/) automated build process, we stick to
-[NumPy style docstrings](https://www.sphinx-doc.org/en/master/usage/extensions/example_numpy.html)
-with [type hints](https://docs.python.org/3/library/typing.html).
-Docstrings include instances of explicit markup syntax and directives
-(e.g., `**bold_variable**` or `:class:`) for proper rendering. Look through any
-[source file](./src) for examples.
+We use [NumPy style docstrings](https://www.sphinx-doc.org/en/master/usage/extensions/example_numpy.html)
+with [type hints](https://docs.python.org/3/library/typing.html). Sphinx builds documentation
+automatically from docstrings, so following these conventions ensures proper rendering.
+
+#### Required Sections by Object Type
+
+| Object Type | Required Sections | Notes |
+|-------------|-------------------|-------|
+| Function | Parameters, Returns | Include Raises if exceptions are intentional |
+| Class | Parameters, Attributes | Parameters = `__init__` args; Attributes = post-construction state |
+| Dataclass | Parameters | Document fields in Parameters (not Attributes) |
+| Property | One-line summary | Simple accessors need only a brief description |
+| Method | Parameters, Returns | Same as functions |
+
+#### Type and Default Formatting
+
+```python
+# Union types: use "or" not "|"
+config : GFAFitConfig or None, default None
+
+# Optional with default: include both
+callbacks : list of Callback or None, default None
+
+# Array shapes (for raw ndarray parameters)
+data : ndarray of shape (y_dim, n_samples)
+```
+
+#### Returns Section
+
+```python
+# Single return: type only, no name
+Returns
+-------
+LatentsPosteriorStatic
+    Posterior over latent variables.
+
+# Multiple returns: name each value
+Returns
+-------
+obs_posterior : ObsParamsPosterior
+    Fitted observation model posterior.
+tracker : GFAFitTracker
+    Quantities tracked during fitting.
+```
+
+#### Inline Code Formatting
+
+Use backticks for inline code (variable names, attribute access, shapes, literals):
+
+```python
+# Variable names and attribute access
+"""If `obs_posterior.y_dims` does not match `Y.dims`."""
+
+# Array shapes
+"""Array of shape `(n_groups, x_dim)`."""
+
+# Parameter values and literals
+"""Set `max_iter=1000` for longer runs."""
+```
+
+Both single and double backticks work (we set `default_role = "code"` in Sphinx).
+
+#### Cross-References
+
+Use Sphinx roles to create clickable links to documented objects. The format
+depends on whether the name is unique or could be ambiguous across modules.
+
+**Classes** — use short names, as long as they are unique:
+
+```python
+See :class:`GFAFitConfig` for options.
+```
+
+**Methods** — use `ClassName.method` format (class name disambiguates):
+
+```python
+Load a saved model with :meth:`GFAModel.load`.
+```
+
+**Module-level functions** — use full path with tilde (function names like `fit`,
+`simulate`, `infer_latents` exist in multiple modules):
+
+```python
+# Tilde displays just "fit" but links to the correct function
+See :func:`~latents.gfa.inference.fit` for details.
+```
+
+**Modules** — use full path with tilde:
+
+```python
+See :mod:`~latents.callbacks` for available callbacks.
+```
+
+**When to use cross-references vs. backticks:**
+
+| Use case | Format |
+|----------|--------|
+| Documented class/function (clickable link) | `:class:`GFAModel``, `:func:`~latents.gfa.inference.fit`` |
+| Variable names, attributes | ``` ``obs_posterior.y_dims`` ``` |
+| Array shapes | ``` ``(n_groups, x_dim)`` ``` |
+| Parameter values, literals | ``` ``max_iter=1000`` ``` |
+
+#### Examples Section
+
+Include Examples for:
+- Public entry-point functions (``fit``, ``simulate``, ``infer_latents``)
+- User-facing classes (``GFAModel``, ``GFAFitConfig``, ``ObsStatic``)
+
+Use bold headers to organize multiple examples:
+
+```python
+Examples
+--------
+**Basic usage**
+
+>>> model = GFAModel(config=GFAFitConfig(x_dim_init=10))
+>>> model.fit(Y)
+
+**With callbacks**
+
+>>> from latents.callbacks import ProgressCallback
+>>> model.fit(Y, callbacks=[ProgressCallback()])
+```

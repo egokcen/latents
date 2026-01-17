@@ -6,35 +6,52 @@ import numpy as np
 
 
 class ObsStatic:
-    """
-    Store and manipulate views of observed static data.
+    """Store and manipulate views of observed static data.
 
     Parameters
     ----------
-    data
-        `ndarray` of `float`, shape ``(dim, n_samples)``.
+    data : ndarray of float, shape (y_dim, n_samples)
         Observed data. Groups are stacked vertically. For example, if there
         are three groups with dimensionalities 2, 3, and 4, then ``data`` is a
-        `ndarray` of shape ``(9, n_samples)``, and ``data[:2, :]`` contains the first
+        ndarray of shape ``(9, n_samples)``, and ``data[:2, :]`` contains the first
         group, ``data[2:5, :]`` contains the second group, and ``data[5:, :]``
         contains the third group.
-    dims
-        `ndarray` of `int`, shape ``(n_groups,)``.
+    dims : ndarray of int, shape (n_groups,)
         Dimensionalities of each observed group.
 
     Attributes
     ----------
-    data
-        Same as **data**, above.
-    dims
-        Same as **dims**, above.
+    data : ndarray of float, shape (y_dim, n_samples)
+        Observed data. Groups are stacked vertically.
+    dims : ndarray of int, shape (n_groups,)
+        Dimensionalities of each observed group.
 
     Raises
     ------
     TypeError
-        If ``data`` or ``dims`` is not a `ndarray`.
+        If ``data`` or ``dims`` is not a ndarray.
     ValueError
         If the sum of ``dims`` does not equal the number of rows in ``data``.
+
+    Examples
+    --------
+    Create observation data with two groups (3 and 2 dimensions):
+
+    >>> import numpy as np
+    >>> from latents.data import ObsStatic
+    >>> data = np.random.randn(5, 100)  # 5 total dims, 100 samples
+    >>> dims = np.array([3, 2])  # Group 1 has 3 dims, group 2 has 2
+    >>> Y = ObsStatic(data, dims)
+    >>> Y
+    ObsStatic(data.shape=(5, 100), dims=[3 2])
+
+    Access data for each group separately:
+
+    >>> groups = Y.get_groups()
+    >>> groups[0].shape  # First group
+    (3, 100)
+    >>> groups[1].shape  # Second group
+    (2, 100)
     """
 
     def __init__(
@@ -65,28 +82,27 @@ class ObsStatic:
         return f"{type(self).__name__}(data.shape={self.data.shape}, dims={self.dims})"
 
     def get_groups(self) -> list[np.ndarray]:
-        """
-        Return a list of views of the observed data, one for each group.
+        """Return a list of views of the observed data, one for each group.
 
         Returns
         -------
-        list[ndarray]
-            *list* of `ndarray`, length ``n_groups``.
-            List of views of the observed data, one for each group.
+        list of ndarray
+            Views of the observed data, one per group, length ``n_groups``.
         """
         return np.split(self.data, np.cumsum(self.dims)[:-1], axis=0)
 
 
 class ObsTimeSeries:
-    """
-    Store and manipulate views of observed time series data.
+    """Store and manipulate views of observed time series data.
+
+    Stub for future implementation.
 
     Raises
     ------
     NotImplementedError
-        This class is not yet implemented.
+        Always raised; this class is a placeholder for future implementation.
     """
 
-    def __init__(self, *args, **kwargs):
-        msg = "ObsTimeSeries is not yet implemented."
+    def __init__(self) -> None:
+        msg = "ObsTimeSeries not yet implemented"
         raise NotImplementedError(msg)

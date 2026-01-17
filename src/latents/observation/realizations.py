@@ -15,17 +15,17 @@ class ObsParamsRealization:
 
     Parameters
     ----------
-    C
-        Loading matrices, shape (y_dim, x_dim).
-    d
-        Observation means, shape (y_dim,).
-    phi
-        Observation precisions, shape (y_dim,).
-    alpha
-        ARD parameters, shape (n_groups, x_dim).
-    y_dims
-        Dimensionalities of each observed group, shape (n_groups,).
-    x_dim
+    C : ndarray of float, shape (y_dim, x_dim)
+        Loading matrices.
+    d : ndarray of float, shape (y_dim,)
+        Observation means.
+    phi : ndarray of float, shape (y_dim,)
+        Observation precisions.
+    alpha : ndarray of float, shape (n_groups, x_dim)
+        ARD parameters.
+    y_dims : ndarray of int, shape (n_groups,)
+        Dimensionalities of each observed group.
+    x_dim : int
         Number of latent dimensions.
     """
 
@@ -53,21 +53,21 @@ class ObsParamsPoint:
 
     Source: Non-Bayesian fitting (FA, GPFA, etc.)
 
-    Semantically distinct from ObsParamsRealization—represents "the" optimized
+    Semantically distinct from :class:`ObsParamsRealization`—represents "the" optimized
     answer, not "a" sample from a distribution. Does not include alpha
     (non-Bayesian methods do not use ARD).
 
     Parameters
     ----------
-    C
-        Loading matrices, shape (y_dim, x_dim).
-    d
-        Observation means, shape (y_dim,).
-    phi
-        Observation precisions, shape (y_dim,).
-    y_dims
-        Dimensionalities of each observed group, shape (n_groups,).
-    x_dim
+    C : ndarray of float, shape (y_dim, x_dim)
+        Loading matrices.
+    d : ndarray of float, shape (y_dim,)
+        Observation means.
+    phi : ndarray of float, shape (y_dim,)
+        Observation precisions.
+    y_dims : ndarray of int, shape (n_groups,)
+        Dimensionalities of each observed group.
+    x_dim : int
         Number of latent dimensions.
     """
 
@@ -101,14 +101,13 @@ def adjust_snr(
 
     Parameters
     ----------
-    realization
+    realization : ObsParamsRealization
         Observation parameters to adjust.
-    snr
+    snr : float or ndarray
         Target SNR. Either a scalar (broadcast to all groups) or per-group
         array of shape ``(n_groups,)``.
-    y_dims
-        Dimensionalities of each group, shape (n_groups,). If None, uses
-        realization.y_dims.
+    y_dims : ndarray of int, shape (n_groups,) or None, default None
+        Dimensionalities of each group. If None, uses realization.y_dims.
 
     Returns
     -------

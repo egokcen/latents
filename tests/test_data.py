@@ -75,7 +75,5 @@ def test_obsstatic_get_groups() -> None:
 # ------------------
 def test_obstimeseries_not_implemented() -> None:
     """Test that ObsTimeSeries raises NotImplementedError."""
-    with pytest.raises(
-        NotImplementedError, match=r"ObsTimeSeries is not yet implemented"
-    ):
+    with pytest.raises(NotImplementedError, match=r"ObsTimeSeries not yet implemented"):
         ObsTimeSeries()

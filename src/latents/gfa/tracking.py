@@ -47,15 +47,15 @@ class GFAFitTracker(FitTracker):
 class GFAFitFlags(FitFlags):
     """Status flags from a GFA model fit.
 
-    Attributes
+    Parameters
     ----------
-    converged
+    converged : bool, default False
         True if the lower bound converged before reaching max_iter.
-    decreasing_lb
+    decreasing_lb : bool, default False
         True if lower bound decreased during fitting.
-    private_var_floor
+    private_var_floor : bool, default False
         True if the private variance floor was used on any values of phi.
-    x_dims_removed
+    x_dims_removed : int, default 0
         Number of latent dimensions removed due to low variance.
     """
 
@@ -77,21 +77,21 @@ class GFAFitContext:
     """Context passed to callbacks during GFA fitting.
 
     Provides read-only access to fitting state and a save() method for
-    checkpointing. Checkpoints can be loaded via ``GFAModel.load(path)``.
+    checkpointing. Checkpoints can be loaded via :meth:`GFAModel.load`.
 
-    Attributes
+    Parameters
     ----------
-    config
+    config : GFAFitConfig
         Fitting configuration.
-    obs_hyperprior
+    obs_hyperprior : ObsParamsHyperPrior
         Prior hyperparameters.
-    obs_posterior
+    obs_posterior : ObsParamsPosterior
         Observation model posterior.
-    latents_posterior
+    latents_posterior : LatentsPosteriorStatic
         Latent variable posterior.
-    tracker
+    tracker : GFAFitTracker
         Fitting progress tracker.
-    flags
+    flags : GFAFitFlags
         Fitting status flags.
     """
 
@@ -105,11 +105,11 @@ class GFAFitContext:
     def save(self, path: str | os.PathLike[str]) -> None:
         """Save current state to a checkpoint file.
 
-        The checkpoint can be loaded as a GFAModel via ``GFAModel.load(path)``.
+        The checkpoint can be loaded as a :class:`GFAModel` via :meth:`GFAModel.load`.
 
         Parameters
         ----------
-        path
+        path : str or PathLike
             Output file path (conventionally ends in .safetensors).
         """
         save_gfa_state(
@@ -145,19 +145,19 @@ def save_gfa_state(
 
     Parameters
     ----------
-    path
+    path : str or PathLike
         Output file path (conventionally ends in .safetensors).
-    config
+    config : GFAFitConfig
         Fitting configuration.
-    obs_hyperprior
+    obs_hyperprior : ObsParamsHyperPrior
         Prior hyperparameters.
-    obs_posterior
+    obs_posterior : ObsParamsPosterior or None, default None
         Observation model posterior (None if unfitted).
-    latents_posterior
+    latents_posterior : LatentsPosteriorStatic or None, default None
         Latent variable posterior (None if not saved).
-    tracker
+    tracker : GFAFitTracker or None, default None
         Fitting progress tracker (None if not tracked).
-    flags
+    flags : GFAFitFlags or None, default None
         Fitting status flags (None if unfitted).
     """
     tensors: dict[str, np.ndarray] = {}
@@ -245,22 +245,22 @@ def load_gfa_state(
 
     Parameters
     ----------
-    path
+    path : str or PathLike
         Path to .safetensors file.
 
     Returns
     -------
-    config
+    config : GFAFitConfig
         Fitting configuration.
-    obs_hyperprior
+    obs_hyperprior : ObsParamsHyperPrior
         Prior hyperparameters.
-    obs_posterior
+    obs_posterior : ObsParamsPosterior or None
         Observation model posterior, or None if not present.
-    latents_posterior
+    latents_posterior : LatentsPosteriorStatic or None
         Latent variable posterior, or None if not present.
-    tracker
+    tracker : GFAFitTracker or None
         Fitting progress tracker, or None if not present.
-    flags
+    flags : GFAFitFlags or None
         Fitting status flags, or None if not present.
     """
     with safe_open(path, framework="numpy") as f:

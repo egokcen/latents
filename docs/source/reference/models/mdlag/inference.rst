@@ -8,14 +8,6 @@ mdlag.inference
 
 .. currentmodule:: latents.mdlag.inference
 
-.. rubric:: Classes
-
-.. autosummary::
-   :nosignatures:
-
-   mDLAGFitTracker
-   mDLAGFitFlags
-
 .. rubric:: Functions
 
 .. autosummary::
@@ -32,16 +24,6 @@ mdlag.inference
    compute_lower_bound
 
 ----
-
-.. autoclass:: mDLAGFitTracker
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. autoclass:: mDLAGFitFlags
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 .. autofunction:: fit
 

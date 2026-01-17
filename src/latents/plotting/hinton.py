@@ -24,14 +24,13 @@ def hinton_diagram(
 
     Parameters
     ----------
-    matrix
-        `ndarray` of `float`, shape ``(M, N)``.
+    matrix : ndarray of shape (M, N)
         Matrix to visualize.
-    max_weight
+    max_weight : float or None, default None
         Maximum absolute value of matrix elements.
-    ax
-        Axes on which to draw the diagram. If ``None``, then gets an existing
-        axis or creates a new one.
+    ax : Axes or None, default None
+        Axes on which to draw the diagram. If None, gets an existing axis
+        or creates a new one.
 
     Examples
     --------

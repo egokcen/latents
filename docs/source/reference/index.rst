@@ -13,3 +13,4 @@ API reference
     plotting/index
     callbacks
     tracking
+    base
