@@ -77,12 +77,17 @@ html_js_files = [
 ]
 
 html_theme_options = {
+    # Site-wide announcement banner
+    "announcement": (
+        "⚠️ <strong>Early Development</strong> — latents is not yet stable. "
+        "The API is subject to frequent change."
+    ),
     # Navigation bar (version switching handled by RTD flyout)
     "navbar_start": ["navbar-logo"],
     "navbar_center": ["navbar-nav"],
     "navbar_end": ["theme-switcher", "navbar-icon-links"],
     "navbar_persistent": ["search-button"],
-    "header_links_before_dropdown": 4,
+    "header_links_before_dropdown": 5,
     # Project logo
     "logo": {
         "text": "latents",

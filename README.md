@@ -12,11 +12,11 @@
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
 
-**Latents** is a Python toolkit for latent variable modeling and dimensionality reduction,
+**Latents** is a Python library for latent variable modeling and dimensionality reduction,
 with an emphasis on linear, probabilistic methods.
 
 > [!WARNING]
-> The **Latents** toolkit is in an early stage of development and is not yet stable.
+> **Latents** is in an early stage of development and is not yet stable.
 > The API is subject to frequent change.
 
 ## Supported Methods

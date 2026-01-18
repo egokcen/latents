@@ -1,12 +1,6 @@
 /* Custom styles extending pydata-sphinx-theme for latents documentation. */
 
 :root {
-  /* Brand palette */
-  --latents-primary: #2aa198;        /* Teal - links, active states */
-  --latents-primary-hover: #35bdb3;  /* Lighter teal for hover */
-  --latents-accent: #d35fbc;         /* Magenta - buttons, highlights */
-  --latents-accent-hover: #e07dce;   /* Lighter magenta for hover */
-
   /* RTD flyout integration (inherits theme + uses accent) */
   --readthedocs-flyout-background-color: var(--pst-color-surface);
   --readthedocs-flyout-color: var(--pst-color-text-base);
@@ -14,57 +8,154 @@
   --readthedocs-flyout-item-link-color: var(--pst-color-link);
   --readthedocs-flyout-font-family: var(--pst-font-family-base);
   --readthedocs-flyout-section-heading-color: var(--pst-color-text-muted);
-  --readthedocs-flyout-current-version-color: var(--latents-accent);
-}
-
-/* Dark mode adjustments */
-html[data-theme="dark"] {
-  --latents-primary: #5dc9c0;        /* Brighter teal for dark backgrounds */
-  --latents-primary-hover: #7dd9d2;
+  --readthedocs-flyout-current-version-color: var(--pst-color-link);
 }
 
 /* =============================================================================
-   INTRO CARDS (Main index page)
-   Cards on landing page for navigation to main sections
+   LANDING PAGE: HERO SECTION
+   Main hero container with title, tagline, description, and artwork
    ============================================================================= */
 
-.intro-card {
-  padding: 30px 10px 20px 10px;
+/* Hero section container - matches nav section color scheme */
+.hero-section {
+  background-color: var(--pst-color-surface);
+  border-radius: 12px;
+  padding: 2rem 2.5rem;
+  margin-bottom: 2rem;
+  position: relative;
+  overflow: hidden;  /* Allow image to extend beyond rounded corners */
+  min-height: 200px;
 }
 
-.intro-card .sd-card-img-top {
-  height: 52px;
-  width: 52px;
-  margin-left: auto;
-  margin-right: auto;
-  background: none !important;
+/* Hero tagline (rubric) */
+.hero-section .rubric {
+  font-size: 1.4rem;
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+  color: var(--pst-color-text-base);
+  border: none;
+  line-height: 1.3;
 }
 
-.intro-card .sd-card-title {
-  color: var(--pst-color-primary);
-  font-size: var(--pst-font-size-h5);
-  padding: 1rem 0rem 0.5rem 0rem;
+/* Hero description */
+.hero-section p {
+  font-size: 1.1rem;
+  color: var(--pst-color-text-muted);
+  line-height: 1.6;
+  margin-bottom: 0;
 }
 
-.intro-card .sd-card-footer {
+/* Hero artwork */
+.hero-section .hero-image {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: auto;
+  border-radius: 0 !important;  /* Override theme default */
+}
+
+/* Hide the grid-item container since image is absolutely positioned */
+.hero-artwork {
+  display: contents;  /* Remove from layout, children inherit parent */
+}
+
+/* =============================================================================
+   LANDING PAGE: FEATURE HIGHLIGHTS
+   Three columns outside the hero box
+   ============================================================================= */
+
+.feature-highlights {
+  margin-bottom: 2rem;
+  padding: 0 1rem;
+}
+
+.feature-highlights .sd-col p strong {
+  color: var(--pst-color-text-base);
+  font-size: 1.3rem;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.feature-highlights .sd-col p {
+  font-size: 1rem;
+  color: var(--pst-color-text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* =============================================================================
+   LANDING PAGE: NAVIGATION CARDS
+   Cards linking to key sections of the documentation
+   ============================================================================= */
+
+/* Nav section container */
+.nav-section {
+  background-color: var(--pst-color-surface);
+  border-radius: 12px;
+  padding: 1.5rem 2rem;
+}
+
+.nav-cards {
+  margin: 0;
+}
+
+/* Nav cards */
+.nav-card {
+  background-color: var(--pst-color-text-muted) !important;
   border: none !important;
+  border-radius: 12px !important;
+  padding: 1.5rem 1rem !important;
+  min-height: 140px;
+  transition: background-color 0.05s ease;
+  box-shadow: none !important;  /* Remove sphinx-design shadow */
 }
 
-.intro-card .sd-card-footer p.sd-card-text {
-  max-width: 220px;
-  margin-left: auto;
-  margin-right: auto;
+/* Ensure inner elements have NO separate background */
+.nav-card .sd-card-body,
+.nav-card .sd-card-text {
+  background: transparent !important;
 }
 
-/* Accent-colored buttons on intro cards */
-.intro-card .sd-btn-secondary {
-  background-color: var(--latents-accent) !important;
-  border-color: var(--latents-accent) !important;
+/* Card body layout */
+.nav-card .sd-card-body {
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
 }
 
-.intro-card .sd-btn-secondary:hover {
-  background-color: var(--latents-accent-hover) !important;
-  border-color: var(--latents-accent-hover) !important;
+/* Icon: white on dark card */
+.nav-card .sd-octicon {
+  color: var(--pst-color-background) !important;
+  fill: var(--pst-color-background) !important;
+}
+
+/* Text: white on dark card */
+.nav-card .sd-card-text {
+  margin: 0;
+  font-weight: 500;
+  font-size: 1.1rem;
+  color: var(--pst-color-background) !important;
+  text-align: center;
+}
+
+/* Hover: swap background with dark text */
+.nav-card:hover {
+  background-color: var(--pst-color-text-base) !important;
+  transform: none !important;
+}
+
+.nav-card:hover .sd-octicon {
+  color: var(--pst-color-background) !important;
+  fill: var(--pst-color-background) !important;
+}
+
+.nav-card:hover .sd-card-text {
+  color: var(--pst-color-background) !important;
 }
 
 /* =============================================================================
@@ -73,7 +164,7 @@ html[data-theme="dark"] {
    ============================================================================= */
 
 .sphx-glr-thumbcontainer {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
   border-radius: 8px;
 }
 
@@ -85,78 +176,6 @@ html[data-theme="dark"] {
 /* Dark mode: stronger shadow for visibility */
 html[data-theme="dark"] .sphx-glr-thumbcontainer:hover {
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
-}
-
-/* =============================================================================
-   API REFERENCE STYLING
-   Parameters, Attributes, Returns sections
-   ============================================================================= */
-
-/* Section headers (Parameters:, Attributes:, Returns:, etc.) */
-dl.field-list > dt.field-odd,
-dl.field-list > dt.field-even {
-  background-color: var(--pst-color-surface);
-  padding: 0.4rem 0.8rem;
-  margin-top: 1rem;
-  margin-bottom: 0.5rem;
-  border-radius: 4px;
-  font-weight: 600;
-  font-size: 0.95rem;
-}
-
-/* Parameter/attribute names */
-dl.field-list dt strong {
-  color: var(--pst-color-text-base);
-}
-
-/* Type annotations in parameter descriptions */
-dl.field-list .classifier {
-  font-style: normal;
-  color: var(--pst-color-text-muted);
-}
-
-/* Cross-reference links in API docs */
-a.reference code {
-  color: var(--pst-color-link);
-}
-
-a.reference:hover code {
-  text-decoration: underline;
-}
-
-/* Source link styling */
-a.reference.internal .viewcode-link {
-  color: var(--latents-primary);
-  font-size: 0.85rem;
-}
-
-/* =============================================================================
-   ADMONITIONS
-   Note, Warning, Tip, etc. boxes
-   ============================================================================= */
-
-/* Version admonitions (Added in version X.X) */
-.versionadded,
-.versionchanged,
-.deprecated {
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  margin: 1rem 0;
-}
-
-.versionadded {
-  background-color: rgba(42, 161, 152, 0.1);  /* Teal tint */
-  border-left: 3px solid var(--latents-primary);
-}
-
-.versionchanged {
-  background-color: rgba(211, 95, 188, 0.1);  /* Magenta tint */
-  border-left: 3px solid var(--latents-accent);
-}
-
-.deprecated {
-  background-color: rgba(255, 152, 0, 0.1);   /* Orange tint */
-  border-left: 3px solid #ff9800;
 }
 
 /* =============================================================================
@@ -176,51 +195,43 @@ button.copybtn {
 }
 
 /* =============================================================================
-   TYPOGRAPHY REFINEMENTS
-   Headings, body text, spacing
-   ============================================================================= */
-
-/* Slightly smaller h1 on API reference pages for balance */
-.bd-article h1 {
-  font-size: 2rem;
-}
-
-/* Class/function signature readability */
-dt.sig {
-  font-size: 0.95rem;
-  padding: 0.5rem 0;
-}
-
-/* =============================================================================
-   NAVIGATION ENHANCEMENTS
-   Sidebar, breadcrumbs, TOC
-   ============================================================================= */
-
-/* Active item in left sidebar */
-.bd-sidebar-primary .nav-link.active {
-  border-left: 3px solid var(--latents-accent);
-  font-weight: 600;
-}
-
-/* Right sidebar (On this page) styling */
-.bd-sidebar-secondary .nav-link {
-  font-size: 0.85rem;
-}
-
-.bd-sidebar-secondary .nav-link.active {
-  color: var(--latents-primary);
-  font-weight: 500;
-}
-
-/* =============================================================================
    RESPONSIVE ADJUSTMENTS
    Mobile and tablet optimizations
    ============================================================================= */
 
 @media (max-width: 768px) {
-  /* Reduce padding on mobile */
-  .intro-card {
-    padding: 20px 10px 15px 10px;
+  /* Hero section responsive */
+  .hero-section {
+    padding: 1.5rem 1.25rem 1rem 1.25rem;
+    min-height: auto;
+  }
+
+  .hero-section .rubric {
+    font-size: 1.3rem;
+  }
+
+  /* Hide artwork on mobile to avoid overlap */
+  .hero-artwork {
+    display: none;
+  }
+
+  .feature-highlights {
+    margin-top: 1rem;
+    padding-top: 1rem;
+  }
+
+  /* Nav section responsive */
+  .nav-section {
+    padding: 1rem;
+  }
+
+  .nav-card {
+    padding: 1rem 0.75rem !important;
+    min-height: 100px;
+  }
+
+  .nav-card .sd-card-text {
+    font-size: 1rem;
   }
 
   /* Smaller thumbnails on mobile */
