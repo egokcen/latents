@@ -122,6 +122,8 @@ class LoadingPosterior(ArrayContainer):
         if in_place:
             if self.moment is None:
                 self.moment = np.zeros_like(self.cov)
+            # Outer product per row:
+            # (y_dim, x_dim), (y_dim, x_dim) -> (y_dim, x_dim, x_dim)
             self.moment[:] = np.einsum("ij,ik->ijk", self.mean, self.mean) + self.cov
             return self.moment
 
@@ -253,6 +255,7 @@ class ARDPosterior(ArrayContainer):
         if in_place:
             if self.mean is None:
                 self.mean = np.zeros_like(self.b)
+            # a: (n_groups,) -> (n_groups, 1) for broadcast with b: (n_groups, x_dim)
             self.mean[:] = self.a[:, np.newaxis] / np.maximum(self.b, floor)
             return self.mean
 
@@ -798,12 +801,16 @@ class ObsParamsPosterior:
         alpha_inv = 1 / self.alpha.mean
         alpha_inv_rel = alpha_inv / np.sum(alpha_inv, axis=1, keepdims=True)
 
+        # snr: (n_groups,) -> (n_groups, 1) for broadcast with
+        # alpha_inv_rel: (n_groups, x_dim)
         sig_dims = (alpha_inv_rel > cutoff_shared_var) & (snr > cutoff_snr)[
             :, np.newaxis
-        ]
+        ]  # (n_groups, x_dim)
         num_dim = np.zeros(n_dim_types)
         var_exp = np.zeros((n_groups, n_dim_types))
         for dim_idx in range(n_dim_types):
+            # dim_types[:, dim_idx]: (n_groups,) -> (n_groups, 1) for broadcast with
+            # sig_dims
             dims = np.all(sig_dims == dim_types[:, dim_idx, np.newaxis], axis=0)
             num_dim[dim_idx] = np.sum(dims)
             var_exp[:, dim_idx] = np.sum(alpha_inv_rel[:, dims], axis=1)

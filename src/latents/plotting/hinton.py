@@ -12,8 +12,7 @@ def hinton_diagram(
     max_weight: float | None = None,
     ax: Axes | None = None,
 ) -> None:
-    """
-    Draw a Hinton diagram of a matrix.
+    """Draw a Hinton diagram of a matrix.
 
     The color of each square reflects the sign of the corresponding matrix
     element, and the size of each square reflects the magnitude of the

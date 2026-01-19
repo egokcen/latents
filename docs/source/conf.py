@@ -155,4 +155,4 @@ numpydoc_class_members_toctree = False
 numpydoc_attributes_as_param_list = True
 numpydoc_xref_param_type = True
 # Prevent common words from rendering as type badges
-numpydoc_xref_ignore = {"of", "default", "optional"}
+numpydoc_xref_ignore = {"default", "of", "optional", "or", "shape"}

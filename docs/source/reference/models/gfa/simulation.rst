@@ -30,9 +30,7 @@ gfa.simulation
 ----
 
 .. autoclass:: GFASimulationResult
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   :no-members:
 
 .. autofunction:: simulate
 

@@ -19,5 +19,3 @@ mdlag.model
 
 .. autoclass:: mDLAGModel
    :members:
-   :undoc-members:
-   :show-inheritance:

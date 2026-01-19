@@ -16,8 +16,7 @@ def plot_dimensionalities(
     plot_zero_dim: bool = False,
     ax: Axes | None = None,
 ) -> None:
-    """
-    Plot the number of each dimension type.
+    """Plot the number of each dimension type.
 
     Parameters
     ----------
@@ -83,8 +82,7 @@ def plot_var_exp(
     plot_zero_dim: bool = False,
     fig: Figure | None = None,
 ) -> None:
-    """
-    Plot shared variance explained by each dimension type.
+    """Plot shared variance explained by each dimension type.
 
     Parameters
     ----------
@@ -156,8 +154,7 @@ def plot_dims_pairs(
     group_names: list[str] | None = None,
     fig: Figure | None = None,
 ) -> None:
-    """
-    Visualize pairwise dimensionality analysis.
+    """Visualize pairwise dimensionality analysis.
 
     Parameters
     ----------
@@ -224,8 +221,7 @@ def plot_var_exp_pairs(
     group_names: list[str] | None = None,
     fig: Figure | None = None,
 ) -> None:
-    """
-    Visualize pairwise shared variance analysis.
+    """Visualize pairwise shared variance analysis.
 
     Parameters
     ----------

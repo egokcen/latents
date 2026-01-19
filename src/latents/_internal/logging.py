@@ -43,6 +43,11 @@ class FitEvent:
         A checkpoint was saved.
     INTERRUPTED : str
         Fitting was interrupted (e.g., by keyboard interrupt).
+
+    Examples
+    --------
+    >>> from latents._internal.logging import FitEvent, log_event
+    >>> log_event(FitEvent.STARTED, n_samples=1000, x_dim=10)
     """
 
     STARTED = "fit.started"

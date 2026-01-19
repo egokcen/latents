@@ -1,7 +1,7 @@
 .. _callbacks:
 
-callbacks
-=========
+latents.callbacks
+=================
 
 .. automodule:: latents.callbacks
    :no-members:
@@ -27,18 +27,12 @@ callbacks
 ----
 
 .. autoclass:: ProgressCallback
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   :no-members:
 
 .. autoclass:: LoggingCallback
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   :no-members:
 
 .. autoclass:: CheckpointCallback
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   :no-members:
 
 .. autofunction:: invoke_callbacks

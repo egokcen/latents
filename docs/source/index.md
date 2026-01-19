@@ -1,4 +1,4 @@
-# latents
+# Latents
 
 ```{eval-rst}
 .. raw:: html

@@ -1,7 +1,7 @@
 .. _state:
 
-state
-=====
+latents.state
+=============
 
 State model components organized by probabilistic level.
 

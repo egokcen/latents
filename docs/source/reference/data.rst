@@ -1,7 +1,7 @@
 .. _data:
 
-data
-====
+latents.data
+============
 
 .. automodule:: latents.data
    :no-members:
@@ -20,10 +20,6 @@ data
 
 .. autoclass:: ObsStatic
    :members:
-   :undoc-members:
-   :show-inheritance:
 
 .. autoclass:: ObsTimeSeries
    :members:
-   :undoc-members:
-   :show-inheritance:

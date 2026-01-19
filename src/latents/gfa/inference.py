@@ -80,6 +80,17 @@ def fit(
         If ``obs_posterior.y_dims`` does not match ``Y.dims``, if
         ``obs_posterior.x_dim`` does not match ``config.x_dim_init``, or if
         ``tracker`` and ``flags`` are not both provided or both `None`.
+
+    Examples
+    --------
+    Most users should use :meth:`GFAModel.fit` instead of calling this directly.
+
+    **Low-level usage**
+
+    >>> from latents.gfa.inference import fit
+    >>> obs_posterior, latents_posterior, tracker, flags = fit(
+    ...     Y, obs_posterior, latents_posterior, config=config
+    ... )
     """
     if config is None:
         config = GFAFitConfig()
@@ -462,6 +473,13 @@ def infer_latents(
     -------
     LatentsPosteriorStatic
         Posterior over latent variables.
+
+    Examples
+    --------
+    Infer latents for new data using a fitted model:
+
+    >>> X_new = infer_latents(Y_new, model.obs_posterior)
+    >>> X_new.mean  # Posterior mean, shape (x_dim, n_samples)
     """
     x_dim = obs_posterior.x_dim
 
@@ -723,6 +741,7 @@ def infer_obs_prec(
     phi.b[:] = hyperprior.b_phi + 0.5 * (
         n_samples * d_moment
         + Y2
+        # d.mean: (y_dim,) -> (y_dim, 1) for broadcast with Y.data: (y_dim, n_samples)
         - 2 * np.sum(obs_posterior.d.mean[:, np.newaxis] * Y.data, axis=1)
         - 2 * np.sum(obs_posterior.C.mean * XY.T, axis=1)
         + np.sum(obs_posterior.C.moment * latents_posterior.moment, axis=(1, 2))
@@ -828,6 +847,8 @@ def compute_lower_bound(
     lb += 0.5 * (
         x_dim * y_dim
         + logdet_C
+        # y_dims: (n_groups,) -> (n_groups, 1) for broadcast with
+        # log_alpha: (n_groups, x_dim)
         + np.sum(y_dims[:, np.newaxis] * log_alpha - obs_posterior.alpha.mean * C_norm)
     )
 

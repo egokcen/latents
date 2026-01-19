@@ -11,7 +11,7 @@ mdlag.tracking
 ----
 
 .. autoclass:: mDLAGFitTracker
-   :show-inheritance:
+   :members:
 
 .. autoclass:: mDLAGFitFlags
-   :show-inheritance:
+   :no-members:

@@ -3,8 +3,8 @@
 Callbacks allow custom actions at specific points during model fitting.
 Implement any subset of the callback methods you need (duck typing).
 
-Callback Methods
-----------------
+**Callback Methods**:
+
 on_fit_start(ctx)
     Called when fit() begins, after initialization.
 
@@ -22,8 +22,8 @@ on_flag_changed(ctx, flag, value, iteration)
 on_x_dim_pruned(ctx, n_removed, x_dim_remaining, iteration)
     Called when latent dimensions are pruned.
 
-Examples
---------
+**Examples**:
+
 >>> from latents.callbacks import ProgressCallback, CheckpointCallback
 >>>
 >>> model.fit(Y, callbacks=[
@@ -87,6 +87,12 @@ class LoggingCallback:
 
         import logging
         logging.basicConfig(level=logging.INFO, filename="fit.log")
+
+    Examples
+    --------
+    >>> import logging
+    >>> logging.basicConfig(level=logging.INFO)
+    >>> model.fit(Y, callbacks=[LoggingCallback()])
     """
 
     def on_fit_start(self, ctx: Any) -> None:
@@ -190,6 +196,14 @@ class ProgressCallback:
     ----------
     desc : str, default "Fitting"
         Description shown next to the progress bar.
+
+    Examples
+    --------
+    >>> model.fit(Y, callbacks=[ProgressCallback()])
+
+    **Custom description**
+
+    >>> model.fit(Y, callbacks=[ProgressCallback(desc="Training GFA")])
     """
 
     desc: str = "Fitting"
@@ -331,11 +345,6 @@ class CheckpointCallback:
     ...     prefix="experiment1",
     ... )
     >>> model.fit(Y, callbacks=[callback])
-
-    # Produces files like:
-    # ./checkpoints/experiment1_init.safetensors
-    # ./checkpoints/experiment1_iter_005000.safetensors
-    # ./checkpoints/experiment1_final.safetensors
     """
 
     save_dir: str | Path

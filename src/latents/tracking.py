@@ -31,6 +31,14 @@ class FitTracker(ArrayContainer):
         Runtime on each iteration.
     lb_base : float or None
         Baseline lower bound for convergence checking.
+
+    Examples
+    --------
+    Access via a fitted model:
+
+    >>> model.fit(Y)
+    >>> model.tracker.plot_lb()      # Plot convergence
+    >>> model.tracker.plot_runtime() # Plot cumulative runtime
     """
 
     def __init__(
@@ -97,6 +105,13 @@ class FitFlags:
         True if lower bound decreased during fitting.
     private_var_floor : bool, default False
         True if the private variance floor was used on any values of phi.
+
+    Examples
+    --------
+    Access via a fitted model:
+
+    >>> model.fit(Y)
+    >>> model.flags.display()  # Print status summary
     """
 
     converged: bool = False

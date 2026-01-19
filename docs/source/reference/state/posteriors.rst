@@ -21,15 +21,9 @@ state.posteriors
 
 .. autoclass:: LatentsPosteriorStatic
    :members:
-   :undoc-members:
-   :show-inheritance:
 
 .. autoclass:: LatentsPosteriorTimeSeries
    :members:
-   :undoc-members:
-   :show-inheritance:
 
 .. autoclass:: LatentsPosteriorDelayed
    :members:
-   :undoc-members:
-   :show-inheritance:

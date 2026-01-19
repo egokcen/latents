@@ -23,6 +23,13 @@ def stability_floor(dtype=np.float64) -> float:
     -------
     float
         Stability floor (1e-10 for float64, 1e-6 for float32).
+
+    Examples
+    --------
+    >>> stability_floor(np.float64)
+    1e-10
+    >>> stability_floor(np.float32)
+    1e-06
     """
     eps = np.finfo(dtype).eps
     return 1e-10 if eps < 1e-10 else 1e-6

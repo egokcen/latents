@@ -1,7 +1,7 @@
 .. _plotting:
 
-plotting
-========
+latents.plotting
+================
 
 Visualization utilities for model components and analysis results.
 

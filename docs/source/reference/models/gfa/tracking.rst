@@ -21,15 +21,9 @@ gfa.tracking
 
 .. autoclass:: GFAFitTracker
    :members:
-   :undoc-members:
-   :show-inheritance:
 
 .. autoclass:: GFAFitFlags
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   :no-members:
 
 .. autoclass:: GFAFitContext
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   :no-members:

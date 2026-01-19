@@ -1,7 +1,7 @@
 .. _base:
 
-base
-====
+latents.base
+============
 
 .. automodule:: latents.base
    :no-members:

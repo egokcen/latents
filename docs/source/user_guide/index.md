@@ -2,7 +2,7 @@
 
 # User guide
 
-The `latents` toolkit currently supports the following methods:
+Latents currently supports the following methods:
 
 ```{eval-rst}
 .. toctree::

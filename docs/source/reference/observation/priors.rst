@@ -20,16 +20,11 @@ observation.priors
 ----
 
 .. autoclass:: ObsParamsHyperPrior
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   :no-members:
 
 .. autoclass:: ObsParamsHyperPriorStructured
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   :no-members:
 
 .. autoclass:: ObsParamsPrior
    :members:
-   :undoc-members:
-   :show-inheritance:
+   :exclude-members: hyperprior

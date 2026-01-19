@@ -8,7 +8,7 @@ determines (1) how many latent variables are needed to describe the interactions
 across all observed groups, and (2) for each latent variable, which subset of
 groups is involved.
 
-`latents` implements a version of GFA with anisotropic observation noise,
+Latents implements a version of GFA with anisotropic observation noise,
 used in the following [paper](https://neurips.cc/virtual/2023/poster/70171):
 
 > - Gokcen, E., Jasper, A. I., Xu, A., Kohn, A., Machens, C. K. & Yu, B. M.

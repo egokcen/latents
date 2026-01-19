@@ -262,7 +262,7 @@ Source files are written in reStructuredText (`*.rst`) or Markdown (`*.md`).
 To build the documentation:
 
 ```sh
-uv run sphinx-build -b html docs/source docs/_build/html
+uv run sphinx-build -W -b html docs/source docs/_build/html
 ```
 
 To check for broken links in the documentation:
@@ -297,7 +297,7 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
 - Reference issues and pull requests liberally after the first line
 
 Examples:
-```
+```text
 feat: add cross-validation support to GFA
 fix: correct posterior covariance calculation
 docs: update installation instructions for uv
