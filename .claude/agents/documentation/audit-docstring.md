@@ -17,7 +17,7 @@ Focus on source code only — do NOT audit `tests/`.
 
 Before auditing, read these files to get the current standards:
 
-1. `CONTRIBUTING.md` — Canonical docstring style guide (section "Docstrings" under "Style Guides")
+1. `docs/source/development/contributing.md` — Canonical docstring style guide (section "Docstrings" under "Style Guides")
 2. `.claude/skills/documentation/references/docstrings.md` — Audit-specific procedures and patterns
 3. `.claude/skills/documentation/references/check-codes.md` — Check code definitions (DOC-* codes)
 4. `.claude/skills/documentation/references/terminology.md` — Domain glossary

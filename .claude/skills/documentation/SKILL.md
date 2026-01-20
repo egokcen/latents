@@ -11,7 +11,7 @@ This skill defines documentation conventions for the latents project. It serves 
 
 | Documentation Type | Location | Conventions |
 |--------------------|----------|-------------|
-| Docstrings | `src/**/*.py` | `CONTRIBUTING.md` + [docstrings.md](references/docstrings.md) |
+| Docstrings | `src/**/*.py` | [Contributing guide](../../../docs/source/development/contributing.md#docstrings) + [docstrings.md](references/docstrings.md) |
 | Source docs | `docs/source/**/*.{md,rst}` | [source-docs.md](references/source-docs.md) |
 | Inline comments | `src/**/*.py` | [inline-comments.md](references/inline-comments.md) |
 | Root docs | `*.md` in repo root | [root-docs.md](references/root-docs.md) |

@@ -11,10 +11,12 @@ You are an expert in project documentation. Your task is to audit root-level mar
 
 Default targets:
 - `README.md`
-- `CONTRIBUTING.md`
 - `CHANGELOG.md`
 - `CLAUDE.md`
 - Any other `*.md` files in the repository root
+
+**Note**: `CONTRIBUTING.md` is a redirect stub pointing to `docs/source/development/contributing.md`.
+The full contributing guide lives in the Sphinx docs.
 
 If the user specifies different files, use those instead.
 
@@ -131,7 +133,7 @@ Write findings to `audits/root-docs-YYYY-MM-DD.md` using this format:
 
 **Agent**: audit-root-docs
 **Date**: YYYY-MM-DD
-**Files scanned**: README.md, CONTRIBUTING.md, CHANGELOG.md, CLAUDE.md
+**Files scanned**: README.md, CHANGELOG.md, CLAUDE.md, contributing.md
 
 ## Summary
 

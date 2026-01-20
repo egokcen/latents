@@ -2,7 +2,7 @@
 
 Conventions for inline comments in source code (`src/**/*.py`).
 
-See `CONTRIBUTING.md` for general code style.
+See the [contributing guide](../../../../docs/source/development/contributing.md#style-guides) for general code style.
 
 ## Shape Comments
 

@@ -31,4 +31,4 @@ pip install -e .
 ```
 
 For development setup with all dependencies, see the
-[Contributing Guide](https://github.com/egokcen/latents/blob/main/CONTRIBUTING.md).
+{doc}`Contributing Guide </development/contributing>`.

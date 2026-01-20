@@ -1,6 +1,10 @@
 # Root Documentation Conventions
 
-Conventions for root-level markdown files (`README.md`, `CONTRIBUTING.md`, `CHANGELOG.md`, etc.).
+Conventions for root-level markdown files (`README.md`, `CHANGELOG.md`, etc.).
+
+**Note**: `CONTRIBUTING.md` at the repo root is a redirect stub pointing to the full
+contributing guide in `docs/source/development/contributing.md`. Then Sphinx docs are
+the source of truth for contributor documentation.
 
 ## Code Examples
 
@@ -57,11 +61,11 @@ Terms and commands should be consistent across all root docs.
 
 ### Commands
 
-If `CONTRIBUTING.md` documents a command one way, `README.md` should use the same form:
+If the contributing guide documents a command one way, `README.md` should use the same form:
 
 | Document | Command |
 |----------|---------|
-| CONTRIBUTING.md | `uv run pre-commit run --all-files` |
+| contributing.md | `uv run pre-commit run --all-files` |
 | README.md | `uv run pre-commit run --all-files` (same) |
 
 ### Project Metadata
@@ -91,7 +95,9 @@ The README should include these sections (in rough order):
 | Contributing | Recommended | Link to CONTRIBUTING.md |
 | License | Yes | License type and link |
 
-## CONTRIBUTING Structure
+## Contributing Guide Structure
+
+The contributing guide (`docs/source/development/contributing.md`) should include:
 
 | Section | Contents |
 |---------|----------|

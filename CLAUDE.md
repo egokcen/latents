@@ -14,7 +14,7 @@ Latents is a Python toolkit for latent variable modeling and dimensionality redu
 
 This project uses [uv](https://docs.astral.sh/uv/) for package management.
 
-```bash
+```sh
 # Install all dependencies (creates .venv automatically)
 uv sync --all-groups
 
@@ -44,7 +44,7 @@ uv build
 
 ### Testing on Multiple Python Versions
 
-```bash
+```sh
 # Switch to a different Python version (re-syncs dependencies)
 uv sync --python 3.10 --all-groups
 uv run pytest
@@ -158,7 +158,7 @@ See `examples/gfa_demo.py` for a complete example with simulation, fitting, and 
 - NumPy docstring convention
 - Type hints with `from __future__ import annotations`
 - Tests follow `test_*.py` naming with pytest
-- Array shape comments on complex operations (see CONTRIBUTING.md for conventions)
+- Array shape comments on complex operations (see [contributing guide](docs/source/development/contributing.md#array-shape-comments))
 
 ## Git and GitHub
 
@@ -169,7 +169,7 @@ Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) forma
 - Present tense, imperative mood ("Add feature" not "Added feature")
 - First line ≤72 characters
 
-```bash
+```sh
 # Pre-commit hooks require uv run
 uv run git commit -m "feat: add cross-validation support to GFA"
 ```

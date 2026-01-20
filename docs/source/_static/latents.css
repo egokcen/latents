@@ -179,6 +179,21 @@ html[data-theme="dark"] .sphx-glr-thumbcontainer:hover {
 }
 
 /* =============================================================================
+   MERMAID DIAGRAMS
+   Size utilities for mermaid-generated diagrams
+   ============================================================================= */
+
+/* Force SVG to scale within container */
+.mermaid svg {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+.mermaid-sm .mermaid { max-width: 22rem; }
+.mermaid-md .mermaid { max-width: 34rem; }
+.mermaid-lg .mermaid { max-width: 47rem; }
+
+/* =============================================================================
    CODE BLOCKS
    Syntax highlighting and code presentation
    ============================================================================= */

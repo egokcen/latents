@@ -1,6 +1,6 @@
 # Docstring Audit Conventions
 
-Audit-specific guidance for checking Python docstrings. For the canonical style conventions, see `CONTRIBUTING.md` under "Style Guides > Docstrings".
+Audit-specific guidance for checking Python docstrings. For the canonical style conventions, see the [contributing guide](../../../../docs/source/development/contributing.md#docstrings).
 
 ## Check Codes
 

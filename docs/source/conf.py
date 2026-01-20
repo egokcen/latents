@@ -34,6 +34,7 @@ extensions = [
     "myst_parser",  # Markdown support (.md files)
     "sphinx_design",  # Cards, grids, tabs for landing pages
     "sphinx_gallery.gen_gallery",  # Generate example gallery from scripts
+    "sphinxcontrib.mermaid",  # Mermaid diagrams
 ]
 
 # MyST Parser configuration

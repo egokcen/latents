@@ -2,12 +2,17 @@
 
 # User guide
 
-Latents currently supports the following methods:
+Latents provides tools for latent variable modeling with an emphasis on linear,
+probabilistic methods. This guide covers the conceptual foundations and
+method-specific details.
 
-```{eval-rst}
-.. toctree::
-    :maxdepth: 1
+:::{note}
+Latents currently implements **GFA** (complete) and **mDLAG** (under development).
+:::
 
-    gfa
-    mdlag
+```{toctree}
+:maxdepth: 1
+
+foundations/index
+methods/index
 ```

@@ -76,6 +76,7 @@ doc = [
     "sphinx-autobuild",
     "sphinx-design",
     "sphinx-gallery",
+    "sphinxcontrib-mermaid",
 ]
 
 [tool.hatch.version]
