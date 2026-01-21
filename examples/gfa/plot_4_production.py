@@ -247,7 +247,8 @@ with tempfile.TemporaryDirectory() as tmpdir:
     # Verify
     obs_match = np.allclose(sim_result.observations.data, loaded_sim.observations.data)
     print(f"Observations match: {obs_match}")
-    print(f"Latents match: {np.allclose(sim_result.latents.X, loaded_sim.latents.X)}")
+    latents_match = np.allclose(sim_result.latents.data, loaded_sim.latents.data)
+    print(f"Latents match: {latents_match}")
 
 # %%
 # This saves the complete snapshot: config, hyperprior, sampled parameters,

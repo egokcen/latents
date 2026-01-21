@@ -49,7 +49,7 @@ class LatentsPosteriorStatic(ArrayContainer):
     Get posterior mean as a realization:
 
     >>> X = latents.posterior_mean
-    >>> X.X.shape
+    >>> X.data.shape
     (5, 100)
 
     Sample from the posterior:
@@ -112,7 +112,7 @@ class LatentsPosteriorStatic(ArrayContainer):
         LatentsRealization
             Posterior mean wrapped as a realization.
         """
-        return LatentsRealization(X=self.mean.copy())
+        return LatentsRealization(data=self.mean.copy())
 
     def sample(self, rng: np.random.Generator) -> LatentsRealization:
         """Draw X from the posterior distribution.
@@ -137,7 +137,7 @@ class LatentsPosteriorStatic(ArrayContainer):
             ).T
             + self.mean
         )
-        return LatentsRealization(X=samples)
+        return LatentsRealization(data=samples)
 
     def compute_moment(self, in_place: bool = True) -> np.ndarray:
         """Compute the posterior second moments.

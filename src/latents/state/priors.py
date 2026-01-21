@@ -18,8 +18,8 @@ class LatentsPriorStatic:
     --------
     >>> prior = LatentsPriorStatic()
     >>> rng = np.random.default_rng(42)
-    >>> realization = prior.sample(x_dim=5, n_samples=100, rng=rng)
-    >>> realization.X.shape
+    >>> X = prior.sample(x_dim=5, n_samples=100, rng=rng)
+    >>> X.data.shape
     (5, 100)
     """
 
@@ -46,7 +46,7 @@ class LatentsPriorStatic:
             Sampled latent values.
         """
         X = rng.normal(size=(x_dim, n_samples))
-        return LatentsRealization(X=X)
+        return LatentsRealization(data=X)
 
 
 @dataclass

@@ -103,7 +103,7 @@ print(f"ARD precisions alpha shape: {obs_params.alpha.shape}")
 latents_prior = LatentsPriorStatic()
 latents = latents_prior.sample(x_dim=x_dim, n_samples=n_samples, rng=rng)
 
-print(f"Latents shape: {latents.X.shape}")  # (x_dim, n_samples)
+print(f"Latents shape: {latents.data.shape}")  # (x_dim, n_samples)
 
 # %%
 # Generate observations
@@ -190,7 +190,7 @@ plt.show()
 
 # Compute noise-free signal for dimension 0 of group 0
 # Signal = C @ X + d (no noise term)
-y_signal = obs_params.C[0, :] @ latents.X + obs_params.d[0]  # (n_samples,)
+y_signal = obs_params.C[0, :] @ latents.data + obs_params.d[0]  # (n_samples,)
 
 samples = np.arange(n_samples)
 

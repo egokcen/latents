@@ -159,7 +159,7 @@ def sample_observations(
     # Generate observed data group by group
     for group_idx in range(n_groups):
         Ys[group_idx][:] = (
-            Cs[group_idx] @ latents.X
+            Cs[group_idx] @ latents.data
             + ds[group_idx][:, np.newaxis]
             + rng.multivariate_normal(
                 np.zeros(y_dims[group_idx]),
@@ -293,7 +293,7 @@ def save_simulation(path: str | os.PathLike[str], result: GFASimulationResult) -
     metadata["obs_params.x_dim"] = str(result.obs_params.x_dim)
 
     # latents
-    tensors["latents.X"] = result.latents.X
+    tensors["latents.data"] = result.latents.data
 
     # observations
     tensors["observations.data"] = result.observations.data
@@ -392,7 +392,7 @@ def load_simulation(path: str | os.PathLike[str]) -> GFASimulationResult:
         x_dim=int(metadata["obs_params.x_dim"]),
     )
 
-    latents = LatentsRealization(X=tensors["latents.X"])
+    latents = LatentsRealization(data=tensors["latents.data"])
 
     observations = ObsStatic(
         data=tensors["observations.data"],

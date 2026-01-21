@@ -15,18 +15,18 @@ class LatentsRealization:
 
     Parameters
     ----------
-    X : ndarray of float, shape (x_dim, n_samples)
+    data : ndarray of float, shape (x_dim, n_samples)
         Latent variables.
     """
 
-    X: np.ndarray
+    data: np.ndarray
 
     @property
     def x_dim(self) -> int:
         """Number of latent dimensions."""
-        return self.X.shape[0]
+        return self.data.shape[0]
 
     @property
     def n_samples(self) -> int:
         """Number of samples."""
-        return self.X.shape[1]
+        return self.data.shape[1]
