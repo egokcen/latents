@@ -78,8 +78,9 @@ def fit(
     ------
     ValueError
         If ``obs_posterior.y_dims`` does not match ``Y.dims``, if
-        ``obs_posterior.x_dim`` does not match ``config.x_dim_init``, or if
-        ``tracker`` and ``flags`` are not both provided or both `None`.
+        ``obs_posterior.x_dim`` does not match ``config.x_dim_init`` (fresh
+        fits only; resumes may have pruned dimensions), or if ``tracker``
+        and ``flags`` are not both provided or both `None`.
 
     Examples
     --------
@@ -128,8 +129,9 @@ def fit(
         msg = "obs_posterior.y_dims must match Y.dims."
         raise ValueError(msg)
 
-    # Check that initial latent dimensionality matches
-    if obs_posterior.x_dim != x_dim_init:
+    # Check that initial latent dimensionality matches (fresh fits only;
+    # resumes may have pruned dimensions)
+    if not resuming and obs_posterior.x_dim != x_dim_init:
         msg = "obs_posterior.x_dim must match config.x_dim_init."
         raise ValueError(msg)
 

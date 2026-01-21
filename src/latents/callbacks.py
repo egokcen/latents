@@ -22,6 +22,12 @@ on_flag_changed(ctx, flag, value, iteration)
 on_x_dim_pruned(ctx, n_removed, x_dim_remaining, iteration)
     Called when latent dimensions are pruned.
 
+**Iteration Numbering**:
+
+Callbacks receive 0-indexed iteration values from the
+fit loop (for array indexing). User-facing output (logs, filenames) uses
+1-indexed iterations for clarity.
+
 **Examples**:
 
 >>> from latents.callbacks import ProgressCallback, CheckpointCallback
@@ -132,7 +138,9 @@ class LoggingCallback:
         iteration = len(ctx.tracker.lb) if ctx.tracker.lb is not None else 0
         log_event(event, level=level, iteration=iteration)
 
-    def on_flag_changed(self, ctx: Any, flag: str, value: Any, iteration: int) -> None:
+    def on_flag_changed(
+        self, ctx: Any, flag: str, value: Any, iteration: int | None
+    ) -> None:
         """Log flag change events (warnings for decreasing_lb, private_var_floor).
 
         Parameters
@@ -143,20 +151,21 @@ class LoggingCallback:
             Name of the flag that changed.
         value : Any
             New value of the flag.
-        iteration : int
-            Current iteration number.
+        iteration : int or None
+            Current iteration number (0-indexed), or None for post-fit checks.
         """
         # converged is redundant with on_fit_end
         if flag == "converged":
             return
 
         # decreasing_lb and private_var_floor are warnings
+        # Use 1-indexed iteration for user-facing output
         log_event(
             FitEvent.FLAG_CHANGED,
             level=logging.WARNING,
             flag=flag,
             value=value,
-            iteration=iteration,
+            iteration=iteration + 1 if iteration is not None else None,
         )
 
     def on_x_dim_pruned(
@@ -175,11 +184,12 @@ class LoggingCallback:
         iteration : int
             Current iteration number.
         """
+        # Use 1-indexed iteration for user-facing output
         log_event(
             FitEvent.X_DIM_PRUNED,
             n_removed=n_removed,
             x_dim_remaining=x_dim_remaining,
-            iteration=iteration,
+            iteration=iteration + 1,
         )
 
 
@@ -447,10 +457,11 @@ class CheckpointCallback:
         path = self.save_dir / filename
         self._ctx.save(path)
 
+        # Use 1-indexed iteration for user-facing output (matches filename)
         log_event(
             FitEvent.CHECKPOINT_SAVED,
             path=str(path),
-            iteration=self._iteration,
+            iteration=self._iteration + 1,
         )
         return path
 
@@ -466,10 +477,11 @@ class CheckpointCallback:
 
     def _handle_interrupt(self, signum: int, frame: Any) -> None:
         """Handle Ctrl+C: save checkpoint then exit."""
+        # Use 1-indexed iteration for user-facing output (matches filename)
         log_event(
             FitEvent.INTERRUPTED,
             level=logging.WARNING,
-            iteration=self._iteration,
+            iteration=self._iteration + 1,
         )
         self._save(f"interrupted_{self._iteration + 1:06d}")
         self._restore_signal_handler()
