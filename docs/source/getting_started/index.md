@@ -18,11 +18,14 @@ linear, probabilistic methods. It currently implements Group Factor Analysis
 
 After installing, here's where to go next:
 
+{ref}`Fitting GFA <sphx_glr_auto_examples_gfa_plot_2_fitting.py>`
+: Jump straight into a working example.
+
 {doc}`User guide </user_guide/index>`
 : Conceptual overview of the methods and design philosophy.
 
 {doc}`Examples </auto_examples/index>`
-: Working examples showing simulation, fitting, and visualization.
+: Full gallery with simulation, fitting, production workflows, and more.
 
 {doc}`API reference </reference/index>`
 : Detailed documentation of all classes and functions.

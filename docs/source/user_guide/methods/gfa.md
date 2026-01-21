@@ -57,6 +57,8 @@ model.tracker.plot_lb()
 print(f"Effective dimensionality: {model.latents_posterior.x_dim}")
 ```
 
+See {ref}`sphx_glr_auto_examples_gfa_plot_2_fitting.py` for a complete example.
+
 ## Interpreting results
 
 ### Variance explained
@@ -97,6 +99,11 @@ from latents.gfa.analysis import predictive_performance
 R2, MSE = predictive_performance(Y_test, model.obs_posterior)
 print(f"Leave-group-out R²: {R2:.3f}")
 ```
+
+:::{seealso}
+- {ref}`sphx_glr_auto_examples_gfa_plot_2_fitting.py`
+- {ref}`sphx_glr_auto_examples_gfa_plot_3_posteriors.py`
+:::
 
 ## References
 

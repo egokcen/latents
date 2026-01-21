@@ -60,13 +60,16 @@ intersphinx_mapping = {
 sphinx_gallery_conf = {
     "examples_dirs": ["../../examples"],  # Path to example scripts
     "gallery_dirs": ["auto_examples"],  # Path to generated gallery
-    "filename_pattern": r"\.py$",  # Include all Python files
     "remove_config_comments": True,
     "plot_gallery": "True",
     "download_all_examples": False,
     "line_numbers": False,
+    # Subsection ordering: GFA first, then mDLAG, then any future methods
+    "subsection_order": ["../../examples/gfa", "../../examples/mdlag", "*"],
     "within_subsection_order": "FileNameSortKey",
     "matplotlib_animations": True,
+    # Separate index page per subsection (gfa/, mdlag/, etc.)
+    "nested_sections": True,
 }
 
 # =============================================================================

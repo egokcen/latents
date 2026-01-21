@@ -137,7 +137,8 @@ Y = sample_observations(latents, model.obs_posterior.posterior_mean, rng)
 Y = sample_observations(latents, model.obs_posterior.sample(rng), rng)
 ```
 
-This decouples data generation from parameter provenance.
+This decouples data generation from parameter provenance. See
+{ref}`sphx_glr_auto_examples_gfa_plot_1_simulation.py` for a step-by-step example.
 
 ### Tiered API
 
