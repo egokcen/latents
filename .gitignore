@@ -22,6 +22,9 @@ dist
 *.egg-info
 src/latents/_version.py
 
+# Notebooks
+notebooks/
+
 # Saved models and datasets
 *.safetensors
 
@@ -35,13 +38,10 @@ docs/source/sg_execution_times.rst
 .venv
 env
 venv
-myenv
-.myenv
 
 # Development environments
 .vscode
 
 # Claude Code
 .claude/settings.local.json
-.playwright-mcp/
 audits/
