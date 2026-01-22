@@ -83,7 +83,7 @@ html_js_files = [
 html_theme_options = {
     # Site-wide announcement banner
     "announcement": (
-        "⚠️ <strong>Early Development</strong> — latents is not yet stable. "
+        "⚠️ <strong>Early Development</strong> — Latents is not yet stable. "
         "The API is subject to frequent change."
     ),
     # Navigation bar (version switching handled by RTD flyout)
