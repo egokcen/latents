@@ -19,9 +19,9 @@
       :columns: 12 12 5 5
       :class: hero-artwork
 
-      .. image:: _static/logo-dark.svg
-         :alt: Latents illustration
-         :class: hero-image dark-light
+      .. image:: _static/hero.webp
+         :alt: Latents hero artwork
+         :class: hero-image
 
 .. raw:: html
 

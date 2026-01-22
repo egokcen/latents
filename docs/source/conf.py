@@ -94,7 +94,7 @@ html_theme_options = {
     "header_links_before_dropdown": 5,
     # Project logo
     "logo": {
-        "text": "latents",
+        "text": "",
         "image_light": "_static/logo-light.png",
         "image_dark": "_static/logo-dark.png",
     },
@@ -131,6 +131,7 @@ html_context = {
 }
 html_static_path = ["_static"]
 html_css_files = ["latents.css"]
+html_favicon = "_static/favicon.ico"
 
 # =============================================================================
 # Autodoc settings

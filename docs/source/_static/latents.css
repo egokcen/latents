@@ -12,19 +12,59 @@
 }
 
 /* =============================================================================
+   NAVBAR LOGO
+   Size and hover effects for the header logo
+   ============================================================================= */
+
+/* Logo size and hover transition */
+.navbar-brand .logo__image {
+  height: 2.5rem;
+  width: auto;
+  transition: opacity 0.15s ease;
+}
+
+/* Hover effect */
+.navbar-brand:hover .logo__image {
+  opacity: 0.85;
+}
+
+/* Remove default link underline on logo */
+.navbar-brand {
+  text-decoration: none !important;
+}
+
+/* =============================================================================
    LANDING PAGE: HERO SECTION
    Main hero container with title, tagline, description, and artwork
    ============================================================================= */
 
-/* Hero section container - matches nav section color scheme */
+/* Hero section container - background matches artwork left edge */
 .hero-section {
-  background-color: var(--pst-color-surface);
+  background-color: #141720;  /* Match hero artwork background (light mode) */
   border-radius: 12px;
-  padding: 2rem 2.5rem;
+  padding: 0;  /* Remove padding, let content control spacing */
   margin-bottom: 2rem;
   position: relative;
-  overflow: hidden;  /* Allow image to extend beyond rounded corners */
-  min-height: 200px;
+  overflow: hidden;
+  min-height: 180px;
+}
+
+/* Dark mode: theme applies filter to images, so background needs adjustment */
+html[data-theme="dark"] .hero-section {
+  background-color: #000006;
+}
+
+/* Hero text container (left side) */
+.hero-section .sd-row {
+  margin: 0;
+  align-items: center;
+}
+
+/* Constrain text to left portion, leave room for artwork */
+.hero-section .sd-col:first-child {
+  padding: 2rem 2rem 2rem 2rem;
+  max-width: 55%;  /* Prevent text from extending under artwork */
+  box-sizing: border-box;
 }
 
 /* Hero tagline (rubric) */
@@ -32,7 +72,7 @@
   font-size: 1.4rem;
   font-weight: 500;
   margin-bottom: 0.75rem;
-  color: var(--pst-color-text-base);
+  color: #ced6dd;  /* --pst-color-text-base, dark mode */
   border: none;
   line-height: 1.3;
 }
@@ -40,24 +80,24 @@
 /* Hero description */
 .hero-section p {
   font-size: 1.1rem;
-  color: var(--pst-color-text-muted);
+  color: #9ca4af;  /* --pst-color-text-muted, dark mode */
   line-height: 1.6;
   margin-bottom: 0;
 }
 
-/* Hero artwork */
+/* Hero artwork - positioned to fill right side */
 .hero-section .hero-image {
   position: absolute;
   top: 0;
   right: 0;
   height: 100%;
   width: auto;
-  border-radius: 0 !important;  /* Override theme default */
+  border-radius: 0;
 }
 
 /* Hide the grid-item container since image is absolutely positioned */
 .hero-artwork {
-  display: contents;  /* Remove from layout, children inherit parent */
+  display: contents;
 }
 
 /* =============================================================================
@@ -217,8 +257,11 @@ button.copybtn {
 @media (max-width: 768px) {
   /* Hero section responsive */
   .hero-section {
-    padding: 1.5rem 1.25rem 1rem 1.25rem;
     min-height: auto;
+  }
+
+  .hero-section .sd-col {
+    padding: 1.5rem 1.25rem;
   }
 
   .hero-section .rubric {
