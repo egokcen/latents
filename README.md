@@ -30,8 +30,8 @@ Latents is a Python library for latent variable modeling and dimensionality redu
 with an emphasis on linear, probabilistic methods. The following methods are currently
 supported:
 
-- **Group Factor Analysis (GFA)**
-- **Delayed Latents Across Multiple Groups (mDLAG)** — under development
+- Group Factor Analysis (GFA)
+- Delayed Latents Across Multiple Groups (mDLAG) — under development
 
 ## Installation
 
