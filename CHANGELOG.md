@@ -56,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `GFAModel` now accepts `config` parameter in constructor instead of using `fit_args.set_args()`
 - Configuration uses snake_case naming (e.g., `prune_x` instead of `prune_X`)
 - Methods with `in_place=True` now return `self` instead of `None`. Affected methods: `get_subset_dims`, `compute_moment`, `compute_mean`, and all `infer_*` functions
+- `LatentsRealization.X` renamed to `LatentsRealization.data` for API consistency with other realization classes
 
 ### Removed
 
