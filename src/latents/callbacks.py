@@ -3,8 +3,8 @@
 Callbacks allow custom actions at specific points during model fitting.
 Implement any subset of the callback methods you need (duck typing).
 
-Callback Methods
-----------------
+**Callback Methods**:
+
 on_fit_start(ctx)
     Called when fit() begins, after initialization.
 
@@ -22,8 +22,14 @@ on_flag_changed(ctx, flag, value, iteration)
 on_x_dim_pruned(ctx, n_removed, x_dim_remaining, iteration)
     Called when latent dimensions are pruned.
 
-Examples
---------
+**Iteration Numbering**:
+
+Callbacks receive 0-indexed iteration values from the
+fit loop (for array indexing). User-facing output (logs, filenames) uses
+1-indexed iterations for clarity.
+
+**Examples**:
+
 >>> from latents.callbacks import ProgressCallback, CheckpointCallback
 >>>
 >>> model.fit(Y, callbacks=[
@@ -57,11 +63,11 @@ def invoke_callbacks(callbacks: list, method: str, **kwargs: Any) -> None:
 
     Parameters
     ----------
-    callbacks
+    callbacks : list
         List of callback objects.
-    method
+    method : str
         Method name to call.
-    **kwargs
+    **kwargs : Any
         Arguments passed to the method.
     """
     for cb in callbacks:
@@ -87,9 +93,22 @@ class LoggingCallback:
 
         import logging
         logging.basicConfig(level=logging.INFO, filename="fit.log")
+
+    Examples
+    --------
+    >>> import logging
+    >>> logging.basicConfig(level=logging.INFO)
+    >>> model.fit(Y, callbacks=[LoggingCallback()])
     """
 
     def on_fit_start(self, ctx: Any) -> None:
+        """Log fit start event with data dimensions.
+
+        Parameters
+        ----------
+        ctx : Any
+            Fitting context providing obs_posterior, latents_posterior, tracker.
+        """
         # Log data shape info: n_samples from latents, y_dims per group, x_dim
         n_samples = ctx.latents_posterior.mean.shape[1]
         y_dims = ctx.obs_posterior.y_dims
@@ -97,6 +116,15 @@ class LoggingCallback:
         log_event(FitEvent.STARTED, n_samples=n_samples, y_dims=y_dims, x_dim=x_dim)
 
     def on_fit_end(self, ctx: Any, reason: str) -> None:
+        """Log fit end event with termination reason.
+
+        Parameters
+        ----------
+        ctx : Any
+            Fitting context providing tracker.
+        reason : str
+            Termination reason ("converged", "max_iter", or "no_latents").
+        """
         event_map = {
             "converged": FitEvent.CONVERGED,
             "max_iter": FitEvent.MAX_ITER,
@@ -110,28 +138,58 @@ class LoggingCallback:
         iteration = len(ctx.tracker.lb) if ctx.tracker.lb is not None else 0
         log_event(event, level=level, iteration=iteration)
 
-    def on_flag_changed(self, ctx: Any, flag: str, value: Any, iteration: int) -> None:
+    def on_flag_changed(
+        self, ctx: Any, flag: str, value: Any, iteration: int | None
+    ) -> None:
+        """Log flag change events (warnings for decreasing_lb, private_var_floor).
+
+        Parameters
+        ----------
+        ctx : Any
+            Fitting context (unused by this callback).
+        flag : str
+            Name of the flag that changed.
+        value : Any
+            New value of the flag.
+        iteration : int or None
+            Current iteration number (0-indexed), or None for post-fit checks.
+        """
         # converged is redundant with on_fit_end
         if flag == "converged":
             return
 
         # decreasing_lb and private_var_floor are warnings
+        # Use 1-indexed iteration for user-facing output
         log_event(
             FitEvent.FLAG_CHANGED,
             level=logging.WARNING,
             flag=flag,
             value=value,
-            iteration=iteration,
+            iteration=iteration + 1 if iteration is not None else None,
         )
 
     def on_x_dim_pruned(
         self, ctx: Any, n_removed: int, x_dim_remaining: int, iteration: int
     ) -> None:
+        """Log latent dimension pruning event.
+
+        Parameters
+        ----------
+        ctx : Any
+            Fitting context (unused by this callback).
+        n_removed : int
+            Number of dimensions removed.
+        x_dim_remaining : int
+            Number of dimensions remaining.
+        iteration : int
+            Current iteration number.
+        """
+        # Use 1-indexed iteration for user-facing output
         log_event(
             FitEvent.X_DIM_PRUNED,
             n_removed=n_removed,
             x_dim_remaining=x_dim_remaining,
-            iteration=iteration,
+            iteration=iteration + 1,
         )
 
 
@@ -146,8 +204,16 @@ class ProgressCallback:
 
     Parameters
     ----------
-    desc
+    desc : str, default "Fitting"
         Description shown next to the progress bar.
+
+    Examples
+    --------
+    >>> model.fit(Y, callbacks=[ProgressCallback()])
+
+    **Custom description**
+
+    >>> model.fit(Y, callbacks=[ProgressCallback(desc="Training GFA")])
     """
 
     desc: str = "Fitting"
@@ -158,6 +224,13 @@ class ProgressCallback:
     _lb_base: float | None = field(default=None, init=False, repr=False)
 
     def on_fit_start(self, ctx: Any) -> None:
+        """Initialize progress bar.
+
+        Parameters
+        ----------
+        ctx : Any
+            Fitting context providing config, obs_posterior, tracker.
+        """
         max_iter = ctx.config.max_iter
         self._pbar = tqdm(total=max_iter, desc=self.desc)
         self._x_dim = ctx.obs_posterior.x_dim
@@ -167,6 +240,19 @@ class ProgressCallback:
     def on_iteration_end(
         self, ctx: Any, iteration: int, lb: float, lb_prev: float
     ) -> None:
+        """Update progress bar with current lower bound and relative change.
+
+        Parameters
+        ----------
+        ctx : Any
+            Fitting context providing config, tracker.
+        iteration : int
+            Current iteration number.
+        lb : float
+            Current lower bound value.
+        lb_prev : float
+            Previous iteration's lower bound value.
+        """
         if self._pbar is None:
             return
 
@@ -199,9 +285,31 @@ class ProgressCallback:
     def on_x_dim_pruned(
         self, ctx: Any, n_removed: int, x_dim_remaining: int, iteration: int
     ) -> None:
+        """Update tracked x_dim for progress bar display.
+
+        Parameters
+        ----------
+        ctx : Any
+            Fitting context (unused by this callback).
+        n_removed : int
+            Number of dimensions removed.
+        x_dim_remaining : int
+            Number of dimensions remaining.
+        iteration : int
+            Current iteration number.
+        """
         self._x_dim = x_dim_remaining
 
     def on_fit_end(self, ctx: Any, reason: str) -> None:
+        """Close progress bar.
+
+        Parameters
+        ----------
+        ctx : Any
+            Fitting context (unused by this callback).
+        reason : str
+            Termination reason.
+        """
         if self._pbar is not None:
             self._pbar.close()
             self._pbar = None
@@ -217,26 +325,26 @@ class CheckpointCallback:
     """Save model checkpoints during fitting.
 
     Checkpoints are saved in safetensors format and can be loaded via
-    ``GFAModel.load(path)``.
+    :meth:`GFAModel.load`.
 
     Parameters
     ----------
-    save_dir
+    save_dir : str or Path
         Directory for checkpoint files. Created if it doesn't exist.
-    every_n_iter
+    every_n_iter : int, default 5000
         Save every N iterations. Set to 0 to disable periodic saves.
-    save_initial
+    save_initial : bool, default True
         If True, save immediately after initialization (before iteration 0).
-    save_final
+    save_final : bool, default True
         If True, save after fit completes.
-    save_on_interrupt
+    save_on_interrupt : bool, default True
         If True, save checkpoint when Ctrl+C is pressed. Only works in the
         main process; in parallel workers, rely on periodic checkpoints.
-    max_checkpoints
+    max_checkpoints : int, default 3
         Maximum periodic checkpoints to keep. Older ones are deleted.
         Set to 0 to keep all. Does not affect initial, final, or interrupt
         checkpoints.
-    prefix
+    prefix : str, default ""
         Optional prefix for checkpoint filenames.
 
     Examples
@@ -247,11 +355,6 @@ class CheckpointCallback:
     ...     prefix="experiment1",
     ... )
     >>> model.fit(Y, callbacks=[callback])
-
-    # Produces files like:
-    # ./checkpoints/experiment1_init.safetensors
-    # ./checkpoints/experiment1_iter_005000.safetensors
-    # ./checkpoints/experiment1_final.safetensors
     """
 
     save_dir: str | Path
@@ -277,6 +380,13 @@ class CheckpointCallback:
         return multiprocessing.current_process().name == "MainProcess"
 
     def on_fit_start(self, ctx: Any) -> None:
+        """Initialize checkpointing, register interrupt handler, save initial.
+
+        Parameters
+        ----------
+        ctx : Any
+            Fitting context providing save() method.
+        """
         self._ctx = ctx
         self._iteration = 0
         self._periodic_paths = []
@@ -301,6 +411,19 @@ class CheckpointCallback:
     def on_iteration_end(
         self, ctx: Any, iteration: int, lb: float, lb_prev: float
     ) -> None:
+        """Save periodic checkpoint if iteration matches every_n_iter.
+
+        Parameters
+        ----------
+        ctx : Any
+            Fitting context (unused, uses stored context).
+        iteration : int
+            Current iteration number.
+        lb : float
+            Current lower bound value (unused).
+        lb_prev : float
+            Previous lower bound value (unused).
+        """
         self._iteration = iteration
 
         # Periodic checkpoint (iteration is 0-indexed, so add 1 for display)
@@ -311,6 +434,15 @@ class CheckpointCallback:
             self._prune_old_checkpoints()
 
     def on_fit_end(self, ctx: Any, reason: str) -> None:
+        """Save final checkpoint and restore signal handler.
+
+        Parameters
+        ----------
+        ctx : Any
+            Fitting context (unused, uses stored context).
+        reason : str
+            Termination reason (unused).
+        """
         if self.save_final:
             self._save("final")
         self._restore_signal_handler()
@@ -325,10 +457,11 @@ class CheckpointCallback:
         path = self.save_dir / filename
         self._ctx.save(path)
 
+        # Use 1-indexed iteration for user-facing output (matches filename)
         log_event(
             FitEvent.CHECKPOINT_SAVED,
             path=str(path),
-            iteration=self._iteration,
+            iteration=self._iteration + 1,
         )
         return path
 
@@ -344,10 +477,11 @@ class CheckpointCallback:
 
     def _handle_interrupt(self, signum: int, frame: Any) -> None:
         """Handle Ctrl+C: save checkpoint then exit."""
+        # Use 1-indexed iteration for user-facing output (matches filename)
         log_event(
             FitEvent.INTERRUPTED,
             level=logging.WARNING,
-            iteration=self._iteration,
+            iteration=self._iteration + 1,
         )
         self._save(f"interrupted_{self._iteration + 1:06d}")
         self._restore_signal_handler()

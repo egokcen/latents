@@ -18,15 +18,15 @@ class ObsParamsHyperPrior:
 
     Parameters
     ----------
-    a_alpha
+    a_alpha : float, default 1e-12
         Shape parameter of the ARD prior (Gamma). Must be > 0.
-    b_alpha
+    b_alpha : float, default 1e-12
         Rate parameter of the ARD prior (Gamma). Must be > 0.
-    a_phi
+    a_phi : float, default 1e-12
         Shape parameter of the observation precision prior (Gamma). Must be > 0.
-    b_phi
+    b_phi : float, default 1e-12
         Rate parameter of the observation precision prior (Gamma). Must be > 0.
-    beta_d
+    beta_d : float, default 1e-12
         Precision of the observation mean prior (Gaussian). Must be > 0.
 
     Examples
@@ -59,17 +59,17 @@ class ObsParamsHyperPriorStructured:
 
     Parameters
     ----------
-    a_alpha
-        Shape parameters for ARD priors, shape (n_groups, x_dim).
+    a_alpha : ndarray of float, shape (n_groups, x_dim)
+        Shape parameters for ARD priors.
         Use np.inf to force zero loadings (sparsity pattern).
-    b_alpha
-        Rate parameters for ARD priors, shape (n_groups, x_dim).
+    b_alpha : ndarray of float, shape (n_groups, x_dim)
+        Rate parameters for ARD priors.
         Typically ones or matched to a_alpha.
-    a_phi
+    a_phi : float, default 1.0
         Shape parameter of observation precision prior. Must be > 0.
-    b_phi
+    b_phi : float, default 1.0
         Rate parameter of observation precision prior. Must be > 0.
-    beta_d
+    beta_d : float, default 1.0
         Precision of observation mean prior. Must be > 0.
 
     Examples
@@ -155,7 +155,7 @@ class ObsParamsPrior:
 
     Parameters
     ----------
-    hyperprior
+    hyperprior : ObsParamsHyperPrior or ObsParamsHyperPriorStructured
         Hyperprior parameters controlling the prior distributions.
     """
 
@@ -171,11 +171,11 @@ class ObsParamsPrior:
 
         Parameters
         ----------
-        y_dims
-            Dimensionalities of each observed group, shape (n_groups,).
-        x_dim
+        y_dims : ndarray of int, shape (n_groups,)
+            Dimensionalities of each observed group.
+        x_dim : int
             Number of latent dimensions.
-        rng
+        rng : numpy.random.Generator
             Random number generator.
 
         Returns

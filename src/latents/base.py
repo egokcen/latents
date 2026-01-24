@@ -1,4 +1,4 @@
-"""Base classes for array containers."""
+"""General-purpose base classes."""
 
 from __future__ import annotations
 
@@ -6,7 +6,17 @@ import numpy as np
 
 
 class ArrayContainer:
-    """A parent class for classes with numpy.ndarray attributes."""
+    """Base class for containers holding `numpy.ndarray` attributes.
+
+    Provides common functionality for deep copying and clearing array attributes,
+    plus a custom ``__repr__`` that shows shapes instead of full values.
+
+    Notes
+    -----
+    This is an abstract base class with no attributes of its own. Subclasses
+    should define their own ``__init__`` that stores arrays as instance attributes.
+    The ``copy()`` and ``clear()`` methods operate on all instance attributes.
+    """
 
     def __repr__(self) -> str:
         # If array attributes are specified, then display their shapes, rather
@@ -21,8 +31,7 @@ class ArrayContainer:
         return type(self).__name__ + "(" + ", ".join(attr_reprs) + ")"
 
     def copy(self) -> ArrayContainer:
-        """
-        Return a deep copy of self.
+        """Return a deep copy of self.
 
         Returns
         -------

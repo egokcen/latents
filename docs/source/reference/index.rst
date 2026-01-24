@@ -4,7 +4,7 @@ API reference
 =============
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
 
     models/index
     data
@@ -13,3 +13,4 @@ API reference
     plotting/index
     callbacks
     tracking
+    base

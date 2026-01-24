@@ -82,7 +82,7 @@ class TestSimulate:
 
         # Check output shapes
         assert result.observations.data.shape == (16, 50)  # y_dim=16, n_samples=50
-        assert result.latents.X.shape == (3, 50)  # x_dim=3, n_samples=50
+        assert result.latents.data.shape == (3, 50)  # x_dim=3, n_samples=50
         assert result.obs_params.C.shape == (16, 3)  # y_dim=16, x_dim=3
 
     def test_reproducibility(self, sim_config, hyperprior_simple):
@@ -93,7 +93,7 @@ class TestSimulate:
         np.testing.assert_array_equal(
             result1.observations.data, result2.observations.data
         )
-        np.testing.assert_array_equal(result1.latents.X, result2.latents.X)
+        np.testing.assert_array_equal(result1.latents.data, result2.latents.data)
         np.testing.assert_array_equal(result1.obs_params.C, result2.obs_params.C)
 
     def test_structured_hyperprior(self, hyperprior_structured):
@@ -156,7 +156,7 @@ class TestSaveLoadSimulation:
         np.testing.assert_array_equal(
             loaded.observations.data, result.observations.data
         )
-        np.testing.assert_array_equal(loaded.latents.X, result.latents.X)
+        np.testing.assert_array_equal(loaded.latents.data, result.latents.data)
         np.testing.assert_array_equal(loaded.obs_params.C, result.obs_params.C)
         np.testing.assert_array_equal(loaded.obs_params.d, result.obs_params.d)
         np.testing.assert_array_equal(loaded.obs_params.phi, result.obs_params.phi)
@@ -279,7 +279,7 @@ class TestSaveLoadRecipe:
             regenerated_result.observations.data, original_result.observations.data
         )
         np.testing.assert_array_equal(
-            regenerated_result.latents.X, original_result.latents.X
+            regenerated_result.latents.data, original_result.latents.data
         )
         np.testing.assert_array_equal(
             regenerated_result.obs_params.C, original_result.obs_params.C

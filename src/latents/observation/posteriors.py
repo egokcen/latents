@@ -12,8 +12,8 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import Self
 
-from latents._internal.base import ArrayContainer
 from latents._internal.numerics import stability_floor
+from latents.base import ArrayContainer
 from latents.observation.realizations import ObsParamsRealization
 
 
@@ -22,12 +22,21 @@ class LoadingPosterior(ArrayContainer):
 
     Parameters
     ----------
-    mean
-        Posterior mean, shape (y_dim, x_dim).
-    cov
-        Posterior covariances, shape (y_dim, x_dim, x_dim).
-    moment
-        Posterior second moments, shape (y_dim, x_dim, x_dim).
+    mean : ndarray of float, shape (y_dim, x_dim) or None, default None
+        Posterior mean.
+    cov : ndarray of float, shape (y_dim, x_dim, x_dim) or None, default None
+        Posterior covariances.
+    moment : ndarray of float, shape (y_dim, x_dim, x_dim) or None, default None
+        Posterior second moments.
+
+    Attributes
+    ----------
+    mean : ndarray of float, shape (y_dim, x_dim) or None
+        Posterior mean.
+    cov : ndarray of float, shape (y_dim, x_dim, x_dim) or None
+        Posterior covariances.
+    moment : ndarray of float, shape (y_dim, x_dim, x_dim) or None
+        Posterior second moments.
     """
 
     def __init__(
@@ -59,16 +68,16 @@ class LoadingPosterior(ArrayContainer):
 
         Parameters
         ----------
-        y_dims
-            Dimensionalities of each observed group, shape (n_groups,).
+        y_dims : ndarray of int, shape (n_groups,)
+            Dimensionalities of each observed group.
 
         Returns
         -------
-        group_means
+        group_means : list of ndarray or None
             List of views into mean, one per group. None if mean is None.
-        group_covs
+        group_covs : list of ndarray or None
             List of views into cov, one per group. None if cov is None.
-        group_moments
+        group_moments : list of ndarray or None
             List of views into moment, one per group. None if moment is None.
         """
         group_means = None
@@ -101,7 +110,7 @@ class LoadingPosterior(ArrayContainer):
 
         Parameters
         ----------
-        in_place
+        in_place : bool, default True
             If True, store in self.moment and return reference.
             If False, return new array.
 
@@ -113,6 +122,8 @@ class LoadingPosterior(ArrayContainer):
         if in_place:
             if self.moment is None:
                 self.moment = np.zeros_like(self.cov)
+            # Outer product per row:
+            # (y_dim, x_dim), (y_dim, x_dim) -> (y_dim, x_dim, x_dim)
             self.moment[:] = np.einsum("ij,ik->ijk", self.mean, self.mean) + self.cov
             return self.moment
 
@@ -123,8 +134,8 @@ class LoadingPosterior(ArrayContainer):
 
         Parameters
         ----------
-        y_dims
-            Dimensionalities of each observed group, shape (n_groups,).
+        y_dims : ndarray of int, shape (n_groups,)
+            Dimensionalities of each observed group.
 
         Returns
         -------
@@ -152,9 +163,9 @@ class LoadingPosterior(ArrayContainer):
 
         Parameters
         ----------
-        x_indices
+        x_indices : ndarray of int
             Indices of latent dimensions to keep.
-        in_place
+        in_place : bool, default True
             If True, modify self. If False, return new instance.
 
         Returns
@@ -188,12 +199,21 @@ class ARDPosterior(ArrayContainer):
 
     Parameters
     ----------
-    a
-        Shape parameters, shape (n_groups,).
-    b
-        Rate parameters, shape (n_groups, x_dim).
-    mean
-        Posterior mean a/b, shape (n_groups, x_dim).
+    a : ndarray of float, shape (n_groups,) or None, default None
+        Shape parameters.
+    b : ndarray of float, shape (n_groups, x_dim) or None, default None
+        Rate parameters.
+    mean : ndarray of float, shape (n_groups, x_dim) or None, default None
+        Posterior mean a/b.
+
+    Attributes
+    ----------
+    a : ndarray of float, shape (n_groups,) or None
+        Shape parameters.
+    b : ndarray of float, shape (n_groups, x_dim) or None
+        Rate parameters.
+    mean : ndarray of float, shape (n_groups, x_dim) or None
+        Posterior mean a/b.
     """
 
     def __init__(
@@ -222,7 +242,7 @@ class ARDPosterior(ArrayContainer):
 
         Parameters
         ----------
-        in_place
+        in_place : bool, default True
             If True, store in self.mean and return reference.
             If False, return new array.
 
@@ -235,6 +255,7 @@ class ARDPosterior(ArrayContainer):
         if in_place:
             if self.mean is None:
                 self.mean = np.zeros_like(self.b)
+            # a: (n_groups,) -> (n_groups, 1) for broadcast with b: (n_groups, x_dim)
             self.mean[:] = self.a[:, np.newaxis] / np.maximum(self.b, floor)
             return self.mean
 
@@ -249,9 +270,9 @@ class ARDPosterior(ArrayContainer):
 
         Parameters
         ----------
-        x_indices
+        x_indices : ndarray of int
             Indices of latent dimensions to keep.
-        in_place
+        in_place : bool, default True
             If True, modify self. If False, return new instance.
 
         Returns
@@ -276,10 +297,17 @@ class ObsMeanPosterior(ArrayContainer):
 
     Parameters
     ----------
-    mean
-        Posterior mean, shape (y_dim,).
-    cov
-        Posterior variance (diagonal), shape (y_dim,).
+    mean : ndarray of float, shape (y_dim,) or None, default None
+        Posterior mean.
+    cov : ndarray of float, shape (y_dim,) or None, default None
+        Posterior variance (diagonal).
+
+    Attributes
+    ----------
+    mean : ndarray of float, shape (y_dim,) or None
+        Posterior mean.
+    cov : ndarray of float, shape (y_dim,) or None
+        Posterior variance (diagonal).
     """
 
     def __init__(
@@ -305,14 +333,14 @@ class ObsMeanPosterior(ArrayContainer):
 
         Parameters
         ----------
-        y_dims
-            Dimensionalities of each observed group, shape (n_groups,).
+        y_dims : ndarray of int, shape (n_groups,)
+            Dimensionalities of each observed group.
 
         Returns
         -------
-        group_means
+        group_means : list of ndarray or None
             List of views into mean, one per group. None if mean is None.
-        group_covs
+        group_covs : list of ndarray or None
             List of views into cov, one per group. None if cov is None.
         """
         group_means = None
@@ -337,12 +365,21 @@ class ObsPrecPosterior(ArrayContainer):
 
     Parameters
     ----------
-    a
+    a : float or None, default None
         Shape parameter (scalar, shared across dimensions).
-    b
-        Rate parameters, shape (y_dim,).
-    mean
-        Posterior mean a/b, shape (y_dim,).
+    b : ndarray of float, shape (y_dim,) or None, default None
+        Rate parameters.
+    mean : ndarray of float, shape (y_dim,) or None, default None
+        Posterior mean a/b.
+
+    Attributes
+    ----------
+    a : float or None
+        Shape parameter (scalar, shared across dimensions).
+    b : ndarray of float, shape (y_dim,) or None
+        Rate parameters.
+    mean : ndarray of float, shape (y_dim,) or None
+        Posterior mean a/b.
     """
 
     def __init__(
@@ -374,14 +411,14 @@ class ObsPrecPosterior(ArrayContainer):
 
         Parameters
         ----------
-        y_dims
-            Dimensionalities of each observed group, shape (n_groups,).
+        y_dims : ndarray of int, shape (n_groups,)
+            Dimensionalities of each observed group.
 
         Returns
         -------
-        group_means
+        group_means : list of ndarray or None
             List of views into mean, one per group. None if mean is None.
-        group_bs
+        group_bs : list of ndarray or None
             List of views into b, one per group. None if b is None.
         """
         group_means = None
@@ -405,7 +442,7 @@ class ObsPrecPosterior(ArrayContainer):
 
         Parameters
         ----------
-        in_place
+        in_place : bool, default True
             If True, store in self.mean and return reference.
             If False, return new array.
 
@@ -432,18 +469,52 @@ class ObsParamsPosterior:
 
     Parameters
     ----------
-    x_dim
+    x_dim : int or None, default None
         Number of latent dimensions.
-    y_dims
-        Dimensionalities of each observed group, shape (n_groups,).
-    C
+    y_dims : ndarray of int, shape (n_groups,) or None, default None
+        Dimensionalities of each observed group.
+    C : LoadingPosterior or None, default None
         Posterior over loading matrices.
-    alpha
+    alpha : ARDPosterior or None, default None
         Posterior over ARD parameters.
-    d
+    d : ObsMeanPosterior or None, default None
         Posterior over observation means.
-    phi
+    phi : ObsPrecPosterior or None, default None
         Posterior over observation precisions.
+
+    Attributes
+    ----------
+    x_dim : int or None
+        Number of latent dimensions.
+    y_dims : ndarray of int, shape (n_groups,) or None
+        Dimensionalities of each observed group.
+    C : LoadingPosterior
+        Posterior over loading matrices.
+    alpha : ARDPosterior
+        Posterior over ARD parameters.
+    d : ObsMeanPosterior
+        Posterior over observation means.
+    phi : ObsPrecPosterior
+        Posterior over observation precisions.
+
+    Examples
+    --------
+    After fitting a GFA model, access the observation posterior:
+
+    >>> model = GFAModel()
+    >>> model.fit(Y)
+    >>> obs_post = model.obs_posterior
+
+    Get posterior mean as a realization:
+
+    >>> params = obs_post.posterior_mean
+    >>> params.C.shape
+    (20, 5)
+
+    Sample from the posterior:
+
+    >>> rng = np.random.default_rng(42)
+    >>> sample = obs_post.sample(rng)
     """
 
     def __init__(
@@ -532,7 +603,7 @@ class ObsParamsPosterior:
 
         Parameters
         ----------
-        rng
+        rng : numpy.random.Generator
             Random number generator.
 
         Returns
@@ -572,7 +643,13 @@ class ObsParamsPosterior:
         )
 
     def is_initialized(self) -> bool:
-        """Check if all posterior parameters have been initialized."""
+        """Check if all posterior parameters have been initialized.
+
+        Returns
+        -------
+        bool
+            True if all required arrays are non-None.
+        """
         return (
             self.x_dim is not None
             and self.y_dims is not None
@@ -597,9 +674,9 @@ class ObsParamsPosterior:
 
         Parameters
         ----------
-        x_indices
+        x_indices : ndarray of int
             Indices of latent dimensions to keep.
-        in_place
+        in_place : bool, default True
             If True, modify self. If False, return new instance.
 
         Returns
@@ -623,7 +700,13 @@ class ObsParamsPosterior:
         )
 
     def copy(self) -> Self:
-        """Return a deep copy."""
+        """Return a deep copy.
+
+        Returns
+        -------
+        Self
+            Deep copy of this instance.
+        """
         return self.__class__(
             x_dim=self.x_dim,
             y_dims=self.y_dims.copy(),
@@ -638,8 +721,8 @@ class ObsParamsPosterior:
 
         Parameters
         ----------
-        y_dims
-            Dimensionalities of observed groups. Defaults to self.y_dims.
+        y_dims : ndarray or None, default None
+            Dimensionalities of observed groups. If None, uses self.y_dims.
 
         Returns
         -------
@@ -666,7 +749,7 @@ class ObsParamsPosterior:
 
         Parameters
         ----------
-        n_groups
+        n_groups : int
             Number of observed groups.
 
         Returns
@@ -693,21 +776,21 @@ class ObsParamsPosterior:
 
         Parameters
         ----------
-        cutoff_shared_var
+        cutoff_shared_var : float, default 0.02
             Minimum fraction of shared variance for significance.
-        cutoff_snr
+        cutoff_snr : float, default 0.001
             Minimum SNR for any latents to be significant.
 
         Returns
         -------
-        num_dim
-            Number of each dimension type, shape (n_dim_types,).
-        sig_dims
-            Significant dimensions, shape (n_groups, x_dim).
-        var_exp
-            Variance explained by type, shape (n_groups, n_dim_types).
-        dim_types
-            Dimension type indicators, shape (n_groups, n_dim_types).
+        num_dim : ndarray of int, shape (n_dim_types,)
+            Number of each dimension type.
+        sig_dims : ndarray of bool, shape (n_groups, x_dim)
+            Significant dimensions.
+        var_exp : ndarray of float, shape (n_groups, n_dim_types)
+            Variance explained by type.
+        dim_types : ndarray of bool, shape (n_groups, n_dim_types)
+            Dimension type indicators.
         """
         n_groups = len(self.y_dims)
         dim_types = self.get_dim_types(n_groups)
@@ -718,12 +801,16 @@ class ObsParamsPosterior:
         alpha_inv = 1 / self.alpha.mean
         alpha_inv_rel = alpha_inv / np.sum(alpha_inv, axis=1, keepdims=True)
 
+        # snr: (n_groups,) -> (n_groups, 1) for broadcast with
+        # alpha_inv_rel: (n_groups, x_dim)
         sig_dims = (alpha_inv_rel > cutoff_shared_var) & (snr > cutoff_snr)[
             :, np.newaxis
-        ]
+        ]  # (n_groups, x_dim)
         num_dim = np.zeros(n_dim_types)
         var_exp = np.zeros((n_groups, n_dim_types))
         for dim_idx in range(n_dim_types):
+            # dim_types[:, dim_idx]: (n_groups,) -> (n_groups, 1) for broadcast with
+            # sig_dims
             dims = np.all(sig_dims == dim_types[:, dim_idx, np.newaxis], axis=0)
             num_dim[dim_idx] = np.sum(dims)
             var_exp[:, dim_idx] = np.sum(alpha_inv_rel[:, dims], axis=1)
@@ -740,21 +827,21 @@ class ObsParamsPosterior:
 
         Parameters
         ----------
-        num_dim
+        num_dim : ndarray
             Number of each dimension type, shape (n_dim_types,).
-        dim_types
+        dim_types : ndarray
             Dimension type indicators, shape (n_groups, n_dim_types).
-        var_exp
+        var_exp : ndarray
             Variance explained by type, shape (n_groups, n_dim_types).
 
         Returns
         -------
-        pair_dims
-            Dimensionalities per pair, shape (n_pairs, 3).
-        pair_var_exp
-            Variance explained per pair, shape (n_pairs, 2).
-        pairs
-            Pair indices, shape (n_pairs, 2).
+        pair_dims : ndarray of int, shape (n_pairs, 3)
+            Dimensionalities per pair.
+        pair_var_exp : ndarray of float, shape (n_pairs, 2)
+            Variance explained per pair.
+        pairs : ndarray of int, shape (n_pairs, 2)
+            Pair indices.
         """
         n_groups = dim_types.shape[0]
         group_idxs = [np.nonzero(dim_types[g, :])[0] for g in range(n_groups)]

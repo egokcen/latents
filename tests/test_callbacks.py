@@ -91,7 +91,8 @@ class TestLoggingCallback:
         assert "fit.x_dim_pruned" in caplog.text
         assert "n_removed=2" in caplog.text
         assert "x_dim_remaining=5" in caplog.text
-        assert "iteration=10" in caplog.text
+        # User-facing output is 1-indexed (input 10 -> output 11)
+        assert "iteration=11" in caplog.text
 
     def test_skips_converged_flag(self, fit_context, caplog):
         """on_flag_changed skips converged flag (redundant with on_fit_end)."""

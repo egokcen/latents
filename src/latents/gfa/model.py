@@ -32,32 +32,37 @@ class GFAModel:
 
     Parameters
     ----------
-    config
+    config : GFAFitConfig or None, default None
         Fitting configuration. If None, uses default GFAFitConfig().
-    obs_hyperprior
+    obs_hyperprior : ObsParamsHyperPrior or None, default None
         Prior hyperparameters for observation model. If None, uses default.
 
     Attributes
     ----------
     config : GFAFitConfig
         Fitting configuration (immutable after construction).
-    obs_posterior : ObsParamsPosterior | None
+    obs_posterior : ObsParamsPosterior or None
         Posterior over observation model parameters. None until fit.
-    latents_posterior : LatentsPosteriorStatic | None
+    latents_posterior : LatentsPosteriorStatic or None
         Posterior over latent variables. None until fit.
-    tracker : GFAFitTracker | None
+    tracker : GFAFitTracker or None
         Fitting progress tracker. None until fit.
-    flags : GFAFitFlags | None
+    flags : GFAFitFlags or None
         Fitting status flags. None until fit.
 
     Examples
     --------
+    **Basic usage: fit and infer**
+
     >>> from latents.gfa import GFAModel, GFAFitConfig
     >>> from latents.callbacks import ProgressCallback
     >>> config = GFAFitConfig(x_dim_init=10)
     >>> model = GFAModel(config=config)
     >>> model.fit(Y, callbacks=[ProgressCallback()])
     >>> X_new = model.infer_latents(Y_new)
+
+    **Persistence: save and load**
+
     >>> model.save("fitted_model.safetensors")
     >>> loaded = GFAModel.load("fitted_model.safetensors")
     """
@@ -111,16 +116,24 @@ class GFAModel:
 
         Parameters
         ----------
-        Y
+        Y : ObsStatic
             Observed data.
-        callbacks
+        callbacks : list of Callback or None, default None
             List of callback objects for progress, logging, checkpointing, etc.
-            See latents.callbacks module.
+            See :mod:`~latents.callbacks` module.
 
         Returns
         -------
         Self
             The fitted model (for method chaining).
+
+        Examples
+        --------
+        >>> from latents.gfa import GFAModel, GFAFitConfig
+        >>> from latents.callbacks import ProgressCallback
+        >>> config = GFAFitConfig(x_dim_init=10, max_iter=100)
+        >>> model = GFAModel(config=config)
+        >>> model.fit(Y, callbacks=[ProgressCallback()])
         """
         # Initialize posteriors if not present (cold start)
         if self.obs_posterior is None:
@@ -149,11 +162,11 @@ class GFAModel:
 
         Parameters
         ----------
-        Y
+        Y : ObsStatic
             Observed data.
-        max_iter
+        max_iter : int or None, default None
             Maximum iterations for this resume run. If None, uses config.max_iter.
-        callbacks
+        callbacks : list of Callback or None, default None
             List of callback objects for progress, logging, checkpointing, etc.
 
         Returns
@@ -210,7 +223,7 @@ class GFAModel:
 
         Parameters
         ----------
-        Y
+        Y : ObsStatic
             Observed data.
 
         Returns
@@ -222,6 +235,13 @@ class GFAModel:
         ------
         ValueError
             If model has not been fitted.
+
+        Examples
+        --------
+        >>> model.fit(Y_train)
+        >>> X_test = model.infer_latents(Y_test)
+        >>> X_test.mean.shape
+        (5, 50)
         """
         if self.obs_posterior is None:
             msg = "Model must be fitted before inferring latents."
@@ -236,7 +256,7 @@ class GFAModel:
 
         Parameters
         ----------
-        Y
+        Y : ObsStatic
             Observed data (typically the training data).
 
         Returns
@@ -270,7 +290,7 @@ class GFAModel:
 
         Parameters
         ----------
-        Y
+        Y : ObsStatic
             Observed data (typically the training data).
 
         Returns
@@ -310,7 +330,7 @@ class GFAModel:
 
         Parameters
         ----------
-        path
+        path : str or PathLike
             Output file path (conventionally ends in .safetensors).
         """
         save_gfa_state(
@@ -329,7 +349,7 @@ class GFAModel:
 
         Parameters
         ----------
-        path
+        path : str or PathLike
             Path to .safetensors file.
 
         Returns

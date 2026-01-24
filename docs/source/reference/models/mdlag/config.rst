@@ -18,6 +18,4 @@ mdlag.config
 ----
 
 .. autoclass:: mDLAGFitConfig
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   :no-members:

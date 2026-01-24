@@ -18,6 +18,4 @@ state.realizations
 ----
 
 .. autoclass:: LatentsRealization
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   :no-members:

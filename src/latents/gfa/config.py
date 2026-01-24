@@ -27,10 +27,10 @@ class GFASimConfig:
         Must be 1D array of positive integers.
     x_dim : int
         Number of latent dimensions. Must be >= 1.
-    snr : float | np.ndarray
+    snr : float or ndarray
         Signal-to-noise ratio. Either a scalar (broadcast to all groups) or
         per-group array of shape ``(n_groups,)``. Must be > 0.
-    random_seed : int | None
+    random_seed : int or None
         RNG seed for reproducibility. None uses a random seed.
         Required for reproducible recipe saves.
 
@@ -155,7 +155,7 @@ class GFAFitConfig:
         y_dim and x_dim.
     save_fit_progress : bool
         If True, track ELBO and runtime per iteration.
-    random_seed : int | None
+    random_seed : int or None
         RNG seed for reproducibility. None for random initialization.
     min_var_frac : float
         Private variance floor as fraction of data variance. Must be in (0, 1).

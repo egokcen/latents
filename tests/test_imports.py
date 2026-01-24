@@ -23,29 +23,41 @@ def test_latents_namespace():
     import latents
 
     # Check that subpackages/modules are in the namespace of latents
+    assert "base" in dir(latents)
+    assert "callbacks" in dir(latents)
     assert "data" in dir(latents)
     assert "gfa" in dir(latents)
     assert "mdlag" in dir(latents)
     assert "observation" in dir(latents)
+    assert "plotting" in dir(latents)
     assert "state" in dir(latents)
+    assert "tracking" in dir(latents)
 
 
 def test_latents_import_subpackages():
     """Test the 'from latents import' mechanism."""
     from latents import (
+        base,  # noqa: F401
+        callbacks,  # noqa: F401
         data,  # noqa: F401
         gfa,  # noqa: F401
         mdlag,  # noqa: F401
         observation,  # noqa: F401
+        plotting,  # noqa: F401
         state,  # noqa: F401
+        tracking,  # noqa: F401
     )
 
     # Check that subpackages/modules are in the current namespace
+    assert "base" in dir()
+    assert "callbacks" in dir()
     assert "data" in dir()
     assert "gfa" in dir()
     assert "mdlag" in dir()
     assert "observation" in dir()
+    assert "plotting" in dir()
     assert "state" in dir()
+    assert "tracking" in dir()
 
 
 def test_gfa_namespace():
@@ -125,3 +137,30 @@ def test_plotting_namespace():
     assert "plot_var_exp" in dir(plotting)
     assert "plot_dims_pairs" in dir(plotting)
     assert "plot_var_exp_pairs" in dir(plotting)
+
+
+def test_base_namespace():
+    """Test that the base module has the expected namespace."""
+    from latents import base
+
+    # Check base class
+    assert "ArrayContainer" in dir(base)
+
+
+def test_callbacks_namespace():
+    """Test that the callbacks module has the expected namespace."""
+    from latents import callbacks
+
+    # Check callback classes
+    assert "LoggingCallback" in dir(callbacks)
+    assert "ProgressCallback" in dir(callbacks)
+    assert "CheckpointCallback" in dir(callbacks)
+
+
+def test_tracking_namespace():
+    """Test that the tracking module has the expected namespace."""
+    from latents import tracking
+
+    # Check base tracker classes
+    assert "FitTracker" in dir(tracking)
+    assert "FitFlags" in dir(tracking)

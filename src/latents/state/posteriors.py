@@ -11,7 +11,7 @@ if sys.version_info >= (3, 11):
 else:
     from typing_extensions import Self
 
-from latents._internal.base import ArrayContainer
+from latents.base import ArrayContainer
 from latents.state.realizations import LatentsRealization
 
 
@@ -20,21 +20,42 @@ class LatentsPosteriorStatic(ArrayContainer):
 
     Parameters
     ----------
-    mean
-        Posterior mean, shape (x_dim, n_samples).
-    cov
-        Posterior covariance (shared across samples), shape (x_dim, x_dim).
-    moment
-        Posterior second moments, shape (x_dim, x_dim).
+    mean : ndarray of float, shape (x_dim, n_samples) or None, default None
+        Posterior mean.
+    cov : ndarray of float, shape (x_dim, x_dim) or None, default None
+        Posterior covariance (shared across samples).
+    moment : ndarray of float, shape (x_dim, x_dim) or None, default None
+        Posterior second moments.
 
     Attributes
     ----------
-    mean
-        Same as **mean**, above.
-    cov
-        Same as **cov**, above.
-    moment
-        Same as **moment**, above.
+    mean : ndarray of float, shape (x_dim, n_samples) or None
+        Posterior mean.
+    cov : ndarray of float, shape (x_dim, x_dim) or None
+        Posterior covariance (shared across samples).
+    moment : ndarray of float, shape (x_dim, x_dim) or None
+        Posterior second moments.
+
+    Examples
+    --------
+    After fitting a GFA model, access the latents posterior:
+
+    >>> model = GFAModel()
+    >>> model.fit(Y)
+    >>> latents = model.latents_posterior
+    >>> latents.mean.shape
+    (5, 100)
+
+    Get posterior mean as a realization:
+
+    >>> X = latents.posterior_mean
+    >>> X.data.shape
+    (5, 100)
+
+    Sample from the posterior:
+
+    >>> rng = np.random.default_rng(42)
+    >>> X_sample = latents.sample(rng)
     """
 
     def __init__(
@@ -91,14 +112,14 @@ class LatentsPosteriorStatic(ArrayContainer):
         LatentsRealization
             Posterior mean wrapped as a realization.
         """
-        return LatentsRealization(X=self.mean.copy())
+        return LatentsRealization(data=self.mean.copy())
 
     def sample(self, rng: np.random.Generator) -> LatentsRealization:
         """Draw X from the posterior distribution.
 
         Parameters
         ----------
-        rng
+        rng : numpy.random.Generator
             Random number generator.
 
         Returns
@@ -116,7 +137,7 @@ class LatentsPosteriorStatic(ArrayContainer):
             ).T
             + self.mean
         )
-        return LatentsRealization(X=samples)
+        return LatentsRealization(data=samples)
 
     def compute_moment(self, in_place: bool = True) -> np.ndarray:
         """Compute the posterior second moments.
@@ -125,15 +146,14 @@ class LatentsPosteriorStatic(ArrayContainer):
 
         Parameters
         ----------
-        in_place
+        in_place : bool, default True
             If True, store result in self.moment and return reference to it.
             If False, return a new array without modifying self.
-            Defaults to True.
 
         Returns
         -------
-        ndarray
-            Shape (x_dim, x_dim). Posterior second moments.
+        ndarray of float, shape (x_dim, x_dim)
+            Posterior second moments.
         """
         x_dim, n_samples = self.mean.shape
         if in_place:
@@ -153,13 +173,11 @@ class LatentsPosteriorStatic(ArrayContainer):
 
         Parameters
         ----------
-        x_indices
-            1D array of int, at most length x_dim.
-            Indices of the latent dimensions to keep.
-        in_place
+        x_indices : ndarray of int
+            Indices of the latent dimensions to keep, at most length x_dim.
+        in_place : bool, default True
             If True, modify self in place and return self.
             If False, return a new instance with the subset.
-            Defaults to True.
 
         Returns
         -------
@@ -189,7 +207,12 @@ class LatentsPosteriorStatic(ArrayContainer):
 class LatentsPosteriorTimeSeries(ArrayContainer):
     """Posterior distribution q(X) for time series latents.
 
-    Stub for GPFA.
+    Stub for GPFA. Not yet implemented.
+
+    Raises
+    ------
+    NotImplementedError
+        Always raised; this class is a placeholder for future implementation.
     """
 
     def __init__(self) -> None:
@@ -200,7 +223,12 @@ class LatentsPosteriorTimeSeries(ArrayContainer):
 class LatentsPosteriorDelayed(ArrayContainer):
     """Posterior distribution q(X) for time-delayed latents.
 
-    Stub for mDLAG.
+    Stub for mDLAG. Not yet implemented.
+
+    Raises
+    ------
+    NotImplementedError
+        Always raised; this class is a placeholder for future implementation.
     """
 
     def __init__(self) -> None:

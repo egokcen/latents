@@ -44,24 +44,24 @@ def fit(
 
     Parameters
     ----------
-    Y
+    Y : ObsStatic
         Observed data.
-    obs_posterior
+    obs_posterior : ObsParamsPosterior
         Observation model posterior (modified in place).
-    latents_posterior
+    latents_posterior : LatentsPosteriorStatic
         Latent posterior (modified in place).
-    config
-        Fitting configuration. If None, uses default GFAFitConfig().
-    obs_hyperprior
-        Prior hyperparameters. If None, uses default ObsParamsHyperPrior().
-    tracker
+    config : GFAFitConfig or None, default None
+        Fitting configuration. If None, uses default `GFAFitConfig()`.
+    obs_hyperprior : ObsParamsHyperPrior or None, default None
+        Prior hyperparameters. If None, uses default `ObsParamsHyperPrior()`.
+    tracker : GFAFitTracker or None, default None
         If provided, append to existing tracker (resume). If None, create fresh.
-    flags
+    flags : GFAFitFlags or None, default None
         If provided, preserve existing flags (resume). If None, create fresh.
-    max_iter
-        Override config.max_iter. Useful for resume with different budget.
-    callbacks
-        List of callback objects. See latents.callbacks module.
+    max_iter : int or None, default None
+        Override `config.max_iter`. Useful for resume with different budget.
+    callbacks : list of Callback or None, default None
+        List of callback objects. See :mod:`~latents.callbacks` module.
 
     Returns
     -------
@@ -78,8 +78,20 @@ def fit(
     ------
     ValueError
         If ``obs_posterior.y_dims`` does not match ``Y.dims``, if
-        ``obs_posterior.x_dim`` does not match ``config.x_dim_init``, or if
-        ``tracker`` and ``flags`` are not both provided or both None.
+        ``obs_posterior.x_dim`` does not match ``config.x_dim_init`` (fresh
+        fits only; resumes may have pruned dimensions), or if ``tracker``
+        and ``flags`` are not both provided or both `None`.
+
+    Examples
+    --------
+    Most users should use :meth:`GFAModel.fit` instead of calling this directly.
+
+    **Low-level usage**
+
+    >>> from latents.gfa.inference import fit
+    >>> obs_posterior, latents_posterior, tracker, flags = fit(
+    ...     Y, obs_posterior, latents_posterior, config=config
+    ... )
     """
     if config is None:
         config = GFAFitConfig()
@@ -117,8 +129,9 @@ def fit(
         msg = "obs_posterior.y_dims must match Y.dims."
         raise ValueError(msg)
 
-    # Check that initial latent dimensionality matches
-    if obs_posterior.x_dim != x_dim_init:
+    # Check that initial latent dimensionality matches (fresh fits only;
+    # resumes may have pruned dimensions)
+    if not resuming and obs_posterior.x_dim != x_dim_init:
         msg = "obs_posterior.x_dim must match config.x_dim_init."
         raise ValueError(msg)
 
@@ -349,12 +362,12 @@ def init_posteriors(
 
     Parameters
     ----------
-    Y
+    Y : ObsStatic
         Observed data.
-    config
-        Fitting configuration. If None, uses default GFAFitConfig().
-    obs_hyperprior
-        Prior hyperparameters. If None, uses default ObsParamsHyperPrior().
+    config : GFAFitConfig or None, default None
+        Fitting configuration. If None, uses default `GFAFitConfig()`.
+    obs_hyperprior : ObsParamsHyperPrior or None, default None
+        Prior hyperparameters. If None, uses default `ObsParamsHyperPrior()`.
 
     Returns
     -------
@@ -450,18 +463,25 @@ def infer_latents(
 
     Parameters
     ----------
-    Y
+    Y : ObsStatic
         Observed data.
-    obs_posterior
-        Posterior over observation parameters. Reads C, phi, d.
-    latents_posterior
+    obs_posterior : ObsParamsPosterior
+        Posterior over observation parameters. Reads `C`, `phi`, `d`.
+    latents_posterior : LatentsPosteriorStatic or None, default None
         If provided, update in-place and return.
-        If None, create and return a new LatentsPosteriorStatic.
+        If `None`, create and return a new `LatentsPosteriorStatic`.
 
     Returns
     -------
     LatentsPosteriorStatic
         Posterior over latent variables.
+
+    Examples
+    --------
+    Infer latents for new data using a fitted model:
+
+    >>> X_new = infer_latents(Y_new, model.obs_posterior)
+    >>> X_new.mean  # Posterior mean, shape (x_dim, n_samples)
     """
     x_dim = obs_posterior.x_dim
 
@@ -514,23 +534,24 @@ def infer_loadings(
     latents_posterior: LatentsPosteriorStatic,
     XY: np.ndarray | None = None,
 ) -> LoadingPosterior:
-    """Infer loading posterior q(C). Updates obs_posterior.C in-place.
+    """Infer loading posterior q(C). Updates `obs_posterior.C` in-place.
 
     Parameters
     ----------
-    Y
+    Y : ObsStatic
         Observed data.
-    obs_posterior
-        Posterior over observation parameters. Reads alpha, phi, d; writes C.
-    latents_posterior
-        Posterior over latents. Reads mean, moment.
-    XY
-        Pre-computed correlation matrix (x_dim, y_dim). Computed if not provided.
+    obs_posterior : ObsParamsPosterior
+        Posterior over observation parameters. Reads `alpha`, `phi`, `d`; writes `C`.
+    latents_posterior : LatentsPosteriorStatic
+        Posterior over latents. Reads `mean`, `moment`.
+    XY : ndarray or None, default None
+        Pre-computed correlation matrix, shape `(x_dim, y_dim)`. Computed if not
+        provided.
 
     Returns
     -------
     LoadingPosterior
-        Reference to obs_posterior.C (updated in-place).
+        Reference to `obs_posterior.C` (updated in-place).
     """
     y_dim = obs_posterior.y_dims.sum()
     x_dim = obs_posterior.x_dim
@@ -581,21 +602,21 @@ def infer_ard(
     hyperprior: ObsParamsHyperPrior,
     C_norm: np.ndarray | None = None,
 ) -> ARDPosterior:
-    """Infer ARD posterior q(alpha). Updates obs_posterior.alpha in-place.
+    """Infer ARD posterior q(alpha). Updates `obs_posterior.alpha` in-place.
 
     Parameters
     ----------
-    obs_posterior
-        Posterior over observation parameters. Reads C; writes alpha.
-    hyperprior
-        Hyperprior parameters (a_alpha, b_alpha).
-    C_norm
-        Pre-computed squared column norms of C per group, shape (n_groups, x_dim).
+    obs_posterior : ObsParamsPosterior
+        Posterior over observation parameters. Reads `C`; writes `alpha`.
+    hyperprior : ObsParamsHyperPrior
+        Hyperprior parameters (`a_alpha`, `b_alpha`).
+    C_norm : ndarray or None, default None
+        Pre-computed squared column norms of `C` per group, shape `(n_groups, x_dim)`.
 
     Returns
     -------
     ARDPosterior
-        Reference to obs_posterior.alpha (updated in-place).
+        Reference to `obs_posterior.alpha` (updated in-place).
     """
     n_groups = len(obs_posterior.y_dims)
     alpha = obs_posterior.alpha
@@ -626,23 +647,23 @@ def infer_obs_mean(
     latents_posterior: LatentsPosteriorStatic,
     hyperprior: ObsParamsHyperPrior,
 ) -> ObsMeanPosterior:
-    """Infer observation mean posterior q(d). Updates obs_posterior.d in-place.
+    """Infer observation mean posterior q(d). Updates `obs_posterior.d` in-place.
 
     Parameters
     ----------
-    Y
+    Y : ObsStatic
         Observed data.
-    obs_posterior
-        Posterior over observation parameters. Reads C, phi; writes d.
-    latents_posterior
-        Posterior over latents. Reads mean.
-    hyperprior
-        Hyperprior parameters (beta_d).
+    obs_posterior : ObsParamsPosterior
+        Posterior over observation parameters. Reads `C`, `phi`; writes `d`.
+    latents_posterior : LatentsPosteriorStatic
+        Posterior over latents. Reads `mean`.
+    hyperprior : ObsParamsHyperPrior
+        Hyperprior parameters (`beta_d`).
 
     Returns
     -------
     ObsMeanPosterior
-        Reference to obs_posterior.d (updated in-place).
+        Reference to `obs_posterior.d` (updated in-place).
     """
     y_dim, n_samples = Y.data.shape
     d = obs_posterior.d
@@ -675,29 +696,29 @@ def infer_obs_prec(
     XY: np.ndarray | None = None,
     Y2: np.ndarray | None = None,
 ) -> ObsPrecPosterior:
-    """Infer precision posterior q(phi). Updates obs_posterior.phi in-place.
+    """Infer precision posterior q(phi). Updates `obs_posterior.phi` in-place.
 
     Parameters
     ----------
-    Y
+    Y : ObsStatic
         Observed data.
-    obs_posterior
-        Posterior over observation parameters. Reads C, d; writes phi.
-    latents_posterior
-        Posterior over latents. Reads mean, moment.
-    hyperprior
-        Hyperprior parameters (a_phi, b_phi).
-    d_moment
-        Pre-computed second moment of d, shape (y_dim,).
-    XY
-        Pre-computed correlation matrix (x_dim, y_dim).
-    Y2
-        Pre-computed sample second moments, shape (y_dim,).
+    obs_posterior : ObsParamsPosterior
+        Posterior over observation parameters. Reads `C`, `d`; writes `phi`.
+    latents_posterior : LatentsPosteriorStatic
+        Posterior over latents. Reads `mean`, `moment`.
+    hyperprior : ObsParamsHyperPrior
+        Hyperprior parameters (`a_phi`, `b_phi`).
+    d_moment : ndarray or None, default None
+        Pre-computed second moment of `d`, shape `(y_dim,)`.
+    XY : ndarray or None, default None
+        Pre-computed correlation matrix, shape `(x_dim, y_dim)`.
+    Y2 : ndarray or None, default None
+        Pre-computed sample second moments, shape `(y_dim,)`.
 
     Returns
     -------
     ObsPrecPosterior
-        Reference to obs_posterior.phi (updated in-place).
+        Reference to `obs_posterior.phi` (updated in-place).
     """
     y_dim, n_samples = Y.data.shape
     phi = obs_posterior.phi
@@ -722,6 +743,7 @@ def infer_obs_prec(
     phi.b[:] = hyperprior.b_phi + 0.5 * (
         n_samples * d_moment
         + Y2
+        # d.mean: (y_dim,) -> (y_dim, 1) for broadcast with Y.data: (y_dim, n_samples)
         - 2 * np.sum(obs_posterior.d.mean[:, np.newaxis] * Y.data, axis=1)
         - 2 * np.sum(obs_posterior.C.mean * XY.T, axis=1)
         + np.sum(obs_posterior.C.moment * latents_posterior.moment, axis=(1, 2))
@@ -752,22 +774,22 @@ def compute_lower_bound(
 
     Parameters
     ----------
-    Y
+    Y : ObsStatic
         Observed data.
-    obs_posterior
+    obs_posterior : ObsParamsPosterior
         Observation model posterior.
-    latents_posterior
+    latents_posterior : LatentsPosteriorStatic
         Latent posterior.
-    obs_hyperprior
+    obs_hyperprior : ObsParamsHyperPrior
         Hyperparameters of the prior distributions.
-    consts
-        Constant factors in the lower bound. If None, computed.
-    logdet_C
-        Log-determinant of loading covariances. If None, computed.
-    C_norm
-        Expected squared norms of loading columns. If None, computed.
-    d_moment
-        Second moment of observation mean. If None, computed.
+    consts : tuple or None, default None
+        Constant factors in the lower bound. If `None`, computed.
+    logdet_C : float or None, default None
+        Log-determinant of loading covariances. If `None`, computed.
+    C_norm : ndarray or None, default None
+        Expected squared norms of loading columns. If `None`, computed.
+    d_moment : ndarray or None, default None
+        Second moment of observation mean. If `None`, computed.
 
     Returns
     -------
@@ -827,6 +849,8 @@ def compute_lower_bound(
     lb += 0.5 * (
         x_dim * y_dim
         + logdet_C
+        # y_dims: (n_groups,) -> (n_groups, 1) for broadcast with
+        # log_alpha: (n_groups, x_dim)
         + np.sum(y_dims[:, np.newaxis] * log_alpha - obs_posterior.alpha.mean * C_norm)
     )
 
@@ -871,17 +895,19 @@ def compute_lower_bound_constants(
 
     Parameters
     ----------
-    n_samples
+    n_samples : int
         Number of samples in the observed data.
-    obs_posterior
+    obs_posterior : ObsParamsPosterior
         Observation model posterior.
-    obs_hyperprior
+    obs_hyperprior : ObsParamsHyperPrior
         Hyperparameters of the prior distributions.
 
     Returns
     -------
-    tuple
-        Constant factors for the lower bound computation.
+    tuple of (float, float, float, float, float, float, float, float, ndarray, ndarray)
+        Constant factors: `const_lik`, `const_d`, `alogb_phi`, `loggamma_a_phi_prior`,
+        `loggamma_a_phi_post`, `digamma_a_phi`, `alogb_alpha`, `loggamma_a_alpha_prior`,
+        `loggamma_a_alpha_post`, `digamma_a_alpha`.
     """
     y_dim = obs_posterior.y_dims.sum()
 

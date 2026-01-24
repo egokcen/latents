@@ -1,72 +1,210 @@
-/* Customize the pydata-sphinx-theme */
-
-/* =============================================================================
-   RTD FLYOUT STYLING
-   Inherits PyData theme colors via CSS variable aliasing.
-   Only applies when hosted on ReadTheDocs (flyout not present locally).
-   ============================================================================= */
+/* Custom styles extending pydata-sphinx-theme for latents documentation. */
 
 :root {
+  /* RTD flyout integration (inherits theme + uses accent) */
   --readthedocs-flyout-background-color: var(--pst-color-surface);
   --readthedocs-flyout-color: var(--pst-color-text-base);
   --readthedocs-flyout-link-color: var(--pst-color-link);
   --readthedocs-flyout-item-link-color: var(--pst-color-link);
   --readthedocs-flyout-font-family: var(--pst-font-family-base);
   --readthedocs-flyout-section-heading-color: var(--pst-color-text-muted);
-  --readthedocs-flyout-current-version-color: #d35fbcff;  /* Pink accent */
+  --readthedocs-flyout-current-version-color: var(--pst-color-link);
 }
 
 /* =============================================================================
-   INTRO CARDS (Main index page)
+   NAVBAR LOGO
+   Size and hover effects for the header logo
    ============================================================================= */
 
-/* Main index page overview cards */
-
-.intro-card {
-  padding: 30px 10px 20px 10px;
+/* Logo size and hover transition */
+.navbar-brand .logo__image {
+  height: 2.5rem;
+  width: auto;
+  transition: opacity 0.15s ease;
 }
 
-.intro-card .sd-card-img-top {
-  height: 52px;
-  width: 52px;
-  margin-left: auto;
-  margin-right: auto;
-  background: none !important;
+/* Hover effect */
+.navbar-brand:hover .logo__image {
+  opacity: 0.80;
 }
 
-.intro-card .sd-card-title {
-  color: var(--pst-color-primary);
-  font-size: var(--pst-font-size-h5);
-  padding: 1rem 0rem 0.5rem 0rem;
+/* Remove default link underline on logo */
+.navbar-brand {
+  text-decoration: none !important;
 }
 
-.intro-card .sd-card-footer {
+/* =============================================================================
+   LANDING PAGE: HERO SECTION
+   Main hero container with title, tagline, description, and artwork
+   ============================================================================= */
+
+/* Hero section container - background matches artwork left edge */
+.hero-section {
+  background-color: #141720;  /* Match hero artwork background (light mode) */
+  border-radius: 12px;
+  padding: 0;  /* Remove padding, let content control spacing */
+  margin-bottom: 2rem;
+  position: relative;
+  overflow: hidden;
+  min-height: 180px;
+}
+
+/* Dark mode: theme applies filter to images, so background needs adjustment */
+html[data-theme="dark"] .hero-section {
+  background-color: #000006;
+}
+
+/* Hero text container (left side) */
+.hero-section .sd-row {
+  margin: 0;
+  align-items: center;
+}
+
+/* Constrain text to left portion, leave room for artwork */
+.hero-section .sd-col:first-child {
+  padding: 2rem 2rem 2rem 2rem;
+  max-width: 55%;  /* Prevent text from extending under artwork */
+  box-sizing: border-box;
+}
+
+/* Hero tagline (rubric) */
+.hero-section .rubric {
+  font-size: 1.4rem;
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+  color: #ced6dd;  /* --pst-color-text-base, dark mode */
+  border: none;
+  line-height: 1.3;
+}
+
+/* Hero description */
+.hero-section p {
+  font-size: 1.1rem;
+  color: #9ca4af;  /* --pst-color-text-muted, dark mode */
+  line-height: 1.6;
+  margin-bottom: 0;
+}
+
+/* Hero artwork - positioned to fill right side */
+.hero-section .hero-image {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: auto;
+  border-radius: 0;
+}
+
+/* Hide the grid-item container since image is absolutely positioned */
+.hero-artwork {
+  display: contents;
+}
+
+/* =============================================================================
+   LANDING PAGE: FEATURE HIGHLIGHTS
+   Three columns outside the hero box
+   ============================================================================= */
+
+.feature-highlights {
+  margin-bottom: 2rem;
+  padding: 0 1rem;
+}
+
+.feature-highlights .sd-col p strong {
+  color: var(--pst-color-text-base);
+  font-size: 1.3rem;
+  font-weight: 600;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.feature-highlights .sd-col p {
+  font-size: 1rem;
+  color: var(--pst-color-text-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* =============================================================================
+   LANDING PAGE: NAVIGATION CARDS
+   Cards linking to key sections of the documentation
+   ============================================================================= */
+
+/* Nav section container */
+.nav-section {
+  background-color: var(--pst-color-surface);
+  border-radius: 12px;
+  padding: 1.5rem 2rem;
+}
+
+.nav-cards {
+  margin: 0;
+}
+
+/* Nav cards */
+.nav-card {
+  background-color: var(--pst-color-text-muted) !important;
   border: none !important;
+  border-radius: 12px !important;
+  padding: 1.5rem 1rem !important;
+  min-height: 140px;
+  transition: background-color 0.05s ease;
+  box-shadow: none !important;  /* Remove sphinx-design shadow */
 }
 
-.intro-card .sd-card-footer p.sd-card-text {
-  max-width: 220px;
-  margin-left: auto;
-  margin-right: auto;
+/* Ensure inner elements have NO separate background */
+.nav-card .sd-card-body,
+.nav-card .sd-card-text {
+  background: transparent !important;
 }
 
-.intro-card .sd-btn-secondary {
-  background-color: #d35fbcff !important;
-  border-color: #d35fbcff !important;
+/* Card body layout */
+.nav-card .sd-card-body {
+  padding: 0 !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
 }
 
-.intro-card .sd-btn-secondary:hover {
-  background-color: rgb(208, 118, 190) !important;
-  border-color: rgb(208, 118, 190) !important;
+/* Icon: white on dark card */
+.nav-card .sd-octicon {
+  color: var(--pst-color-background) !important;
+  fill: var(--pst-color-background) !important;
+}
+
+/* Text: white on dark card */
+.nav-card .sd-card-text {
+  margin: 0;
+  font-weight: 500;
+  font-size: 1.1rem;
+  color: var(--pst-color-background) !important;
+  text-align: center;
+}
+
+/* Hover: swap background with dark text */
+.nav-card:hover {
+  background-color: var(--pst-color-text-base) !important;
+  transform: none !important;
+}
+
+.nav-card:hover .sd-octicon {
+  color: var(--pst-color-background) !important;
+  fill: var(--pst-color-background) !important;
+}
+
+.nav-card:hover .sd-card-text {
+  color: var(--pst-color-background) !important;
 }
 
 /* =============================================================================
    SPHINX-GALLERY THUMBNAILS
+   Hover effects for example thumbnails in gallery
    ============================================================================= */
 
-/* Hover effect for gallery example thumbnails */
 .sphx-glr-thumbcontainer {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
   border-radius: 8px;
 }
 
@@ -75,7 +213,87 @@
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
 }
 
-/* Dark mode: slightly stronger shadow */
+/* Dark mode: stronger shadow for visibility */
 html[data-theme="dark"] .sphx-glr-thumbcontainer:hover {
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* =============================================================================
+   MERMAID DIAGRAMS
+   Size utilities for mermaid-generated diagrams
+   ============================================================================= */
+
+/* Force SVG to scale within container */
+.mermaid svg {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+.mermaid-sm .mermaid { max-width: 22rem; }
+.mermaid-md .mermaid { max-width: 34rem; }
+.mermaid-lg .mermaid { max-width: 47rem; }
+
+/* =============================================================================
+   CODE BLOCKS
+   Syntax highlighting and code presentation
+   ============================================================================= */
+
+/* Ensure code blocks have consistent styling */
+div.highlight pre {
+  border-radius: 6px;
+}
+
+/* Copy button positioning (if not default) */
+button.copybtn {
+  top: 0.5rem;
+  right: 0.5rem;
+}
+
+/* =============================================================================
+   RESPONSIVE ADJUSTMENTS
+   Mobile and tablet optimizations
+   ============================================================================= */
+
+@media (max-width: 768px) {
+  /* Hero section responsive */
+  .hero-section {
+    min-height: auto;
+  }
+
+  .hero-section .sd-col {
+    padding: 1.5rem 1.25rem;
+  }
+
+  .hero-section .rubric {
+    font-size: 1.3rem;
+  }
+
+  /* Hide artwork on mobile to avoid overlap */
+  .hero-artwork {
+    display: none;
+  }
+
+  .feature-highlights {
+    margin-top: 1rem;
+    padding-top: 1rem;
+  }
+
+  /* Nav section responsive */
+  .nav-section {
+    padding: 1rem;
+  }
+
+  .nav-card {
+    padding: 1rem 0.75rem !important;
+    min-height: 100px;
+  }
+
+  .nav-card .sd-card-text {
+    font-size: 1rem;
+  }
+
+  /* Smaller thumbnails on mobile */
+  .sphx-glr-thumbcontainer {
+    margin: 5px;
+  }
 }

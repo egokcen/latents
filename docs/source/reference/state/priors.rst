@@ -21,15 +21,10 @@ state.priors
 
 .. autoclass:: LatentsPriorStatic
    :members:
-   :undoc-members:
-   :show-inheritance:
 
 .. autoclass:: LatentsPriorGP
    :members:
-   :undoc-members:
-   :show-inheritance:
+   :exclude-members: hyperprior
 
 .. autoclass:: LatentsHyperPriorGP
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   :no-members:

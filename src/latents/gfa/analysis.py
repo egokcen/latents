@@ -18,11 +18,11 @@ def predictive_performance(
 
     Parameters
     ----------
-    obs_data
+    obs_data : ObsStatic
         Observed data.
-    obs_posterior
+    obs_posterior : ObsParamsPosterior
         Fitted observation model posterior.
-    y_dims
+    y_dims : ndarray or None, default None
         Dimensionalities of each observed group. If None, inferred from obs_data.
 
     Returns
@@ -31,6 +31,14 @@ def predictive_performance(
         Leave-group-out R^2.
     MSE : float
         Leave-group-out mean squared error.
+
+    Examples
+    --------
+    >>> from latents.gfa import GFAModel
+    >>> from latents.gfa.analysis import predictive_performance
+    >>> model = GFAModel()
+    >>> model.fit(Y)
+    >>> R2, MSE = predictive_performance(Y, model.obs_posterior)
     """
     if y_dims is None:
         y_dims = obs_data.dims

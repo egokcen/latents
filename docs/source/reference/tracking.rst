@@ -1,8 +1,7 @@
 .. _tracking:
 
-tracking
-========
-
+latents.tracking
+=================
 .. automodule:: latents.tracking
    :no-members:
 
@@ -20,10 +19,6 @@ tracking
 
 .. autoclass:: FitTracker
    :members:
-   :undoc-members:
-   :show-inheritance:
 
 .. autoclass:: FitFlags
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   :no-members:

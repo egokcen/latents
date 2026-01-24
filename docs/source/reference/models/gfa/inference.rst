@@ -8,14 +8,6 @@ gfa.inference
 
 .. currentmodule:: latents.gfa.inference
 
-.. rubric:: Classes
-
-.. autosummary::
-   :nosignatures:
-
-   GFAFitTracker
-   GFAFitFlags
-
 .. rubric:: Functions
 
 .. autosummary::
@@ -32,16 +24,6 @@ gfa.inference
    compute_lower_bound_constants
 
 ----
-
-.. autoclass:: GFAFitTracker
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-.. autoclass:: GFAFitFlags
-   :members:
-   :undoc-members:
-   :show-inheritance:
 
 .. autofunction:: fit
 

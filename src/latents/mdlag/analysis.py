@@ -6,5 +6,11 @@ _NOT_IMPLEMENTED_MSG = "mDLAG not yet implemented"
 
 
 def predictive_performance():
-    """Compute the leave-group-out predictive performance of a mDLAG model."""
+    """Compute the leave-group-out predictive performance of a mDLAG model.
+
+    Raises
+    ------
+    NotImplementedError
+        mDLAG is not yet implemented.
+    """
     raise NotImplementedError(_NOT_IMPLEMENTED_MSG)

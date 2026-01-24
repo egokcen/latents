@@ -23,7 +23,32 @@ logger = logging.getLogger("latents")
 
 
 class FitEvent:
-    """Event name constants for structured logging."""
+    """Event name constants for structured logging.
+
+    Attributes
+    ----------
+    STARTED : str
+        Fitting has begun.
+    CONVERGED : str
+        Fitting converged (lower bound change below tolerance).
+    MAX_ITER : str
+        Maximum iterations reached without convergence.
+    NO_LATENTS : str
+        All latent dimensions were pruned.
+    X_DIM_PRUNED : str
+        Latent dimensions were pruned during fitting.
+    FLAG_CHANGED : str
+        A fit flag changed state.
+    CHECKPOINT_SAVED : str
+        A checkpoint was saved.
+    INTERRUPTED : str
+        Fitting was interrupted (e.g., by keyboard interrupt).
+
+    Examples
+    --------
+    >>> from latents._internal.logging import FitEvent, log_event
+    >>> log_event(FitEvent.STARTED, n_samples=1000, x_dim=10)
+    """
 
     STARTED = "fit.started"
     CONVERGED = "fit.converged"
@@ -40,9 +65,9 @@ def log_event(event: str, level: int = logging.INFO, **context: Any) -> None:
 
     Parameters
     ----------
-    event
-        Event name (use FitEvent constants).
-    level
+    event : str
+        Event name (use :class:`FitEvent` constants).
+    level : int, default logging.INFO
         Logging level (DEBUG, INFO, WARNING, ERROR).
     **context
         Key-value pairs included in the log message. None values are omitted.

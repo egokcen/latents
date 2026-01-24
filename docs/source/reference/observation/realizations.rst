@@ -26,13 +26,9 @@ observation.realizations
 ----
 
 .. autoclass:: ObsParamsRealization
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   :no-members:
 
 .. autoclass:: ObsParamsPoint
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   :no-members:
 
 .. autofunction:: adjust_snr

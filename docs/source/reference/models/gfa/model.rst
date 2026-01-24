@@ -8,16 +8,9 @@ gfa.model
 
 .. currentmodule:: latents.gfa.model
 
-.. rubric:: Classes
-
-.. autosummary::
-   :nosignatures:
-
-   GFAModel
-
 ----
 
 .. autoclass:: GFAModel
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   :autosummary:
+   :autosummary-nosignatures:
+   :autosummary-sections: Methods

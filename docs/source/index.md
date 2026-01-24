@@ -1,93 +1,121 @@
-# The latents toolkit
-
-**latents** is a toolkit for latent variable modeling and dimensionality reduction,
-with an emphasis on linear, probabilistic methods.
-
-:::{warning}
-The `latents` toolkit is in an early stage of development and is not yet
-stable. The API is subject to frequent change.
-:::
+# Latents
 
 ```{eval-rst}
-.. grid:: 1 2 2 2
-    :gutter: 4
-    :padding: 2 2 0 0
-    :class-container: sd-text-center
+.. raw:: html
 
-    .. grid-item-card:: Installation
-        :class-card: intro-card
-        :shadow: md
+   <div class="hero-section">
 
-        Get started with the installation guide.
+.. grid:: 1 1 2 2
+   :gutter: 3
 
-        +++
+   .. grid-item::
+      :columns: 12 12 7 7
 
-        .. button-ref:: installation
-            :ref-type: ref
-            :click-parent:
-            :color: secondary
-            :expand:
+      .. rubric:: A Python library for latent variable modeling and dimensionality reduction
 
-            To the installation guide
+      with an emphasis on linear, probabilistic methods.
 
-    .. grid-item-card::  User guide
-        :class-card: intro-card
-        :shadow: md
+   .. grid-item::
+      :columns: 12 12 5 5
+      :class: hero-artwork
 
-        Which dimensionality reduction methods does `latents` currently support?
-        What can each method be used for? Find more info in the user guide.
+      .. image:: _static/latents-hero.webp
+         :alt: Latents hero artwork
+         :class: hero-image
 
-        +++
+.. raw:: html
 
-        .. button-ref:: user-guide
-            :ref-type: ref
-            :click-parent:
-            :color: secondary
-            :expand:
-
-            To the user guide
-
-    .. grid-item-card::  Examples
-        :class-card: intro-card
-        :shadow: md
-
-        The example gallery includes comprehensive demonstrations on how to use
-        each method in the `latents` toolkit.
-
-        +++
-
-        .. button-link:: auto_examples/index.html
-            :click-parent:
-            :color: secondary
-            :expand:
-
-            To the examples
-
-    .. grid-item-card::  API reference
-        :class-card: intro-card
-        :shadow: md
-
-        The reference guide contains a detailed description of the `latents` API.
-
-        +++
-
-        .. button-ref:: reference
-            :ref-type: ref
-            :click-parent:
-            :color: secondary
-            :expand:
-
-            To the reference guide
+   </div>
 ```
 
 ```{eval-rst}
-.. toctree::
-    :maxdepth: 2
-    :hidden:
-    :titlesonly:
+.. grid:: 1 1 3 3
+   :gutter: 4
+   :class-container: feature-highlights
 
-    installation
-    user_guide/index
-    auto_examples/index
-    reference/index
+   .. grid-item::
+
+      **Sample & fit**
+
+      Generative models with explicit distributions support both simulation and
+      inference.
+
+   .. grid-item::
+
+      **Structure follows theory**
+
+      Methods compose from core mathematical building blocks: state models, observation
+      models, and priors.
+
+   .. grid-item::
+
+      **Canonical**
+
+      Authoritative implementations — no more cobbling together research code.
+```
+
+```{eval-rst}
+.. raw:: html
+
+   <div class="nav-section">
+
+.. grid:: 2 2 4 4
+   :gutter: 3
+   :class-container: nav-cards
+
+   .. grid-item-card::
+      :link: getting_started/index
+      :link-type: doc
+      :class-card: nav-card
+      :text-align: center
+
+      :octicon:`rocket;2.5em`
+
+      Getting started
+
+   .. grid-item-card::
+      :link: user_guide/index
+      :link-type: doc
+      :class-card: nav-card
+      :text-align: center
+
+      :octicon:`book;2.5em`
+
+      User guide
+
+   .. grid-item-card::
+      :link: reference/index
+      :link-type: doc
+      :class-card: nav-card
+      :text-align: center
+
+      :octicon:`code;2.5em`
+
+      API reference
+
+   .. grid-item-card::
+      :link: development/index
+      :link-type: doc
+      :class-card: nav-card
+      :text-align: center
+
+      :octicon:`tools;2.5em`
+
+      Developer guide
+
+.. raw:: html
+
+   </div>
+```
+
+```{toctree}
+:maxdepth: 2
+:hidden:
+:titlesonly:
+
+getting_started/index
+user_guide/index
+reference/index
+development/index
+auto_examples/index
 ```

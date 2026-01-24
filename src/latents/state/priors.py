@@ -18,8 +18,8 @@ class LatentsPriorStatic:
     --------
     >>> prior = LatentsPriorStatic()
     >>> rng = np.random.default_rng(42)
-    >>> realization = prior.sample(x_dim=5, n_samples=100, rng=rng)
-    >>> realization.X.shape
+    >>> X = prior.sample(x_dim=5, n_samples=100, rng=rng)
+    >>> X.data.shape
     (5, 100)
     """
 
@@ -33,11 +33,11 @@ class LatentsPriorStatic:
 
         Parameters
         ----------
-        x_dim
+        x_dim : int
             Number of latent dimensions.
-        n_samples
+        n_samples : int
             Number of samples to generate.
-        rng
+        rng : numpy.random.Generator
             Random number generator.
 
         Returns
@@ -46,7 +46,7 @@ class LatentsPriorStatic:
             Sampled latent values.
         """
         X = rng.normal(size=(x_dim, n_samples))
-        return LatentsRealization(X=X)
+        return LatentsRealization(data=X)
 
 
 @dataclass
@@ -57,11 +57,11 @@ class LatentsHyperPriorGP:
 
     Parameters
     ----------
-    kernel
-        Kernel type (e.g., "rbf").
-    timescale
+    kernel : str, default "rbf"
+        Kernel type.
+    timescale : float, default 50.0
         Characteristic timescale of the GP kernel.
-    variance
+    variance : float, default 1.0
         Signal variance of the GP kernel.
     """
 
@@ -78,7 +78,7 @@ class LatentsPriorGP:
 
     Parameters
     ----------
-    hyperprior
+    hyperprior : LatentsHyperPriorGP, default LatentsHyperPriorGP()
         GP kernel hyperpriors.
     """
 
@@ -95,13 +95,13 @@ class LatentsPriorGP:
 
         Parameters
         ----------
-        x_dim
+        x_dim : int
             Number of latent dimensions.
-        n_samples
+        n_samples : int
             Number of samples (trials).
-        n_timepoints
+        n_timepoints : int
             Number of time points per sample.
-        rng
+        rng : numpy.random.Generator
             Random number generator.
 
         Returns
