@@ -19,7 +19,7 @@
       :columns: 12 12 5 5
       :class: hero-artwork
 
-      .. image:: _static/hero.webp
+      .. image:: _static/latents-hero.webp
          :alt: Latents hero artwork
          :class: hero-image
 
@@ -35,21 +35,23 @@
 
    .. grid-item::
 
-      **Probabilistic**
+      **Sample & fit**
 
-      Focused on methods with clear generative interpretations.
-
-   .. grid-item::
-
-      **Unified Framework**
-
-      Shared structure makes methods comparable and composable.
+      Generative models with explicit distributions support both simulation and
+      inference.
 
    .. grid-item::
 
-      **Built for Research**
+      **Structure follows theory**
 
-      Tested, performant, and designed for scientific workflows.
+      Methods compose from core mathematical building blocks: state models, observation
+      models, and priors.
+
+   .. grid-item::
+
+      **Canonical**
+
+      Authoritative implementations — no more cobbling together research code.
 ```
 
 ```{eval-rst}
