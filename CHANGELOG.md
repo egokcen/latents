@@ -12,7 +12,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation hosted on [Read the Docs](https://latents.readthedocs.io)
 - Interactive examples gallery using sphinx-gallery
 - Python 3.14 support
-- Optional `notebook` extra for Jupyter support (`pip install latents[notebook]`)
 - `GFAFitConfig` frozen dataclass for immutable GFA fitting configuration
 - `GFASimConfig` frozen dataclass for immutable GFA simulation configuration
 - `GFASimulationResult` dataclass bundling simulation outputs (config, hyperprior, obs_params, latents, observations)
@@ -52,7 +51,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - State model classes reorganized into `state/` subpackage
 - `simulate()` signature changed to `simulate(config, hyperprior)` returning `GFASimulationResult` instead of tuple
 - Minimum Python version raised from 3.9 to 3.10
-- Jupyter dependencies (`jupyter`, `ipywidgets`) moved from core to optional extra
 - `GFAModel` now accepts `config` parameter in constructor instead of using `fit_args.set_args()`
 - Configuration uses snake_case naming (e.g., `prune_x` instead of `prune_X`)
 - Methods with `in_place=True` now return `self` instead of `None`. Affected methods: `get_subset_dims`, `compute_moment`, `compute_mean`, and all `infer_*` functions
@@ -70,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `StateParamsStatic` class (functionality absorbed into `LatentsPosteriorStatic`)
 - `plotting.py` module (replaced by `plotting/` subpackage)
 - `ObsParamsPosterior` plotting methods (moved to `plotting/` subpackage as standalone functions)
+- `notebook` optional extra (`pip install latents[notebook]`); users should install Jupyter separately if needed
 
 ## [0.0.4] - 2024-10-31
 

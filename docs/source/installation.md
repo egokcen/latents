@@ -14,12 +14,6 @@ Install the latest release from PyPI:
 pip install latents
 ```
 
-For Jupyter notebook support:
-
-```bash
-pip install latents[notebook]
-```
-
 ## From Source
 
 For development or to use the latest unreleased changes, install from source:
