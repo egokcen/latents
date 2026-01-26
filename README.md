@@ -41,12 +41,6 @@ Requires Python 3.10 or higher.
 pip install latents
 ```
 
-For Jupyter notebook support:
-
-```sh
-pip install latents[notebook]
-```
-
 ## Quick Start
 
 ```python

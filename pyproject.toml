@@ -42,13 +42,6 @@ dependencies = [
     "typing_extensions>=4.0; python_version < '3.11'",
 ]
 
-[project.optional-dependencies]
-# User-facing extras only
-notebook = [
-    "jupyter",
-    "ipywidgets",
-]
-
 [project.urls]
 Homepage = "https://github.com/egokcen/latents"
 Documentation = "https://latents.readthedocs.io"
