@@ -19,7 +19,7 @@ Closes #
 - [ ] Tests added and passing (`uv run pytest`)
 - [ ] Code checks passing (`uv run pre-commit run --all-files`)
 - [ ] Type hints, docstrings, and [docs](https://github.com/egokcen/latents/tree/main/docs/source) references added/updated
-- [ ] Documentation builds successfully (`uv run sphinx-build -b html docs/source docs/_build/html`)
+- [ ] Documentation builds successfully (`uv run sphinx-build -W -b html docs/source docs/_build/html`)
 - [ ] Examples gallery updated (if API changed)
 - [ ] CHANGELOG.md updated under `[Unreleased]` (if user-facing change)
 

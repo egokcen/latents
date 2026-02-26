@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "latents"
-description = "A toolkit for latent variable modeling and dimensionality reduction"
+description = "A library for latent variable modeling and dimensionality reduction"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
