@@ -77,4 +77,6 @@ as your experiment needs (e.g., `[sweep_idx, run_idx, base_seed]`).
 
 - [NumPy parallel random number generation](https://numpy.org/doc/stable/reference/random/parallel.html)
   &mdash; how `SeedSequence` enables reproducible parallelism
+- {doc}`/development/benchmarks` &mdash; the benchmark suite's three-stream
+  seed design for separating data, noise, and fitting randomness
 - {doc}`../methods/gfa` &mdash; GFA model specification and inference details
