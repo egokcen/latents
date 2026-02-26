@@ -2,9 +2,61 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 import numpy as np
+
+
+def _validate_random_seed(seed: int | Sequence[int] | None) -> None:
+    """Validate random_seed field value.
+
+    Parameters
+    ----------
+    seed : int, sequence of int, or None
+        The seed value to validate.
+
+    Raises
+    ------
+    TypeError
+        If seed is not an int, sequence of ints, or None.
+    ValueError
+        If seed is negative, sequence is empty, or sequence contains negatives.
+    """
+    if seed is None:
+        return
+
+    if isinstance(seed, int):
+        if seed < 0:
+            msg = f"random_seed must be non-negative, got {seed}"
+            raise ValueError(msg)
+    elif isinstance(seed, str):
+        # Strings are Sequences but not valid seeds
+        msg = f"random_seed must be an int, sequence of ints, or None, got {seed!r}"
+        raise TypeError(msg)
+    elif isinstance(seed, Sequence):
+        if len(seed) == 0:
+            msg = "random_seed sequence must not be empty"
+            raise ValueError(msg)
+        for i, val in enumerate(seed):
+            if not isinstance(val, int):
+                msg = (
+                    f"random_seed sequence must contain integers, "
+                    f"got {type(val).__name__} at index {i}"
+                )
+                raise TypeError(msg)
+            if val < 0:
+                msg = (
+                    f"random_seed sequence values must be non-negative, "
+                    f"got {val} at index {i}"
+                )
+                raise ValueError(msg)
+    else:
+        msg = (
+            f"random_seed must be an int, sequence of ints, or None, "
+            f"got {type(seed).__name__}"
+        )
+        raise TypeError(msg)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -30,9 +82,11 @@ class GFASimConfig:
     snr : float or ndarray
         Signal-to-noise ratio. Either a scalar (broadcast to all groups) or
         per-group array of shape ``(n_groups,)``. Must be > 0.
-    random_seed : int or None
-        RNG seed for reproducibility. None uses a random seed.
-        Required for reproducible recipe saves.
+    random_seed : int, sequence of int, or None
+        RNG seed for reproducibility. Accepts a single non-negative integer,
+        a non-empty sequence of non-negative integers (for structured seeding
+        in parallel experiments), or None for random initialization. Required
+        for reproducible recipe saves.
 
     Examples
     --------
@@ -53,7 +107,7 @@ class GFASimConfig:
     y_dims: np.ndarray
     x_dim: int
     snr: float | np.ndarray = 1.0
-    random_seed: int | None = None
+    random_seed: int | Sequence[int] | None = None
 
     @property
     def n_groups(self) -> int:
@@ -115,15 +169,7 @@ class GFASimConfig:
                 msg = f"snr must be > 0, got {snr}"
                 raise ValueError(msg)
 
-        # Validate random_seed
-        if self.random_seed is not None and (
-            not isinstance(self.random_seed, int) or self.random_seed < 0
-        ):
-            msg = (
-                f"random_seed must be a non-negative integer or None, "
-                f"got {self.random_seed!r}"
-            )
-            raise ValueError(msg)
+        _validate_random_seed(self.random_seed)
 
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -155,8 +201,10 @@ class GFAFitConfig:
         y_dim and x_dim.
     save_fit_progress : bool
         If True, track ELBO and runtime per iteration.
-    random_seed : int or None
-        RNG seed for reproducibility. None for random initialization.
+    random_seed : int, sequence of int, or None
+        RNG seed for reproducibility. Accepts a single non-negative integer,
+        a non-empty sequence of non-negative integers (for structured seeding
+        in parallel experiments), or None for random initialization.
     min_var_frac : float
         Private variance floor as fraction of data variance. Must be in (0, 1).
 
@@ -190,7 +238,7 @@ class GFAFitConfig:
     save_fit_progress: bool = True
 
     # Reproducibility
-    random_seed: int | None = None
+    random_seed: int | Sequence[int] | None = None
 
     # Numerical stability
     min_var_frac: float = 0.001
@@ -222,12 +270,4 @@ class GFAFitConfig:
             msg = f"min_var_frac must be in (0, 1), got {self.min_var_frac}"
             raise ValueError(msg)
 
-        # Validate random_seed
-        if self.random_seed is not None and (
-            not isinstance(self.random_seed, int) or self.random_seed < 0
-        ):
-            msg = (
-                f"random_seed must be a non-negative integer or None, "
-                f"got {self.random_seed!r}"
-            )
-            raise ValueError(msg)
+        _validate_random_seed(self.random_seed)
