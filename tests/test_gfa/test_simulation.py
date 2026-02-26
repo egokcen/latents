@@ -308,6 +308,28 @@ class TestSaveLoadRecipe:
         with pytest.raises(ValueError, match="random_seed required"):
             gfa_sim.save_simulation_recipe(path, sim_config_no_seed, hyperprior_simple)
 
+    def test_recipe_sequence_seed_roundtrip(self, hyperprior_simple, tmp_path):
+        """Test save/load recipe preserves sequence random_seed."""
+        config = GFASimConfig(
+            n_samples=50,
+            y_dims=np.array([8, 8]),
+            x_dim=3,
+            random_seed=[1, 2, 42],
+        )
+
+        path = tmp_path / "recipe.safetensors"
+        gfa_sim.save_simulation_recipe(path, config, hyperprior_simple)
+
+        loaded_config, _ = gfa_sim.load_simulation_recipe(path)
+        assert loaded_config.random_seed == [1, 2, 42]
+
+        # Verify reproducibility after round-trip
+        result1 = gfa_sim.simulate(config, hyperprior_simple)
+        result2 = gfa_sim.simulate(loaded_config, hyperprior_simple)
+        np.testing.assert_array_equal(
+            result1.observations.data, result2.observations.data
+        )
+
     def test_load_simulation_rejects_recipe(
         self, sim_config, hyperprior_simple, tmp_path
     ):

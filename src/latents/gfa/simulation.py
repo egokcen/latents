@@ -222,7 +222,7 @@ def _serialize_config(
     metadata["config.x_dim"] = str(config.x_dim)
 
     if config.random_seed is not None:
-        metadata["config.random_seed"] = str(config.random_seed)
+        metadata["config.random_seed"] = json.dumps(config.random_seed)
 
     # snr: scalar or array
     if isinstance(config.snr, np.ndarray):
@@ -250,7 +250,7 @@ def _deserialize_config(
         x_dim=int(metadata["config.x_dim"]),
         snr=snr,
         random_seed=(
-            int(metadata["config.random_seed"])
+            json.loads(metadata["config.random_seed"])
             if "config.random_seed" in metadata
             else None
         ),

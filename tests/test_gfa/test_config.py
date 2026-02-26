@@ -3,7 +3,10 @@
 import pytest
 from dataclasses import FrozenInstanceError
 
+import numpy as np
+
 from latents.gfa import GFAFitConfig
+from latents.gfa.config import GFASimConfig
 
 
 class TestGFAFitConfig:
@@ -97,15 +100,61 @@ class TestGFAFitConfig:
         with pytest.raises(ValueError, match="min_var_frac must be in"):
             GFAFitConfig(min_var_frac=1.5)
 
-    def test_random_seed_validation(self):
-        """Test random_seed must be non-negative integer or None."""
-        # Valid cases
+    def test_random_seed_int_valid(self):
+        """Test random_seed accepts non-negative integers and None."""
         GFAFitConfig(random_seed=None)
         GFAFitConfig(random_seed=0)
         GFAFitConfig(random_seed=42)
 
-        # Invalid cases
-        with pytest.raises(ValueError, match="random_seed must be a non-negative"):
-            GFAFitConfig(random_seed=-1)
-        with pytest.raises(ValueError, match="random_seed must be a non-negative"):
-            GFAFitConfig(random_seed=3.14)
+    def test_random_seed_sequence_valid(self):
+        """Test random_seed accepts sequences of non-negative integers."""
+        config = GFAFitConfig(random_seed=[0, 1, 42])
+        assert config.random_seed == [0, 1, 42]
+
+        # Tuples also work
+        config = GFAFitConfig(random_seed=(1, 2, 3))
+        assert config.random_seed == (1, 2, 3)
+
+    @pytest.mark.parametrize(
+        ("seed", "error", "match"),
+        [
+            (-1, ValueError, "non-negative"),
+            ([], ValueError, "must not be empty"),
+            ([1, -2, 3], ValueError, "non-negative"),
+            ([1, 2.5, 3], TypeError, "must contain integers"),
+            (3.14, TypeError, "int, sequence of ints, or None"),
+            ("42", TypeError, "int, sequence of ints, or None"),
+        ],
+    )
+    def test_random_seed_invalid(self, seed, error, match):
+        """Test random_seed rejects invalid inputs."""
+        with pytest.raises(error, match=match):
+            GFAFitConfig(random_seed=seed)
+
+
+class TestGFASimConfig:
+    """Tests for GFASimConfig random_seed validation.
+
+    GFASimConfig and GFAFitConfig share the same validation helper, so we
+    only test a subset of cases here to confirm the integration.
+    """
+
+    def test_random_seed_sequence_valid(self):
+        """Test random_seed accepts sequences of non-negative integers."""
+        config = GFASimConfig(
+            n_samples=50,
+            y_dims=np.array([10]),
+            x_dim=3,
+            random_seed=[0, 1, 42],
+        )
+        assert config.random_seed == [0, 1, 42]
+
+    def test_random_seed_sequence_invalid(self):
+        """Test random_seed rejects invalid sequences."""
+        with pytest.raises(ValueError, match="must not be empty"):
+            GFASimConfig(
+                n_samples=50,
+                y_dims=np.array([10]),
+                x_dim=3,
+                random_seed=[],
+            )
