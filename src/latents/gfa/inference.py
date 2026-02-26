@@ -258,6 +258,15 @@ def fit(
         # Latent variables, X
         infer_latents(Y, obs_posterior, latents_posterior)
 
+        # Recompute reconstruction error with updated latents.
+        # phi.b was computed before the X update, so it encodes a stale
+        # reconstruction error. One extra XY matmul per iteration ensures
+        # the ELBO uses the current X.
+        XY = latents_posterior.mean @ (Y.data - obs_posterior.d.mean[:, np.newaxis]).T
+        recon = _reconstruction_error(
+            Y, obs_posterior, latents_posterior, d_moment=d_moment, XY=XY, Y2=Y2
+        )
+
         # Compute the lower bound
         lb_old = lb_curr
         lb_curr = compute_lower_bound(
@@ -269,6 +278,7 @@ def fit(
             logdet_C=logdet_C,
             C_norm=C_norm,
             d_moment=d_moment,
+            recon=recon,
         )
 
         # Save progress
@@ -399,7 +409,8 @@ def init_posteriors(
     latents_posterior = LatentsPosteriorStatic()
 
     # Covariance of each observed group
-    Y_covs = [np.cov(Y_m) for Y_m in Ys]
+    # np.cov returns a scalar (0-d) when y_dim=1; ensure always 2-d
+    Y_covs = [np.atleast_2d(np.cov(Y_m)) for Y_m in Ys]
 
     rng = np.random.default_rng(random_seed)
 
@@ -415,10 +426,11 @@ def init_posteriors(
 
     # Noise precisions phi
     obs_posterior.phi.a = obs_hyperprior.a_phi + n_samples / 2
-    obs_posterior.phi.b = np.full(y_dim, obs_hyperprior.b_phi)
     obs_posterior.phi.mean = np.concatenate(
         [1 / np.diag(Y_cov) for Y_cov in Y_covs], axis=0
     )
+    # Moment-matched: b = a / mean ensures Gamma parameters are consistent
+    obs_posterior.phi.b = obs_posterior.phi.a / obs_posterior.phi.mean
 
     # Loading matrices C - mean
     obs_posterior.C.mean = np.zeros((y_dim, x_dim))
@@ -438,13 +450,17 @@ def init_posteriors(
         obs_posterior.C.cov = None
 
     # ARD parameters alpha
-    obs_posterior.alpha.a = obs_hyperprior.a_alpha + y_dims / 2
-    obs_posterior.alpha.b = np.full((n_groups, x_dim), obs_hyperprior.b_alpha)
+    obs_posterior.alpha.a = obs_hyperprior.a_alpha + y_dims / 2  # (n_groups,)
     obs_posterior.alpha.mean = np.zeros((n_groups, x_dim))
     for group_idx in range(n_groups):
         obs_posterior.alpha.mean[group_idx, :] = y_dims[group_idx] / np.diag(
             np.sum(C_moments[group_idx], axis=0)
         )
+    # Moment-matched: b = a / mean ensures Gamma parameters are consistent
+    # alpha.a: (n_groups,) -> (n_groups, 1), alpha.mean: (n_groups, x_dim)
+    obs_posterior.alpha.b = (
+        obs_posterior.alpha.a[:, np.newaxis] / obs_posterior.alpha.mean
+    )
 
     return obs_posterior, latents_posterior
 
@@ -740,14 +756,10 @@ def infer_obs_prec(
         XY = latents_posterior.mean @ (Y.data - obs_posterior.d.mean[:, np.newaxis]).T
 
     # Rate parameter: expected reconstruction error -> phi.b: (y_dim,)
-    phi.b[:] = hyperprior.b_phi + 0.5 * (
-        n_samples * d_moment
-        + Y2
-        # d.mean: (y_dim,) -> (y_dim, 1) for broadcast with Y.data: (y_dim, n_samples)
-        - 2 * np.sum(obs_posterior.d.mean[:, np.newaxis] * Y.data, axis=1)
-        - 2 * np.sum(obs_posterior.C.mean * XY.T, axis=1)
-        + np.sum(obs_posterior.C.moment * latents_posterior.moment, axis=(1, 2))
+    recon = _reconstruction_error(
+        Y, obs_posterior, latents_posterior, d_moment=d_moment, XY=XY, Y2=Y2
     )
+    phi.b[:] = hyperprior.b_phi + 0.5 * recon
 
     # Mean
     phi.compute_mean(in_place=True)
@@ -756,8 +768,51 @@ def infer_obs_prec(
 
 
 # -----------------------------------------------------------------------------
-# Lower bound computation
+# Reconstruction error and lower bound computation
 # -----------------------------------------------------------------------------
+
+
+def _reconstruction_error(
+    Y: ObsStatic,
+    obs_posterior: ObsParamsPosterior,
+    latents_posterior: LatentsPosteriorStatic,
+    d_moment: np.ndarray,
+    XY: np.ndarray,
+    Y2: np.ndarray,
+) -> np.ndarray:
+    """Compute expected reconstruction error per observed dimension.
+
+    Computes E[sum_n (y_jn - d_j - c_j^T X_n)^2] for each dimension j.
+
+    Parameters
+    ----------
+    Y : ObsStatic
+        Observed data.
+    obs_posterior : ObsParamsPosterior
+        Posterior over observation parameters. Reads `C`, `d`.
+    latents_posterior : LatentsPosteriorStatic
+        Posterior over latents. Reads `moment`.
+    d_moment : ndarray, shape (y_dim,)
+        Second moment of observation mean, ``d.cov + d.mean**2``.
+    XY : ndarray, shape (x_dim, y_dim)
+        Cross-correlation ``X.mean @ (Y - d.mean).T``.
+    Y2 : ndarray, shape (y_dim,)
+        Sample second moments ``sum(Y**2, axis=1)``.
+
+    Returns
+    -------
+    ndarray, shape (y_dim,)
+        Expected reconstruction error per observed dimension.
+    """
+    n_samples = Y.data.shape[1]
+    return (
+        n_samples * d_moment
+        + Y2
+        # d.mean: (y_dim,) -> (y_dim, 1) for broadcast with Y.data: (y_dim, n_samples)
+        - 2 * np.sum(obs_posterior.d.mean[:, np.newaxis] * Y.data, axis=1)
+        - 2 * np.sum(obs_posterior.C.mean * XY.T, axis=1)
+        + np.sum(obs_posterior.C.moment * latents_posterior.moment, axis=(1, 2))
+    )
 
 
 def compute_lower_bound(
@@ -769,6 +824,7 @@ def compute_lower_bound(
     logdet_C: float | None = None,
     C_norm: np.ndarray | None = None,
     d_moment: np.ndarray | None = None,
+    recon: np.ndarray | None = None,
 ) -> float:
     """Compute the variational lower bound (ELBO) for a GFA model.
 
@@ -790,6 +846,9 @@ def compute_lower_bound(
         Expected squared norms of loading columns. If `None`, computed.
     d_moment : ndarray or None, default None
         Second moment of observation mean. If `None`, computed.
+    recon : ndarray or None, default None
+        Expected reconstruction error per dimension, shape ``(y_dim,)``.
+        If `None`, derived from ``obs_posterior.phi.b``.
 
     Returns
     -------
@@ -827,12 +886,17 @@ def compute_lower_bound(
 
     floor = stability_floor(obs_posterior.phi.b.dtype)
 
+    # Derive reconstruction error from phi.b if not provided.
+    # phi.b = b_phi + 0.5 * recon, so recon = 2 * (phi.b - b_phi).
+    if recon is None:
+        recon = 2.0 * (obs_posterior.phi.b - obs_hyperprior.b_phi)
+
     # Likelihood term
     log_phi = digamma_a_phi - np.log(np.maximum(obs_posterior.phi.b, floor))
     lb = (
         const_lik
         + 0.5 * n_samples * np.sum(log_phi)
-        - np.sum(obs_posterior.phi.mean * (obs_posterior.phi.b - obs_hyperprior.b_phi))
+        - 0.5 * np.sum(obs_posterior.phi.mean * recon)
     )
 
     # X KL term
