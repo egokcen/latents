@@ -1,4 +1,4 @@
-"""latents package."""
+"""Latents: A library for latent variable modeling and dimensionality reduction."""
 
 import contextlib
 from importlib.metadata import PackageNotFoundError, version

@@ -63,6 +63,7 @@ doc = [
     "autodocsumm",
     "myst-parser",
     "numpydoc",
+    "pandas",  # Benchmark gallery scripts
     "pillow",
     "pydata-sphinx-theme",
     "sphinx",
@@ -70,6 +71,11 @@ doc = [
     "sphinx-design",
     "sphinx-gallery",
     "sphinxcontrib-mermaid",
+]
+benchmark = [
+    "joblib",
+    "pandas",
+    "psutil",
 ]
 
 [tool.hatch.version]
@@ -122,7 +128,8 @@ ignore = [
 "*/__init__.py" = ["F401"]  # Unused import
 "tests/*" = ["I001"]        # Import block is un-sorted or un-formatted
 "*.ipynb" = ["I001"]        # Import block is un-sorted or un-formatted
-"examples/*" = ["D100", "D103", "D205", "D400", "D415", "I001"]  # sphinx-gallery scripts
+"examples/*" = ["D100", "D103", "D205", "D400", "D415", "I001"]  # Gallery
+"benchmarks/gallery/*" = ["D100", "D103", "D205", "D400", "D415", "I001"]  # Gallery
 "src/latents/callbacks.py" = ["D102", "ARG002"]  # Callback interface methods
 "tests/test_callbacks.py" = ["ARG002"]  # Callback interface methods in tests
 

@@ -66,6 +66,9 @@ Benchmarks can include runtime or statistical performance. For example, how well
 does each method in Latents recover ground truth parameters as a function of number
 of training samples?
 
+See {doc}`benchmarks` for architecture details, how to run benchmarks, and how to
+extend them for new methods.
+
 ## How to Contribute
 
 ### Issues
@@ -149,6 +152,7 @@ Dependencies are organized into groups in
 - **dev**: Development tools (pre-commit, ruff)
 - **test**: Testing tools (pytest, pytest-cov, coverage)
 - **doc**: Documentation tools (sphinx, pydata-sphinx-theme, etc.)
+- **benchmark**: Benchmarking tools (joblib, pandas, etc.)
 
 To install only specific groups:
 

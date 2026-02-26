@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Documentation hosted on [Read the Docs](https://latents.readthedocs.io)
 - Interactive examples gallery using sphinx-gallery
+- GFA benchmark suite for runtime scaling, parameter recovery, and dimensionality recovery (`benchmarks/`)
+- Benchmark developer guide and Sphinx-gallery integration for benchmark results
 - Python 3.14 support
 - `GFAFitConfig` frozen dataclass for immutable GFA fitting configuration
 - `GFASimConfig` frozen dataclass for immutable GFA simulation configuration
