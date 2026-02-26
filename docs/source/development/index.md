@@ -9,5 +9,6 @@ Information for contributors and developers.
 
 contributing
 architecture
+benchmarks
 changelog
 ```

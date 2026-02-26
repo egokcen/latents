@@ -1,4 +1,4 @@
-"""Group Factor Analysis (GFA) subpackage."""
+"""Group Factor Analysis (GFA)."""
 
 from latents.gfa.config import GFAFitConfig
 from latents.gfa.model import GFAModel

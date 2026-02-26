@@ -37,6 +37,13 @@ framework underlying all methods.
 **Do you need automatic dimensionality selection?**
 : If yes, use Bayesian methods with ARD: **GFA** (static) or **mDLAG** (time series).
 
+:::{tip}
+**Will this method work for my data?** The {doc}`../../auto_benchmarks/index`
+show how runtime scales with dataset size and how well methods recover ground
+truth across different sample counts and dimensionalities — useful for
+assessing feasibility given your data constraints.
+:::
+
 ## Available methods
 
 :::{note}

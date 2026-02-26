@@ -118,4 +118,5 @@ user_guide/index
 reference/index
 development/index
 auto_examples/index
+auto_benchmarks/index
 ```

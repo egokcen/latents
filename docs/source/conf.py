@@ -57,15 +57,21 @@ intersphinx_mapping = {
 }
 
 # Sphinx-gallery configuration
+# Two galleries: examples (tutorials) and benchmarks (performance/correctness)
 sphinx_gallery_conf = {
-    "examples_dirs": ["../../examples"],  # Path to example scripts
-    "gallery_dirs": ["auto_examples"],  # Path to generated gallery
+    "examples_dirs": ["../../examples", "../../benchmarks/gallery"],
+    "gallery_dirs": ["auto_examples", "auto_benchmarks"],
     "remove_config_comments": True,
     "plot_gallery": "True",
     "download_all_examples": False,
     "line_numbers": False,
-    # Subsection ordering: GFA first, then mDLAG, then any future methods
-    "subsection_order": ["../../examples/gfa", "../../examples/mdlag", "*"],
+    # Subsection ordering
+    "subsection_order": [
+        "../../examples/gfa",
+        "../../examples/mdlag",
+        "../../benchmarks/gallery/gfa",
+        "*",
+    ],
     "within_subsection_order": "FileNameSortKey",
     "matplotlib_animations": True,
     # Separate index page per subsection (gfa/, mdlag/, etc.)
@@ -91,7 +97,7 @@ html_theme_options = {
     "navbar_center": ["navbar-nav"],
     "navbar_end": ["theme-switcher", "navbar-icon-links"],
     "navbar_persistent": ["search-button"],
-    "header_links_before_dropdown": 5,
+    "header_links_before_dropdown": 6,
     # Project logo
     "logo": {
         "text": "",

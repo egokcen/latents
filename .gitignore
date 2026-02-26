@@ -31,6 +31,7 @@ notebooks/
 # Sphinx documentation
 docs/_build
 docs/source/auto_examples/
+docs/source/auto_benchmarks/
 docs/source/sg_execution_times.rst
 
 # Virtual environments
@@ -45,3 +46,7 @@ venv
 # Claude Code
 .claude/settings.local.json
 audits/
+
+# Benchmark working directory outputs (committed results live in docs)
+benchmarks/results/
+benchmarks/logs/
