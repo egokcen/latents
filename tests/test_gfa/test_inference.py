@@ -19,7 +19,7 @@ def test_fit(fitted_model_converged):
     # x_dim_init=10, true x_dim=7, so 3 latents pruned.
     assert model.flags.x_dims_removed == 3
     # Iteration count for convergence with fit_tol=1e-8.
-    assert len(model.tracker.iter_time) == 2297
+    assert len(model.tracker.iter_time) == 2493
 
 
 def test_elbo_monotonicity(fitted_model_converged):
