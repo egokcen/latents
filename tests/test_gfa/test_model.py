@@ -65,6 +65,7 @@ def fitted_model():
 # --- Tests ---
 
 
+@pytest.mark.fit
 class TestSaveLoad:
     """Tests for GFAModel.save() and GFAModel.load().
 
@@ -228,6 +229,7 @@ class TestSaveLoad:
         assert len(loaded.tracker.lb) > n_iter_before
 
 
+@pytest.mark.fit
 class TestRecompute:
     """Tests for GFAModel.recompute_latents() and recompute_loadings().
 

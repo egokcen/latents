@@ -330,6 +330,7 @@ class TestCheckpointCallback:
 # -----------------------------------------------------------------------------
 
 
+@pytest.mark.fit
 class TestCallbackIntegration:
     """Integration tests for callbacks with real model fitting."""
 
