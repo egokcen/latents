@@ -15,6 +15,7 @@ from latents.callbacks import (
 )
 from latents.gfa import GFAFitConfig, GFAModel
 from latents.gfa.config import GFASimConfig
+import latents.gfa.simulation as gfa_sim
 from latents.gfa.tracking import GFAFitContext, GFAFitFlags, GFAFitTracker
 from latents.observation import (
     ARDPosterior,
@@ -337,8 +338,6 @@ class TestCallbackIntegration:
     @staticmethod
     def _simulate_small():
         """Generate small simulated data for integration tests."""
-        import latents.gfa.simulation as gfa_sim
-
         hyperprior = ObsParamsHyperPrior(
             a_alpha=1.0, b_alpha=1.0, a_phi=1.0, b_phi=1.0, beta_d=1.0
         )
