@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import logging
 
+import numpy as np
+import pytest
+
 from latents.callbacks import (
     CheckpointCallback,
     LoggingCallback,
@@ -11,6 +14,86 @@ from latents.callbacks import (
     invoke_callbacks,
 )
 from latents.gfa import GFAFitConfig, GFAModel
+from latents.gfa.config import GFASimConfig
+import latents.gfa.simulation as gfa_sim
+from latents.gfa.tracking import GFAFitContext, GFAFitFlags, GFAFitTracker
+from latents.observation import (
+    ARDPosterior,
+    LoadingPosterior,
+    ObsMeanPosterior,
+    ObsParamsHyperPrior,
+    ObsParamsPosterior,
+    ObsPrecPosterior,
+)
+from latents.state import LatentsPosteriorStatic
+
+
+# -----------------------------------------------------------------------------
+# Synthetic fixture (no fitting required)
+# -----------------------------------------------------------------------------
+
+
+@pytest.fixture
+def fit_context():
+    """Synthetic GFAFitContext for callback unit tests.
+
+    Constructs a minimal valid context without running model fitting.
+    Callbacks only need shape info, config values, and a working save().
+    """
+    y_dims = np.array([3, 2])
+    y_dim = int(y_dims.sum())
+    x_dim = 2
+    n_samples = 10
+
+    config = GFAFitConfig(x_dim_init=x_dim, max_iter=100, prune_x=True)
+    obs_hyperprior = ObsParamsHyperPrior()
+
+    obs_posterior = ObsParamsPosterior(
+        x_dim=x_dim,
+        y_dims=y_dims,
+        C=LoadingPosterior(
+            mean=np.zeros((y_dim, x_dim)),
+            cov=np.zeros((y_dim, x_dim, x_dim)),
+            moment=np.zeros((y_dim, x_dim, x_dim)),
+        ),
+        alpha=ARDPosterior(
+            a=np.ones(len(y_dims)),
+            b=np.ones((len(y_dims), x_dim)),
+            mean=np.ones((len(y_dims), x_dim)),
+        ),
+        d=ObsMeanPosterior(
+            mean=np.zeros(y_dim),
+            cov=np.ones(y_dim),
+        ),
+        phi=ObsPrecPosterior(
+            a=1.0,
+            b=np.ones(y_dim),
+            mean=np.ones(y_dim),
+        ),
+    )
+
+    latents_posterior = LatentsPosteriorStatic(
+        mean=np.zeros((x_dim, n_samples)),
+        cov=np.eye(x_dim),
+        moment=n_samples * np.eye(x_dim),
+    )
+
+    tracker = GFAFitTracker(
+        lb=np.arange(10, dtype=float),
+        iter_time=np.ones(10),
+        lb_base=0.0,
+    )
+
+    flags = GFAFitFlags()
+
+    return GFAFitContext(
+        config=config,
+        obs_hyperprior=obs_hyperprior,
+        obs_posterior=obs_posterior,
+        latents_posterior=latents_posterior,
+        tracker=tracker,
+        flags=flags,
+    )
 
 
 # -----------------------------------------------------------------------------
@@ -248,11 +331,28 @@ class TestCheckpointCallback:
 # -----------------------------------------------------------------------------
 
 
+@pytest.mark.fit
 class TestCallbackIntegration:
     """Integration tests for callbacks with real model fitting."""
 
-    def test_fit_with_callbacks(self, simulation_result):
+    @staticmethod
+    def _simulate_small():
+        """Generate small simulated data for integration tests."""
+        hyperprior = ObsParamsHyperPrior(
+            a_alpha=1.0, b_alpha=1.0, a_phi=1.0, b_phi=1.0, beta_d=1.0
+        )
+        sim_config = GFASimConfig(
+            n_samples=50,
+            y_dims=np.array([8, 8]),
+            x_dim=3,
+            snr=1.0,
+            random_seed=42,
+        )
+        return gfa_sim.simulate(sim_config, hyperprior)
+
+    def test_fit_with_callbacks(self):
         """Callbacks are invoked during model.fit()."""
+        sim_result = self._simulate_small()
 
         # Custom callback that records events
         class RecordingCallback:
@@ -276,15 +376,17 @@ class TestCallbackIntegration:
             random_seed=0,
         )
         model = GFAModel(config=config)
-        model.fit(simulation_result.observations, callbacks=[recorder])
+        model.fit(sim_result.observations, callbacks=[recorder])
 
         # Verify events were recorded
         assert "fit_start" in recorder.events
         assert any(e.startswith("fit_end:") for e in recorder.events)
         assert any(e.startswith("iter:") for e in recorder.events)
 
-    def test_checkpoint_roundtrip(self, simulation_result, tmp_path):
+    def test_checkpoint_roundtrip(self, tmp_path):
         """Checkpoint files can be loaded as GFAModel."""
+        sim_result = self._simulate_small()
+
         config = GFAFitConfig(
             x_dim_init=5,
             max_iter=50,
@@ -301,7 +403,7 @@ class TestCallbackIntegration:
         )
 
         model = GFAModel(config=config)
-        model.fit(simulation_result.observations, callbacks=[checkpoint_cb])
+        model.fit(sim_result.observations, callbacks=[checkpoint_cb])
 
         # Find the checkpoint file
         files = list(tmp_path.glob("*final*.safetensors"))
@@ -313,6 +415,6 @@ class TestCallbackIntegration:
         assert loaded.latents_posterior is not None
 
         # Loaded model can infer latents
-        new_latents = loaded.infer_latents(simulation_result.observations)
-        n_samples = simulation_result.observations.data.shape[1]
+        new_latents = loaded.infer_latents(sim_result.observations)
+        n_samples = sim_result.observations.data.shape[1]
         assert new_latents.mean.shape[1] == n_samples

@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 
 # --- Tests ---
 
 
+@pytest.mark.fit
 def test_fit(fitted_model_converged):
     """Test basic fitting: convergence flags and iteration count."""
     model = fitted_model_converged
@@ -22,6 +24,7 @@ def test_fit(fitted_model_converged):
     assert len(model.tracker.iter_time) == 2493
 
 
+@pytest.mark.fit
 def test_elbo_monotonicity(fitted_model_converged):
     """Test that ELBO is monotonically non-decreasing.
 
@@ -44,6 +47,7 @@ def test_elbo_monotonicity(fitted_model_converged):
     )
 
 
+@pytest.mark.fit
 def test_parameter_recovery(simulation_result, fitted_model_converged):
     """Test that fitted parameters recover ground truth loading matrix.
 

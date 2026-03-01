@@ -147,6 +147,9 @@ addopts = [
     "--cov-report=term-missing",
     "-v",
 ]
+markers = [
+    "fit: tests that run model fitting to convergence (slow)",
+]
 
 [tool.coverage.run]
 source = ["src/latents"]
