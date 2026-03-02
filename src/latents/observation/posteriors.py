@@ -124,7 +124,8 @@ class LoadingPosterior(ArrayContainer):
                 self.moment = np.zeros_like(self.cov)
             # Outer product per row:
             # (y_dim, x_dim), (y_dim, x_dim) -> (y_dim, x_dim, x_dim)
-            self.moment[:] = np.einsum("ij,ik->ijk", self.mean, self.mean) + self.cov
+            np.einsum("ij,ik->ijk", self.mean, self.mean, out=self.moment)
+            self.moment += self.cov
             return self.moment
 
         return np.einsum("ij,ik->ijk", self.mean, self.mean) + self.cov
