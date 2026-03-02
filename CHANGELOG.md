@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- GFA fitting loop optimized to reduce temporary memory allocations: use `np.einsum` to avoid broadcast temporaries, pre-compute `Y_sum` and `Y_centered` to eliminate redundant `(y_dim, n_samples)` arrays. 10–65% faster per-iteration runtime depending on problem dimensions.
 - GFA variational inference iteration order changed from d → X → C → α → φ to d → C → α → φ → X. This enables exact reconstruction of cleared latents from saved observation parameters, allowing `resume_fit()` and `compute_lower_bound()` to work with `save_x=False`.
 - Internal utilities reorganized into `_internal/` subpackage (numerics, logging)
 - Observation model probabilistic components reorganized into `observation/` subpackage

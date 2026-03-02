@@ -141,8 +141,9 @@ def fit(
     n_samples = Y.data.shape[1]
     x_dim = obs_posterior.x_dim
 
-    # Sample second moments of observed data
+    # Sample summary statistics (precomputed once, reused every iteration)
     Y2 = np.sum(Y.data**2, axis=1)
+    Y_sum = np.sum(Y.data, axis=1)
 
     # Initialize the posterior covariance of C if needed
     if obs_posterior.C.cov is None:
@@ -227,9 +228,13 @@ def fit(
         # Second moments for phi updates and lower bound
         d_moment = obs_posterior.d.cov + obs_posterior.d.mean**2
 
+        # Mean-centered observations (d is fixed for rest of iteration)
+        # Y.data: (y_dim, n_samples), d.mean: (y_dim,) -> (y_dim, n_samples)
+        Y_centered = Y.data - obs_posterior.d.mean[:, np.newaxis]
+
         # Correlation matrix between latents and zero-centered observations
-        # X.mean: (x_dim, n_samples), d.mean: (y_dim,) -> XY: (x_dim, y_dim)
-        XY = latents_posterior.mean @ (Y.data - obs_posterior.d.mean[:, np.newaxis]).T
+        # X.mean: (x_dim, n_samples) -> XY: (x_dim, y_dim)
+        XY = latents_posterior.mean @ Y_centered.T
 
         # Loading matrices, C
         infer_loadings(Y, obs_posterior, latents_posterior, XY=XY)
@@ -250,21 +255,28 @@ def fit(
             d_moment=d_moment,
             XY=XY,
             Y2=Y2,
+            Y_sum=Y_sum,
         )
         # Set minimum private variance
         obs_posterior.phi.mean[:] = np.minimum(1 / var_floor, obs_posterior.phi.mean)
         obs_posterior.phi.b[:] = obs_posterior.phi.a / obs_posterior.phi.mean
 
         # Latent variables, X
-        infer_latents(Y, obs_posterior, latents_posterior)
+        infer_latents(Y, obs_posterior, latents_posterior, Y_centered=Y_centered)
 
         # Recompute reconstruction error with updated latents.
         # phi.b was computed before the X update, so it encodes a stale
         # reconstruction error. One extra XY matmul per iteration ensures
         # the ELBO uses the current X.
-        XY = latents_posterior.mean @ (Y.data - obs_posterior.d.mean[:, np.newaxis]).T
+        XY = latents_posterior.mean @ Y_centered.T
         recon = _reconstruction_error(
-            Y, obs_posterior, latents_posterior, d_moment=d_moment, XY=XY, Y2=Y2
+            obs_posterior,
+            latents_posterior,
+            n_samples=n_samples,
+            d_moment=d_moment,
+            XY=XY,
+            Y2=Y2,
+            Y_sum=Y_sum,
         )
 
         # Compute the lower bound
@@ -474,6 +486,7 @@ def infer_latents(
     Y: ObsStatic,
     obs_posterior: ObsParamsPosterior,
     latents_posterior: LatentsPosteriorStatic | None = None,
+    Y_centered: np.ndarray | None = None,
 ) -> LatentsPosteriorStatic:
     """Infer latent posterior q(X) given observations and fitted parameters.
 
@@ -486,6 +499,9 @@ def infer_latents(
     latents_posterior : LatentsPosteriorStatic or None, default None
         If provided, update in-place and return.
         If `None`, create and return a new `LatentsPosteriorStatic`.
+    Y_centered : ndarray or None, default None
+        Pre-computed ``Y.data - d.mean[:, None]``, shape ``(y_dim, n_samples)``.
+        If None, computed internally.
 
     Returns
     -------
@@ -517,25 +533,23 @@ def infer_latents(
             latents_posterior.moment = np.zeros((x_dim, x_dim))
 
     # Covariance: inv(I + sum_j phi_j * E[C_j^T C_j])
-    # phi.mean: (y_dim,) -> (y_dim, 1, 1), C.moment: (y_dim, x_dim, x_dim)
+    # phi.mean: (y_dim,), C.moment: (y_dim, x_dim, x_dim)
     # Weighted sum over y_dim -> (x_dim, x_dim)
     latents_posterior.cov[:] = np.linalg.inv(
         np.eye(x_dim)
-        + np.sum(
-            obs_posterior.phi.mean[:, np.newaxis, np.newaxis] * obs_posterior.C.moment,
-            axis=0,
-        )
+        + np.einsum("i,ijk->jk", obs_posterior.phi.mean, obs_posterior.C.moment)
     )
     # Ensure symmetry
     latents_posterior.cov[:] = 0.5 * (latents_posterior.cov + latents_posterior.cov.T)
 
     # Mean: cov @ C^T diag(phi) @ (Y - d) -> mean: (x_dim, n_samples)
     # phi: (y_dim,) -> (1, y_dim) for broadcast with C.mean.T: (x_dim, y_dim)
-    # d: (y_dim,) -> (y_dim, 1) for broadcast with Y: (y_dim, n_samples)
+    if Y_centered is None:
+        Y_centered = Y.data - obs_posterior.d.mean[:, np.newaxis]
     latents_posterior.mean[:] = (
         latents_posterior.cov
         @ (obs_posterior.C.mean.T * obs_posterior.phi.mean[np.newaxis, :])
-        @ (Y.data - obs_posterior.d.mean[:, np.newaxis])
+        @ Y_centered
     )
 
     # Second moment
@@ -711,6 +725,7 @@ def infer_obs_prec(
     d_moment: np.ndarray | None = None,
     XY: np.ndarray | None = None,
     Y2: np.ndarray | None = None,
+    Y_sum: np.ndarray | None = None,
 ) -> ObsPrecPosterior:
     """Infer precision posterior q(phi). Updates `obs_posterior.phi` in-place.
 
@@ -730,6 +745,8 @@ def infer_obs_prec(
         Pre-computed correlation matrix, shape `(x_dim, y_dim)`.
     Y2 : ndarray or None, default None
         Pre-computed sample second moments, shape `(y_dim,)`.
+    Y_sum : ndarray or None, default None
+        Pre-computed column sums of `Y`, shape `(y_dim,)`.
 
     Returns
     -------
@@ -754,10 +771,18 @@ def infer_obs_prec(
         d_moment = obs_posterior.d.cov + obs_posterior.d.mean**2
     if XY is None:
         XY = latents_posterior.mean @ (Y.data - obs_posterior.d.mean[:, np.newaxis]).T
+    if Y_sum is None:
+        Y_sum = np.sum(Y.data, axis=1)
 
     # Rate parameter: expected reconstruction error -> phi.b: (y_dim,)
     recon = _reconstruction_error(
-        Y, obs_posterior, latents_posterior, d_moment=d_moment, XY=XY, Y2=Y2
+        obs_posterior,
+        latents_posterior,
+        n_samples=n_samples,
+        d_moment=d_moment,
+        XY=XY,
+        Y2=Y2,
+        Y_sum=Y_sum,
     )
     phi.b[:] = hyperprior.b_phi + 0.5 * recon
 
@@ -773,12 +798,13 @@ def infer_obs_prec(
 
 
 def _reconstruction_error(
-    Y: ObsStatic,
     obs_posterior: ObsParamsPosterior,
     latents_posterior: LatentsPosteriorStatic,
+    n_samples: int,
     d_moment: np.ndarray,
     XY: np.ndarray,
     Y2: np.ndarray,
+    Y_sum: np.ndarray,
 ) -> np.ndarray:
     """Compute expected reconstruction error per observed dimension.
 
@@ -786,32 +812,33 @@ def _reconstruction_error(
 
     Parameters
     ----------
-    Y : ObsStatic
-        Observed data.
     obs_posterior : ObsParamsPosterior
         Posterior over observation parameters. Reads `C`, `d`.
     latents_posterior : LatentsPosteriorStatic
         Posterior over latents. Reads `moment`.
+    n_samples : int
+        Number of samples.
     d_moment : ndarray, shape (y_dim,)
         Second moment of observation mean, ``d.cov + d.mean**2``.
     XY : ndarray, shape (x_dim, y_dim)
         Cross-correlation ``X.mean @ (Y - d.mean).T``.
     Y2 : ndarray, shape (y_dim,)
         Sample second moments ``sum(Y**2, axis=1)``.
+    Y_sum : ndarray, shape (y_dim,)
+        Column sums ``sum(Y, axis=1)``.
 
     Returns
     -------
     ndarray, shape (y_dim,)
         Expected reconstruction error per observed dimension.
     """
-    n_samples = Y.data.shape[1]
     return (
         n_samples * d_moment
         + Y2
-        # d.mean: (y_dim,) -> (y_dim, 1) for broadcast with Y.data: (y_dim, n_samples)
-        - 2 * np.sum(obs_posterior.d.mean[:, np.newaxis] * Y.data, axis=1)
+        - 2 * obs_posterior.d.mean * Y_sum
         - 2 * np.sum(obs_posterior.C.mean * XY.T, axis=1)
-        + np.sum(obs_posterior.C.moment * latents_posterior.moment, axis=(1, 2))
+        # C.moment: (y_dim, x_dim, x_dim), X.moment: (x_dim, x_dim) -> (y_dim,)
+        + np.einsum("ijk,jk->i", obs_posterior.C.moment, latents_posterior.moment)
     )
 
 
