@@ -8,7 +8,6 @@ from benchmarks.metrics import (
     relative_l2_error,
     subspace_error,
 )
-from tests.conftest import testing_tols as _testing_tols
 
 
 class TestLatentPermutation:
@@ -79,32 +78,29 @@ class TestSubspaceError:
         """Identical matrices should have zero subspace error."""
         rng = np.random.default_rng(42)
         C = rng.standard_normal((10, 3))
-        tols = _testing_tols(C.dtype)
-        np.testing.assert_allclose(subspace_error(C, C), 0.0, **tols)
+        # atol needed: rtol term vanishes when expected=0
+        np.testing.assert_allclose(subspace_error(C, C), 0.0, atol=1e-10)
 
     def test_scaled_matrix_returns_zero(self):
         """Scaled version of same matrix spans same subspace."""
         rng = np.random.default_rng(42)
         C = rng.standard_normal((10, 3))
         C_scaled = C * 2.5
-        tols = _testing_tols(C.dtype)
-        np.testing.assert_allclose(subspace_error(C, C_scaled), 0.0, **tols)
+        np.testing.assert_allclose(subspace_error(C, C_scaled), 0.0, atol=1e-10)
 
     def test_reordered_columns_returns_zero(self):
         """Column reordering doesn't change subspace."""
         rng = np.random.default_rng(42)
         C = rng.standard_normal((10, 3))
         C_reordered = C[:, [2, 0, 1]]
-        tols = _testing_tols(C.dtype)
-        np.testing.assert_allclose(subspace_error(C, C_reordered), 0.0, **tols)
+        np.testing.assert_allclose(subspace_error(C, C_reordered), 0.0, atol=1e-10)
 
     def test_orthogonal_subspaces_returns_one(self):
         """Orthogonal subspaces should have error of 1."""
         # Create orthogonal subspaces using first and last columns of identity
         C_true = np.eye(10)[:, :3]  # First 3 columns
         C_est = np.eye(10)[:, 7:]  # Last 3 columns
-        tols = _testing_tols(C_true.dtype)
-        np.testing.assert_allclose(subspace_error(C_true, C_est), 1.0, **tols)
+        np.testing.assert_allclose(subspace_error(C_true, C_est), 1.0)
 
     def test_partial_overlap(self):
         """Partial overlap should give error between 0 and 1."""
@@ -136,23 +132,22 @@ class TestRelativeL2Error:
     def test_identical_vectors_returns_zero(self):
         """Identical vectors should have zero error."""
         v = np.array([1.0, 2.0, 3.0])
-        tols = _testing_tols(v.dtype)
-        np.testing.assert_allclose(relative_l2_error(v, v), 0.0, **tols)
+        # atol needed: rtol term vanishes when expected=0
+        np.testing.assert_allclose(relative_l2_error(v, v), 0.0, atol=1e-10)
 
     def test_known_error(self):
         """Test with known error value."""
         v_true = np.array([3.0, 4.0])  # norm = 5
         v_est = np.array([0.0, 0.0])  # error = 5
         # normalized error = 5 / 5 = 1.0
-        tols = _testing_tols(v_true.dtype)
-        np.testing.assert_allclose(relative_l2_error(v_true, v_est), 1.0, **tols)
+        np.testing.assert_allclose(relative_l2_error(v_true, v_est), 1.0)
 
     def test_handles_multidimensional(self):
         """Should flatten multidimensional arrays."""
         v_true = np.array([[1.0, 2.0], [3.0, 4.0]])
         v_est = np.array([[1.0, 2.0], [3.0, 4.0]])
-        tols = _testing_tols(v_true.dtype)
-        np.testing.assert_allclose(relative_l2_error(v_true, v_est), 0.0, **tols)
+        # atol needed: rtol term vanishes when expected=0
+        np.testing.assert_allclose(relative_l2_error(v_true, v_est), 0.0, atol=1e-10)
 
     def test_returns_float(self):
         """Should return a Python float, not numpy scalar."""
@@ -171,8 +166,7 @@ class TestDenoisedR2:
         X = rng.standard_normal((3, 50))
         d = rng.standard_normal(10)
 
-        tols = _testing_tols(C.dtype)
-        np.testing.assert_allclose(denoised_r2(C, X, d, C, X, d), 1.0, **tols)
+        np.testing.assert_allclose(denoised_r2(C, X, d, C, X, d), 1.0)
 
     def test_wrong_mean_reduces_r2(self):
         """Wrong mean estimate should reduce R²."""

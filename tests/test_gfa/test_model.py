@@ -228,6 +228,15 @@ class TestSaveLoad:
         # Should have more iterations now
         assert len(loaded.tracker.lb) > n_iter_before
 
+    def test_clear_fit(self, fitted_model_copy):
+        """clear_fit resets all fit state and supports chaining."""
+        result = fitted_model_copy.clear_fit()
+        assert result is fitted_model_copy
+        assert fitted_model_copy.obs_posterior is None
+        assert fitted_model_copy.latents_posterior is None
+        assert fitted_model_copy.tracker is None
+        assert fitted_model_copy.flags is None
+
 
 @pytest.mark.fit
 class TestRecompute:
@@ -243,8 +252,6 @@ class TestRecompute:
         Since X is the final update during fitting, reconstruction from saved parameters
         should be exact.
         """
-        from tests.conftest import testing_tols
-
         model = fitted_model_copy
         Y = simulation_result.observations
 
@@ -257,9 +264,8 @@ class TestRecompute:
         model.recompute_latents(Y)
 
         # Should be exact within numerical tolerance
-        tols = testing_tols(X_original.dtype)
-        np.testing.assert_allclose(model.latents_posterior.mean, X_original, **tols)
-        np.testing.assert_allclose(model.latents_posterior.cov, X_cov_original, **tols)
+        np.testing.assert_allclose(model.latents_posterior.mean, X_original)
+        np.testing.assert_allclose(model.latents_posterior.cov, X_cov_original)
 
     def test_recompute_latents_error_if_not_fitted(self, simulation_result):
         """Test that recompute_latents raises if model not fitted."""
@@ -285,7 +291,8 @@ class TestRecompute:
         model.obs_posterior.C.cov = None
         model.recompute_loadings(Y)
 
-        # Looser tolerance than X - reconstruction uses X_N instead of X_{N-1}
+        # Looser tolerance than X: reconstruction uses X_N instead of X_{N-1}.
+        # Empirical max relative error ~4e-4 (mean), ~9e-4 (cov).
         np.testing.assert_allclose(
             model.obs_posterior.C.mean, C_mean_original, rtol=1e-3, atol=1e-10
         )
@@ -314,8 +321,6 @@ class TestRecompute:
 
     def test_recompute_chaining(self, simulation_result, fitted_model_copy):
         """Test that recompute methods support method chaining."""
-        from tests.conftest import testing_tols
-
         model = fitted_model_copy
         Y = simulation_result.observations
 
@@ -334,8 +339,7 @@ class TestRecompute:
         assert result is model
 
         # Both should be restored (X exact, C approximate)
-        tols = testing_tols(X_original.dtype)
-        np.testing.assert_allclose(model.latents_posterior.mean, X_original, **tols)
+        np.testing.assert_allclose(model.latents_posterior.mean, X_original)
         np.testing.assert_allclose(
             model.obs_posterior.C.cov, C_cov_original, rtol=1e-3, atol=1e-10
         )

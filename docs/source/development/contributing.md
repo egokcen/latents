@@ -224,7 +224,6 @@ The test directory mirrors the package structure in `src/latents/`:
 
 ```text
 tests/
-├── conftest.py              # Shared utilities (testing_tols)
 ├── test_callbacks.py        # Method-agnostic callback tests
 ├── test_data.py             # Observation data containers
 ├── test_imports.py          # Public API surface
@@ -257,8 +256,6 @@ and functions follow pytest naming conventions (`test_*.py`, `test_*` functions)
 
 Fixtures are scoped to the level where they're used:
 
-- **Root `conftest.py`** contains shared test utilities, like `testing_tols()` which
-  returns dtype-aware `rtol`/`atol` for `np.testing.assert_allclose`.
 - **Subpackage `conftest.py` files** contain component-specific fixtures. For example,
   `test_gfa/conftest.py` provides `simulation_result` and `fitted_model_converged` at
   module scope (expensive fixtures that run once per test module).
@@ -281,8 +278,6 @@ uv run pytest -m fit
 When adding tests, follow the patterns established in neighboring test files:
 
 - Place tests in the subdirectory that corresponds to the subpackage under test.
-- Use `testing_tols` from the root conftest for numerical comparisons — avoid
-  hardcoding tolerances.
 - Mark any test that calls `model.fit()` or otherwise runs fitting to convergence with
   `@pytest.mark.fit`.
 

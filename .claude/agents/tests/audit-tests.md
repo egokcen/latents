@@ -21,7 +21,7 @@ The test suite follows specific conventions documented in the [contributing guid
 ### Structure
 
 - **Directory layout mirrors `src/latents/`**: `tests/test_gfa/` tests `src/latents/gfa/`, `tests/test_observation/` tests `src/latents/observation/`, etc.
-- **Fixtures are scoped by component**: Root `tests/conftest.py` has shared utilities only. Subpackage conftest files (e.g., `tests/test_gfa/conftest.py`) have component-specific fixtures.
+- **Fixtures are scoped by component**: Subpackage conftest files (e.g., `tests/test_gfa/conftest.py`) have component-specific fixtures.
 - **Class-based organization**: Related tests grouped in classes with a class docstring. Section separators (`# ===...` or `# ---...`) divide major sections.
 - **Module-level dimension constants**: Small deterministic values like `Y_DIMS`, `X_DIM`, `N_GROUPS` at module top, shared across test classes.
 - **`_make_*` helpers for cheap test data**: Explicit constructor calls (not fixtures) for small deterministic objects. Fixtures are reserved for expensive operations like model fitting. Each helper has a docstring.
@@ -32,7 +32,6 @@ The test suite follows specific conventions documented in the [contributing guid
 - **Docstrings on every test**: Each test function and class has a one-line docstring explaining what it verifies. This is intentional.
 - **`from __future__ import annotations`**: Required in files that rely on Python 3.11+ type annotations.
 - **`@pytest.mark.fit`**: Applied to tests that run model fitting to convergence. Unit tests (shape checks, numerical computations) are NOT marked.
-- **`testing_tols(dtype)`**: Defined in root conftest. Returns dtype-aware `rtol`/`atol` dict for `np.testing.assert_allclose`. Uses `sqrt(eps)` for rtol and `stability_floor` for atol. Tests should use this for numerical comparisons where the tolerance should scale with precision.
 - **Explicit tolerances are acceptable** when the tolerance reflects the algorithm rather than floating-point precision (e.g., `atol=0.05` for finite-sample statistical tests, `rtol=0.10` for MSE comparisons). These must be justified in a docstring or comment.
 - **NotImplementedError stubs**: Source methods that raise `NotImplementedError` do not need test coverage.
 
@@ -40,8 +39,9 @@ The test suite follows specific conventions documented in the [contributing guid
 
 - **Multiple assertions per test is acceptable**: A single assertion per test should be encouraged. However, a test checking several fields of a return value, or verifying shape + values + identity for one operation, is acceptable when it improves readability and the assertions are closely related.
 - **`np.testing.assert_array_equal`** for exact integer/boolean comparisons and reproducibility checks (same seed → same result).
-- **`np.testing.assert_allclose`** for floating-point comparisons. Two valid patterns:
-  - `assert_allclose(actual, expected, **testing_tols(dtype))` — precision-aware
+- **`np.testing.assert_allclose`** for floating-point comparisons. Valid patterns:
+  - `assert_allclose(actual, expected)` — numpy defaults (`rtol=1e-7`) sufficient for most float64 operations
+  - `assert_allclose(actual, expected, atol=1e-10)` — explicit `atol` needed when expected is near zero (rtol term vanishes)
   - `assert_allclose(actual, expected, atol=0.05)` — algorithm-aware (with docstring explaining why)
 - **Plain `assert`** for type checks, shape checks, boolean flags, and identity checks (`is`/`is not`).
 
@@ -78,7 +78,6 @@ The test suite follows specific conventions documented in the [contributing guid
 
 ### 5. Structural Smells (MEDIUM)
 
-- **Hardcoded tolerances instead of `testing_tols`**: Using `rtol=1e-8` directly when `testing_tols` would be appropriate (precision-aware comparison)
 - **Missing parametrization**: Copy-pasted tests that differ only in input values. Watch for `in_place=True`/`in_place=False` pairs that are otherwise identical — separate methods are fine when the assertions differ, but flag if the bodies are nearly identical.
 - **Conditional logic in test body**: `if`/`for`/`while` that makes test behavior unpredictable (loops in `_compute_*` helpers are fine)
 - **Missing `fit` marker**: Test calls `model.fit()` but isn't marked with `@pytest.mark.fit`
@@ -86,7 +85,7 @@ The test suite follows specific conventions documented in the [contributing guid
 
 ### 6. Pytest Idiom Issues (LOW)
 
-- **Default `assert_allclose` tolerances**: `np.testing.assert_allclose(a, b)` with no explicit `rtol`/`atol` and no `**testing_tols()`. The intent is ambiguous.
+- **Missing `atol` for near-zero expected**: `np.testing.assert_allclose(a, 0.0)` with no explicit `atol` requires exact zero since the `rtol` term vanishes.
 - **try/except instead of pytest.raises**: Manual exception handling instead of `with pytest.raises(ValueError, match=...):`
 - **Unused imports**: Test file imports symbols it doesn't use
 - **Missing `match` in `pytest.raises`**: Exception test without verifying the message
@@ -163,7 +162,7 @@ Write your findings to `audits/tests-YYYY-MM-DD.md` (if a file with today's date
    - General pattern: `tests/test_<pkg>/test_<mod>.py` → `src/latents/<pkg>/<mod>.py`
 4. Cross-reference: Does the test adequately verify the source code's public interface?
 5. Use Grep to search for specific anti-patterns:
-   - `assert_allclose\(` without `rtol`, `atol`, or `testing_tols` nearby
+   - `assert_allclose\(` with expected value near zero but no explicit `atol`
    - `np\.random\.(seed|randn|rand)\b` (legacy RNG usage)
    - `assert .* == .*\.` (potential exact float comparison on computed values)
    - `model\.fit\(` in files without `@pytest.mark.fit`
