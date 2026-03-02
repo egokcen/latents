@@ -89,7 +89,7 @@ class TestAdjustSnr:
         adjusted = adjust_snr(r, snr=target_snr)
 
         achieved = _compute_snr(adjusted)
-        np.testing.assert_allclose(achieved, target_snr, rtol=1e-10)
+        np.testing.assert_allclose(achieved, target_snr)
 
     def test_per_group_snr(self):
         """Per-group SNR targets."""
@@ -98,7 +98,7 @@ class TestAdjustSnr:
         adjusted = adjust_snr(r, snr=targets)
 
         achieved = _compute_snr(adjusted)
-        np.testing.assert_allclose(achieved, targets, rtol=1e-10)
+        np.testing.assert_allclose(achieved, targets)
 
     def test_original_unchanged(self):
         """The adjust_snr function returns a new realization; original is unmodified."""

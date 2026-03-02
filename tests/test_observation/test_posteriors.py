@@ -47,6 +47,7 @@ def _make_ard_posterior() -> ARDPosterior:
 
 
 def _make_obs_mean_posterior() -> ObsMeanPosterior:
+    """Small deterministic ObsMeanPosterior for testing."""
     return ObsMeanPosterior(
         mean=np.arange(Y_DIM, dtype=float),
         cov=np.ones(Y_DIM) * 0.5,
@@ -54,6 +55,7 @@ def _make_obs_mean_posterior() -> ObsMeanPosterior:
 
 
 def _make_obs_prec_posterior() -> ObsPrecPosterior:
+    """Small deterministic ObsPrecPosterior for testing."""
     return ObsPrecPosterior(
         a=5.0,
         b=np.arange(1, Y_DIM + 1, dtype=float),

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Latents is a Python toolkit for latent variable modeling and dimensionality reduction, emphasizing linear, probabilistic methods.
+Latents is a Python library for latent variable modeling and dimensionality reduction, emphasizing linear, probabilistic methods.
 
 **Supported methods:**
 - Group Factor Analysis (GFA) - `latents.gfa`
@@ -26,6 +26,9 @@ uv run pytest tests/test_gfa/test_inference.py
 
 # Run a specific test
 uv run pytest tests/test_gfa/test_inference.py::test_fit
+
+# Fast tests only (skip model fitting)
+uv run pytest -m "not fit"
 
 # Run linting (pre-commit hooks)
 uv run ruff check  # Linting
@@ -78,6 +81,7 @@ src/latents/
 │
 ├── plotting/            # Visualization utilities
 │   ├── hinton.py        # hinton_diagram()
+│   ├── latents.py       # Latent variable visualizations (stub)
 │   └── observation.py   # plot_dimensionalities(), plot_var_exp(), etc.
 │
 ├── gfa/                 # Group Factor Analysis
@@ -150,22 +154,24 @@ Available callbacks:
 - `LoggingCallback` — structured logging to "latents" logger
 - `CheckpointCallback` — periodic model checkpoints (loadable via `GFAModel.load()`)
 
-See `examples/gfa_demo.py` for a complete example with simulation, fitting, and visualization.
+See the `examples/gfa/` directory for complete examples with simulation, fitting, and visualization.
 
 ## Code Style
 
 - Ruff for linting and formatting (configured in pyproject.toml)
 - NumPy docstring convention
 - Type hints with `from __future__ import annotations`
-- Tests follow `test_*.py` naming with pytest
-- Array shape comments on complex operations (see [contributing guide](docs/source/development/contributing.md#array-shape-comments))
+- Test directory mirrors `src/latents/`; `@pytest.mark.fit` separates slow fitting tests
+- Array shape comments on complex operations
+
+See the [contributing guide](docs/source/development/contributing.md) for full style and testing conventions.
 
 ## Git and GitHub
 
 ### Commits
 
 Use [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) format:
-- Types: `feat:`, `fix:`, `docs:`, `style:`, `refactor:`, `test:`, `chore:`, `ci:`
+- Types: `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`, `deps:`, `perf:`, `ci:`
 - Present tense, imperative mood ("Add feature" not "Added feature")
 - First line ≤72 characters
 

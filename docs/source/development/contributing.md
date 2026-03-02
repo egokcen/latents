@@ -208,19 +208,9 @@ uv run ruff format       # Run the formatter
 
 ### pytest
 
-Testing in the Latents project relies on [pytest](https://docs.pytest.org/en/stable/):
+Testing in the Latents project relies on [pytest](https://docs.pytest.org/en/stable/).
 
-- Tests live in the [tests](https://github.com/egokcen/latents/tree/main/tests) directory.
-- The `tests` directory contains appropriately named subdirectories (`test_*`) for each
-  subpackage or module belonging to the `latents` package.
-- Test modules follow a similar naming convention (`test_*.py`).
-- Each test function defined in a test module must have a name that starts with "test"
-  (e.g., `test_fit`).
-
-These naming conventions are critical for pytest to accurately discover and run all
-tests in the project.
-
-Run all tests in the project:
+Run all tests:
 
 ```sh
 uv run pytest
@@ -228,7 +218,70 @@ uv run pytest
 
 Coverage is automatically calculated and reported (configured in pyproject.toml).
 
-### Testing on Multiple Python Versions
+### Test directory structure
+
+The test directory mirrors the package structure in `src/latents/`:
+
+```text
+tests/
+├── test_callbacks.py        # Method-agnostic callback tests
+├── test_data.py             # Observation data containers
+├── test_imports.py          # Public API surface
+├── test_gfa/                # GFA method tests
+│   ├── conftest.py          # GFA-specific fixtures (simulation, fitted model)
+│   ├── test_analysis.py
+│   ├── test_config.py
+│   ├── test_inference.py
+│   ├── test_model.py
+│   └── test_simulation.py
+├── test_observation/        # Shared observation model components
+│   ├── test_posteriors.py
+│   ├── test_priors.py
+│   └── test_realizations.py
+├── test_state/              # Shared state model components
+│   ├── test_posteriors.py
+│   ├── test_priors.py
+│   └── test_realizations.py
+├── test_plotting/           # Visualization smoke tests
+│   ├── conftest.py          # Agg backend, figure cleanup
+│   ├── test_hinton.py
+│   └── test_observation.py
+└── test_benchmarks/         # Benchmark infrastructure tests
+```
+
+Each `test_*` subdirectory corresponds to a subpackage in `src/latents/`. Test modules
+and functions follow pytest naming conventions (`test_*.py`, `test_*` functions).
+
+### Fixtures
+
+Fixtures are scoped to the level where they're used:
+
+- **Subpackage `conftest.py` files** contain component-specific fixtures. For example,
+  `test_gfa/conftest.py` provides `simulation_result` and `fitted_model_converged` at
+  module scope (expensive fixtures that run once per test module).
+
+### Fast and slow tests
+
+Some tests run model fitting to convergence, which can be time-consuming.
+These are marked with `@pytest.mark.fit`. During development you can skip them:
+
+```sh
+# Fast tests only
+uv run pytest -m "not fit"
+
+# Fitting tests only
+uv run pytest -m fit
+```
+
+### Writing new tests
+
+When adding tests, follow the patterns established in neighboring test files:
+
+- Place tests in the subdirectory that corresponds to the subpackage under test.
+- Mark any test that calls `model.fit()` or otherwise runs fitting to convergence with
+  `@pytest.mark.fit`.
+
+### Testing on multiple Python versions
 
 To test on a specific Python version, re-sync the environment with that version:
 
@@ -295,7 +348,7 @@ uv run sphinx-autobuild docs/source docs/_build/html
 
 We follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/):
 
-- Use commit types: `feat:`, `fix:`, `docs:`, `style:`, `refactor:`, `test:`, `chore:`
+- Use commit types: `feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`, `deps:`, `perf:`, `ci:`
 - Use the present tense ("Add parameter" not "Added parameter")
 - Use the imperative mood ("Infer latent..." not "Infers latent...")
 - Limit the first line to 72 characters or less
