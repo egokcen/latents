@@ -74,7 +74,7 @@ jobs:
         run: uv run sphinx-build -W -b html docs/source docs/_build/html
 
       - name: Upload docs artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: docs
           path: docs/_build/html
