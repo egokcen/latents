@@ -1,6 +1,6 @@
 (mdlag-method)=
 
-# Delayed latents across groups (mDLAG)
+# Delayed latents across multiple groups (mDLAG)
 
 Delayed latents across multiple groups (mDLAG) is a Bayesian dimensionality
 reduction method for multi-group time series data. It addresses two challenges:

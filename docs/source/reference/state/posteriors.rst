@@ -14,16 +14,8 @@ state.posteriors
    :nosignatures:
 
    LatentsPosteriorStatic
-   LatentsPosteriorTimeSeries
-   LatentsPosteriorDelayed
 
 ----
 
 .. autoclass:: LatentsPosteriorStatic
-   :members:
-
-.. autoclass:: LatentsPosteriorTimeSeries
-   :members:
-
-.. autoclass:: LatentsPosteriorDelayed
    :members:

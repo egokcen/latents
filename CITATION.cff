@@ -3,7 +3,7 @@ message: "If you use this software, please cite it as below."
 type: software
 license: MIT
 title: "latents"
-abstract: "Python toolkit for latent variable modeling and dimensionality reduction."
+abstract: "Python library for latent variable modeling and dimensionality reduction."
 authors:
   - family-names: "Gokcen"
     given-names: "Evren"

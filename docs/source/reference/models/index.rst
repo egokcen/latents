@@ -10,4 +10,3 @@ inference, and simulation.
     :maxdepth: 2
 
     gfa/index
-    mdlag/index

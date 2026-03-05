@@ -95,7 +95,7 @@ groups. The leave-group-out $R^2$ quantifies prediction accuracy:
 ```python
 from latents.gfa.analysis import predictive_performance
 
-# Evaluate on held-out test data
+# Evaluate on held-out test data (Y_test is an ObsStatic instance)
 R2, MSE = predictive_performance(Y_test, model.obs_posterior)
 print(f"Leave-group-out R²: {R2:.3f}")
 ```

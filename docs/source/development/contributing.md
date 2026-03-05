@@ -3,15 +3,15 @@
 Thank you for contributing to Latents! Your time and effort are deeply
 appreciated!
 
-## Code of Conduct
+## Code of conduct
 
 Everyone participating in this project is expected to uphold the
 [Latents Code of Conduct](https://github.com/egokcen/latents/blob/main/CODE_OF_CONDUCT.md).
 Please read it before getting started.
 
-## New Contributors
+## New contributors
 
-If haven't already, we strongly recommend checking out the
+If you haven't already, we strongly recommend checking out the
 [user guide](../user_guide/index) for a conceptual overview of the project, including
 its goals, design philosophy, and core methods.
 
@@ -24,7 +24,7 @@ resources for getting acquainted with these tools. Here are a few entry points:
 - [Collaborating with pull requests](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests)
 
 (types-of-contributions)=
-## Types of Contributions
+## Types of contributions
 
 There are many ways to meaningfully contribute to the Latents project. The types of
 contributions we welcome include, but are not limited to, the following.
@@ -69,7 +69,7 @@ of training samples?
 See {doc}`benchmarks` for architecture details, how to run benchmarks, and how to
 extend them for new methods.
 
-## How to Contribute
+## How to contribute
 
 ### Issues
 
@@ -117,7 +117,7 @@ add an entry under the `[Unreleased]` section:
 
 The release workflow automatically extracts your entry for GitHub Release notes.
 
-## Environment Setup
+## Environment setup
 
 ### Prerequisites
 
@@ -126,7 +126,7 @@ The release workflow automatically extracts your entry for GitHub Release notes.
 
 To install uv, see the [uv installation guide](https://docs.astral.sh/uv/getting-started/installation/).
 
-### Quick Start
+### Quickstart
 
 ```sh
 # Clone the repository
@@ -144,7 +144,7 @@ That's it! The `uv sync` command automatically creates a virtual environment in 
 and installs all dependencies. You don't need to manually activate the environment—just
 prefix commands with `uv run`.
 
-### Dependency Groups
+### Dependency groups
 
 Dependencies are organized into groups in
 [pyproject.toml](https://github.com/egokcen/latents/blob/main/pyproject.toml):
@@ -161,7 +161,7 @@ uv sync --group dev --group test  # Skip doc dependencies
 ```
 
 (code-checks-and-linting)=
-## Code Checks and Linting
+## Code checks and linting
 
 ### pre-commit
 
@@ -220,37 +220,9 @@ Coverage is automatically calculated and reported (configured in pyproject.toml)
 
 ### Test directory structure
 
-The test directory mirrors the package structure in `src/latents/`:
-
-```text
-tests/
-├── test_callbacks.py        # Method-agnostic callback tests
-├── test_data.py             # Observation data containers
-├── test_imports.py          # Public API surface
-├── test_gfa/                # GFA method tests
-│   ├── conftest.py          # GFA-specific fixtures (simulation, fitted model)
-│   ├── test_analysis.py
-│   ├── test_config.py
-│   ├── test_inference.py
-│   ├── test_model.py
-│   └── test_simulation.py
-├── test_observation/        # Shared observation model components
-│   ├── test_posteriors.py
-│   ├── test_priors.py
-│   └── test_realizations.py
-├── test_state/              # Shared state model components
-│   ├── test_posteriors.py
-│   ├── test_priors.py
-│   └── test_realizations.py
-├── test_plotting/           # Visualization smoke tests
-│   ├── conftest.py          # Agg backend, figure cleanup
-│   ├── test_hinton.py
-│   └── test_observation.py
-└── test_benchmarks/         # Benchmark infrastructure tests
-```
-
-Each `test_*` subdirectory corresponds to a subpackage in `src/latents/`. Test modules
-and functions follow pytest naming conventions (`test_*.py`, `test_*` functions).
+The test directory mirrors the package structure in `src/latents/`. Each `test_*`
+subdirectory corresponds to a subpackage, and test modules follow pytest naming
+conventions (`test_*.py`, `test_*` functions).
 
 ### Fixtures
 
@@ -342,9 +314,9 @@ documentation upon revision:
 uv run sphinx-autobuild docs/source docs/_build/html
 ```
 
-## Style Guides
+## Style guides
 
-### Git Commit Messages
+### Git commit messages
 
 We follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/):
 
@@ -362,13 +334,13 @@ docs: update installation instructions for uv
 chore: update pre-commit hooks
 ```
 
-### Python Code
+### Python code
 
 We use [Ruff](https://docs.astral.sh/ruff/) for linting and code formatting. See
 the [pyproject.toml](https://github.com/egokcen/latents/blob/main/pyproject.toml)
 for the current ruleset. Pull Requests will need to meet these rules to be accepted.
 
-### Array Shape Comments
+### Array shape comments
 
 For complex array operations, especially broadcasting, add inline shape comments:
 

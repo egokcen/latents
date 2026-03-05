@@ -149,7 +149,7 @@ plt.show()
 #
 # ARD (Automatic Relevance Determination) prunes unnecessary latent
 # dimensions by driving their precision to infinity. We visualize
-# the relative variance explained by each factor.
+# the relative shared variance explained by each factor.
 
 alpha_inv_true = 1 / obs_params_true.alpha
 alpha_inv_rel_true = alpha_inv_true / np.sum(alpha_inv_true, axis=1, keepdims=True)
@@ -175,6 +175,16 @@ plt.show()
 print(f"Initial dimensions: {config.x_dim_init}")
 print(f"Final dimensions:   {model.obs_posterior.x_dim}")
 print(f"True dimensions:    {x_dim}")
+
+# %%
+# We can also inspect the discovered sparsity pattern — which factors are
+# significant in each group. This uses
+# :meth:`~latents.observation.ObsParamsPosterior.compute_dimensionalities`,
+# which thresholds the relative shared variance explained by each factor.
+# Again, we manually align the columns with the ground truth for comparison.
+
+_, sig_dims, _, _ = model.obs_posterior.compute_dimensionalities()
+print(sig_dims[:, reorder].astype(int))
 
 # %%
 # Predictive performance
