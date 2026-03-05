@@ -69,14 +69,14 @@ for run_idx in range(10):
 This works because NumPy's
 [`SeedSequence`](https://numpy.org/doc/stable/reference/random/parallel.html)
 hashes integer sequences into statistically independent bit generators.
-Sequences that differ in any element &mdash; such as `[0, 42]` and `[1, 42]`
-&mdash; produce unrelated random streams. You can add as many index dimensions
+Sequences that differ in any element — such as `[0, 42]` and `[1, 42]`
+— produce unrelated random streams. You can add as many index dimensions
 as your experiment needs (e.g., `[sweep_idx, run_idx, base_seed]`).
 
 ## Further reading
 
 - [NumPy parallel random number generation](https://numpy.org/doc/stable/reference/random/parallel.html)
-  &mdash; how `SeedSequence` enables reproducible parallelism
-- {doc}`/development/benchmarks` &mdash; the benchmark suite's three-stream
+  — how `SeedSequence` enables reproducible parallelism
+- {doc}`/development/benchmarks` — the benchmark suite's three-stream
   seed design for separating data, noise, and fitting randomness
-- {doc}`../methods/gfa` &mdash; GFA model specification and inference details
+- {doc}`../methods/gfa` — GFA model specification and inference details

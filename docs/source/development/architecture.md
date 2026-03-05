@@ -28,13 +28,14 @@ src/latents/
 │
 ├── plotting/             # Visualization utilities
 │   ├── hinton.py         # hinton_diagram()
+│   ├── latents.py        # Latent variable visualizations
 │   └── observation.py    # plot_dimensionalities(), plot_var_exp(), etc.
 │
 ├── gfa/                  # Group Factor Analysis
 │   ├── model.py          # GFAModel class
 │   ├── config.py         # GFAFitConfig, GFASimConfig
 │   ├── inference.py      # fit(), infer_latents()
-│   ├── tracking.py       # GFAFitTracker, GFAFitFlags
+│   ├── tracking.py       # GFAFitTracker, GFAFitFlags, GFAFitContext
 │   ├── simulation.py     # simulate(), sample_observations()
 │   └── analysis.py       # predictive_performance()
 │

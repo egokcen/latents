@@ -134,43 +134,43 @@ uv sync --all-groups
 The CLI follows a `method → command → options` hierarchy:
 
 ```sh
-python -m benchmarks.cli <method> <command> [options]
+uv run python -m benchmarks.cli <method> <command> [options]
 ```
 
 **Runtime benchmarks** (one-factor-at-a-time):
 
 ```sh
 # Run all runtime sweeps (n_samples, y_dim, x_dim, n_groups)
-python -m benchmarks.cli gfa runtime --all --workers 4
+uv run python -m benchmarks.cli gfa runtime --all --workers 4
 
 # Run a single sweep
-python -m benchmarks.cli gfa runtime --sweep n_samples
+uv run python -m benchmarks.cli gfa runtime --sweep n_samples
 ```
 
 **Recovery benchmarks** (one-factor-at-a-time):
 
 ```sh
 # Run all recovery sweeps (n_samples, y_dim, x_dim, n_groups, snr)
-python -m benchmarks.cli gfa recovery --all --workers 4
+uv run python -m benchmarks.cli gfa recovery --all --workers 4
 
 # Run a single sweep
-python -m benchmarks.cli gfa recovery --sweep snr
+uv run python -m benchmarks.cli gfa recovery --sweep snr
 ```
 
 **Dimensionality benchmarks** (full n_samples × snr grid):
 
 ```sh
-python -m benchmarks.cli gfa dimensionality --workers 4
+uv run python -m benchmarks.cli gfa dimensionality --workers 4
 ```
 
 **Run everything:**
 
 ```sh
 # All GFA benchmarks (runtime + recovery + dimensionality)
-python -m benchmarks.cli gfa all --workers 4
+uv run python -m benchmarks.cli gfa all --workers 4
 
 # All methods (currently GFA only)
-python -m benchmarks.cli all --workers 4
+uv run python -m benchmarks.cli all --workers 4
 ```
 
 ### Output structure
