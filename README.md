@@ -41,24 +41,23 @@ Requires Python 3.10 or higher.
 pip install latents
 ```
 
-## Quick Start
+## Quickstart
 
 ```python
 from latents.callbacks import ProgressCallback
 from latents.gfa import GFAFitConfig, GFAModel
 
-# Configure fitting parameters
-config = GFAFitConfig(x_dim_init=10)  # Initial latent dimensionality
-
-# Instantiate and fit to multi-group observation data Y
+# Configure and fit to multi-group observation data Y
+config = GFAFitConfig(x_dim_init=10)  # Start with more dims than needed
 model = GFAModel(config=config)
-model.fit(Y, callbacks=[ProgressCallback()])  # Progress bar during fitting
+model.fit(Y, callbacks=[ProgressCallback()])
 
-# Check convergence and access results
-model.flags.display()       # Fitting status
-model.obs_posterior         # Observation model posterior
-model.latents_posterior     # Latent variable posterior
-model.tracker.plot_lb()     # Plot lower bound convergence
+# Inspect results
+model.flags.display()
+
+# Discovered sparsity pattern: which factors are significant in each group
+_, sig_dims, _, _ = model.obs_posterior.compute_dimensionalities()
+print(sig_dims.astype(int))
 ```
 
 ## Documentation

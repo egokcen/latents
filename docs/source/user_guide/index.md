@@ -2,9 +2,8 @@
 
 # User guide
 
-Latents provides tools for latent variable modeling with an emphasis on linear,
-probabilistic methods. This guide covers the conceptual foundations and
-method-specific details.
+Shared mathematical foundations, design philosophy, and method-specific
+details — model specifications, inference, and how to interpret results.
 
 :::{note}
 Latents currently implements **GFA** (complete) and **mDLAG** (under development).
