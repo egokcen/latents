@@ -10,7 +10,7 @@
     "python": "3.11.14",
     "numpy": "2.3.5",
     "scipy": "1.16.3",
-    "latents": "0.0.5.dev30+gd8bbde945"
+    "latents": "0.0.5"
   },
   "os": {
     "system": "Linux",

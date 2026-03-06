@@ -9,10 +9,9 @@ body:
     attributes:
       label: Prerequisites
       options:
-        # TODO: Update link to ReadTheDocs installation guide when repo is public
         - label: >
             I have read the
-            [installation guide](https://github.com/egokcen/latents/blob/main/README.md).
+            [installation guide](https://latents.readthedocs.io/stable/getting_started/).
           required: true
 
   - type: input
