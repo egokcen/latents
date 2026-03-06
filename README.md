@@ -1,6 +1,6 @@
 <h1 align="center">
   <a href="https://latents.readthedocs.io">
-    <img src="docs/source/_static/latents-github-banner.svg" alt="Latents logo">
+    <img src="https://raw.githubusercontent.com/egokcen/latents/main/docs/source/_static/latents-github-banner.svg" alt="Latents logo">
   </a>
 </h1>
 
@@ -8,7 +8,7 @@
 
 [![PyPI Version](https://img.shields.io/pypi/v/latents.svg)](https://pypi.org/project/latents/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/latents.svg)](https://pypi.org/project/latents/)
-[![License](https://img.shields.io/pypi/l/latents.svg)](LICENSE)
+[![License](https://img.shields.io/pypi/l/latents.svg)](https://github.com/egokcen/latents/blob/main/LICENSE)
 
 [![CI](https://github.com/egokcen/latents/actions/workflows/ci.yml/badge.svg)](https://github.com/egokcen/latents/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/egokcen/latents/branch/main/graph/badge.svg)](https://codecov.io/gh/egokcen/latents)
@@ -16,7 +16,7 @@
 
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
-[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](CODE_OF_CONDUCT.md)
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](https://github.com/egokcen/latents/blob/main/CODE_OF_CONDUCT.md)
 
 </div>
 
@@ -67,12 +67,12 @@ user guide, and tutorials.
 
 ## Contributing
 
-Interested in contributing? See the [Contributing Guide](CONTRIBUTING.md).
+Interested in contributing? See the [Contributing Guide](https://github.com/egokcen/latents/blob/main/CONTRIBUTING.md).
 
 ## Code of Conduct
 
-Please consult the [Code of Conduct](CODE_OF_CONDUCT.md).
+Please consult the [Code of Conduct](https://github.com/egokcen/latents/blob/main/CODE_OF_CONDUCT.md).
 
 ## License
 
-[MIT](LICENSE)
+[MIT](https://github.com/egokcen/latents/blob/main/LICENSE)
