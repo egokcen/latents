@@ -288,32 +288,10 @@ across the documentation.
 
 Benchmarks record hardware and software versions in `system_info.json`. This
 context is important because runtime benchmarks are sensitive to CPU, memory,
-and library versions:
-
-```json
-{
-  "timestamp": "2026-02-02T06:37:18+00:00",
-  "hardware": {
-    "cpu": "AMD Ryzen 9 6900HX with Radeon Graphics",
-    "cpu_cores_physical": 8,
-    "cpu_cores_logical": 16,
-    "ram_gb": 60.6
-  },
-  "software": {
-    "python": "3.11.14",
-    "numpy": "2.3.5",
-    "scipy": "1.16.3",
-    "latents": "0.0.5.dev24+g86fb0ace6.d20260201"
-  },
-  "os": {
-    "system": "Linux",
-    "release": "6.17.9-76061709-generic",
-    "distro": "Pop!_OS 22.04 LTS"
-  }
-}
-```
-
-This information is displayed at the bottom of each benchmark gallery page.
+and library versions. See
+[benchmarks/gallery/data/system_info.json](https://github.com/egokcen/latents/blob/main/benchmarks/gallery/data/system_info.json)
+for an example. This information is displayed at the bottom of each runtime benchmark
+gallery page.
 
 ### Random seeds
 
