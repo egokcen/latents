@@ -254,14 +254,14 @@ button.copybtn {
    Mobile and tablet optimizations
    ============================================================================= */
 
-@media (max-width: 768px) {
-  /* Hero section responsive */
+/* Tablet / landscape phone: hide hero image before it overlaps text */
+@media (max-width: 992px) {
   .hero-section {
     min-height: auto;
   }
 
   .hero-section .sd-col:first-child {
-    max-width: 100%;  /* Reset from 55% so text fills full width */
+    max-width: 100%;
     padding: 1.5rem 1.25rem;
   }
 
@@ -269,14 +269,13 @@ button.copybtn {
     font-size: 1.2rem;
   }
 
-  /* Hide artwork on mobile to avoid overlap.
-     Target the image directly — .hero-artwork uses display:contents,
-     so display:none on it alone won't hide the child image. */
   .hero-artwork,
   .hero-section .hero-image {
     display: none;
   }
+}
 
+@media (max-width: 768px) {
   .feature-highlights {
     margin-top: 1rem;
     padding-top: 1rem;
