@@ -260,16 +260,20 @@ button.copybtn {
     min-height: auto;
   }
 
-  .hero-section .sd-col {
+  .hero-section .sd-col:first-child {
+    max-width: 100%;  /* Reset from 55% so text fills full width */
     padding: 1.5rem 1.25rem;
   }
 
   .hero-section .rubric {
-    font-size: 1.3rem;
+    font-size: 1.2rem;
   }
 
-  /* Hide artwork on mobile to avoid overlap */
-  .hero-artwork {
+  /* Hide artwork on mobile to avoid overlap.
+     Target the image directly — .hero-artwork uses display:contents,
+     so display:none on it alone won't hide the child image. */
+  .hero-artwork,
+  .hero-section .hero-image {
     display: none;
   }
 
