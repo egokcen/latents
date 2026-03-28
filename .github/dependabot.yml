@@ -5,7 +5,7 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     commit-message:
       prefix: "ci"
     groups:
@@ -17,7 +17,7 @@ updates:
   - package-ecosystem: "uv"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
     commit-message:
       prefix: "deps"
     groups:

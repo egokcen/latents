@@ -13,7 +13,7 @@ project = "latents"
 author = "Evren Gokcen"
 copyright = f"{datetime.now().year}, {author}"
 release = get_version("latents")
-version = ".".join(release.split(".")[:2])  # Take only major/minor
+version = release  # Full version; reconsider at 1.0
 
 # Single backticks render as inline code
 default_role = "code"
