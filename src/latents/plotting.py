@@ -84,3 +84,69 @@ def hinton(
     ax.autoscale_view()
     # The matrix will be plotted upside down by default, so flip it
     ax.invert_yaxis()
+
+
+def find_optimal_permutation(C_estimated, C_true):
+    """Find the optimal permutation of latent indices to match loadings.
+
+    For each permutation, find the optimal individual sign flips for each latent.
+
+    Parameters
+    ----------
+    C_estimated : np.ndarray
+        Estimated C.mean matrix
+    C_true : np.ndarray
+        True C.mean matrix
+
+    Returns
+    -------
+    permutation : np.ndarray
+        Optimal permutation of indices
+    sign_flips : np.ndarray
+        Optimal sign flips (1 for no flip, -1 for flip) for each latent
+    cost : float
+        Total cost (sum of absolute differences)
+    """
+    from itertools import permutations
+    from math import factorial
+    n_latents = C_estimated.shape[1]  # Number of latent dimensions
+    if C_estimated.shape[1]!=C_true.shape[1]:
+        raise ValueError('The number of latents are different')
+    if n_latents > 8:
+        print(
+            f"Warning: {n_latents} latents would require "
+            f"{n_latents}! = {factorial(n_latents)} permutations"
+        )
+        print("This might take a while...")
+
+    print(f"Exploring all {factorial(n_latents)} possible permutations...")
+
+    best_cost = float("inf")
+    best_permutation = None
+    best_sign_flips = None
+
+    # Try all possible permutations
+    for perm in permutations(range(n_latents)):
+        # Apply permutation to estimated C
+        C_permuted = C_estimated[:, perm]
+
+        # For each latent dimension (column), find the optimal sign
+        sign_flips = np.ones(n_latents)
+        for i in range(n_latents):
+            # Compare positive vs negative for this specific latent column
+            cost_pos = np.sum(np.abs(C_permuted[:, i] - C_true[:, i]))
+            cost_neg = np.sum(np.abs(-C_permuted[:, i] - C_true[:, i]))
+
+            if cost_neg < cost_pos:
+                sign_flips[i] = -1
+
+        # Apply the optimal sign flips to each column
+        C_optimized = C_permuted * sign_flips
+        cost = np.sum(np.abs(C_optimized - C_true))
+
+        if cost < best_cost:
+            best_cost = cost
+            best_permutation = list(perm)
+            best_sign_flips = sign_flips.copy()
+
+    return np.array(best_permutation), best_sign_flips, best_cost
