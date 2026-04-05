@@ -255,7 +255,8 @@ class mDLAGGP:
             )
             X_moment_i = X_moment_jax[i, :, :]
             total_loss += self.kernel.compute_elbo_from_kernel_matrix(Ki, X_moment_i, N)
-        return float(total_loss)
+        # Return negative loss since the optimizer minimizes the loss
+        return -total_loss
 
     def fit(
         self,
@@ -263,7 +264,8 @@ class mDLAGGP:
         N: int,
         T: int,
         config: GPFitConfig = GPFitConfig(),
-    ) -> tuple[mDLAGGP, float]:
+        in_place: bool = True,
+    ):
         """Fit the GP parameters using the provided moment data.
 
         This method delegates to the existing `run_gp_optimizer` function
@@ -306,10 +308,51 @@ class mDLAGGP:
             self.hyper_params,
         )
 
-        # Update the model's parameters
-        self.params = updated_params
+        # Return -loss since the optimizer minimizes the loss
+        if in_place:
+            self.params = updated_params
+        else:
+            return updated_params, -total_loss
 
-        return self, total_loss
+        return -total_loss
+
+    def get_subset_dims(
+        self, dims: np.ndarray, in_place: bool = True
+    ) -> mDLAGGP | None:
+        """Keep only a subset of the latent dimensions in each parameter.
+
+        Parameters
+        ----------
+        dims : np.ndarray
+            Indices of latent dimensions to keep.
+        in_place : bool, optional
+            If True, modify this instance. If False, return new instance.
+            Defaults to True.
+
+        Returns
+        -------
+        mDLAGGP | None
+            If in_place=False, returns new mDLAGGP with subset dimensions.
+            If in_place=True, returns None.
+        """
+        if in_place:
+            # Update parameters in place
+            self.params.gamma = self.params.gamma[dims]
+            self.params.delays = self.params.delays[:, dims]
+            self.params.eps = self.params.eps[dims]
+            # Manually update the derived attributes that __post_init__ would set
+            self.params.x_dim = len(dims)
+            self.params.num_groups = self.params.delays.shape[0]
+            return None
+        else:
+            # Return new instance with subset parameters
+            return mDLAGGP(
+                gamma=np.array(self.params.gamma[dims]),
+                delays=np.array(self.params.delays[:, dims]),
+                eps=np.array(self.params.eps[dims]),
+                kernel=self.kernel,
+                hyper_params=self.hyper_params,
+            )
 
     def copy(self) -> mDLAGGP:
         """Create a copy of the mDLAGGP instance.

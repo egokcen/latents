@@ -159,7 +159,7 @@ class PosteriorLatentDelayed(ArrayContainer):
         `ndarray` of `float`, shape ``(x_dim, num_groups, T, x_dim, num_groups, T)``.
         Posterior covariance of the latent variables.
     moment
-        `ndarray` of `float`, shape ``(x_dim, num_groups, T, x_dim, num_groups, T)``.
+        `ndarray` of `float`, shape ``(num_groups, x_dim, x_dim)``.
         Posterior second moments of the latent variables.
 
     Attributes
@@ -329,7 +329,25 @@ class PosteriorLatentDelayed(ArrayContainer):
         self, dims: np.ndarray, in_place: bool = True
     ) -> PosteriorLatentDelayed | None:
         """Keep only a subset of the latent dimensions in each attribute."""
-        raise NotImplementedError
+        if in_place:
+            self.mean = self.mean[dims, :, :, :] if self.mean is not None else None
+            if self.cov is not None:
+                self.cov = self.cov[dims, :, :, :, :, :][:, :, :, dims, :, :]
+            if self.moment is not None:
+                self.moment = self.moment[:, dims, :][:, :, dims]
+            return None
+        else:
+            new_cov = None
+            if self.cov is not None:
+                new_cov = self.cov[dims, :, :, :, :, :][:, :, :, dims, :, :]
+            new_moment = None
+            if self.moment is not None:
+                new_moment = self.moment[:, dims, :][:, :, dims]
+            return self.__class__(
+                mean=self.mean[dims, :, :, :] if self.mean is not None else None,
+                cov=new_cov,
+                moment=new_moment,
+            )
 
 
 class StateParamsStatic:
@@ -520,7 +538,7 @@ class StateParamsDelayed:
 
     def is_initialized(self) -> bool:
         """Check if state model parameters have been initialized."""
-        raise NotImplementedError
+        return self.x_dim is not None and self.X.mean is not None
 
     def get_subset_dims(
         self,
@@ -528,7 +546,17 @@ class StateParamsDelayed:
         in_place: bool = True,
     ) -> StateParamsDelayed | None:
         """Keep only a subset of the latent dimensions in each relevant parameter."""
-        raise NotImplementedError
+        if in_place:
+            self.x_dim = len(dims)
+            self.X.get_subset_dims(dims, in_place=True)
+            return None
+        else:
+            return self.__class__(
+                x_dim=len(dims),
+                num_groups=self.num_groups,
+                T=self.T,
+                X=self.X.get_subset_dims(dims, in_place=False),
+            )
 
     def copy(self) -> StateParamsDelayed:
         """Return a copy of self."""

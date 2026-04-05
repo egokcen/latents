@@ -76,35 +76,20 @@ def run_gp_optimizer(
                 var_i, X_moment_i, N, T, eps, hyper_params, use_autodiff
             )
 
-        # Compute initial loss for display
-        f0, g0 = val_and_grad(var_i)
-        print(f"  Initial loss: {f0:.6f}")
-
-        def objective_func(var_i):
-            return val_and_grad(var_i)[0]
-
-        def gradient_func(var_i):
-            return val_and_grad(var_i)[1]
-
         var_i_np = np.array(var_i)
 
         result = fmin_l_bfgs_b(
-            func=objective_func,
+            func=val_and_grad,
             x0=var_i_np,
-            fprime=gradient_func,
+            fprime=None,
             maxiter=cfg.max_iter,
             maxfun=cfg.max_iter * 10,
             factr=1e7,
-            pgtol=1e-5,
+            pgtol=1e-4, 
             m=15,
         )
         var_i_opt = result[0]
         f_opt = result[1]
-
-        # Display loss improvement
-        loss_improvement = f0 - f_opt
-        print(f"  Final loss: {f_opt:.6f}")
-        print(f"  Loss improvement: {loss_improvement:.6f}")
 
         var_i_opt = jnp.array(var_i_opt)
         total_loss += f_opt
