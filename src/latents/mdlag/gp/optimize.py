@@ -85,7 +85,7 @@ def run_gp_optimizer(
             maxiter=cfg.max_iter,
             maxfun=cfg.max_iter * 10,
             factr=1e7,
-            pgtol=1e-4, 
+            pgtol=1e-4,
             m=15,
         )
         var_i_opt = result[0]

@@ -109,9 +109,10 @@ def find_optimal_permutation(C_estimated, C_true):
     """
     from itertools import permutations
     from math import factorial
+
     n_latents = C_estimated.shape[1]  # Number of latent dimensions
-    if C_estimated.shape[1]!=C_true.shape[1]:
-        raise ValueError('The number of latents are different')
+    if C_estimated.shape[1] != C_true.shape[1]:
+        raise ValueError("The number of latents are different")
     if n_latents > 8:
         print(
             f"Warning: {n_latents} latents would require "

@@ -46,7 +46,9 @@ def test_checkpoint_create_and_load(tmp_path: Path) -> None:
     D = np.zeros((len(y_dims), x_dim))
     gamma = (bin_width / tau) ** 2
 
-    obs_params_true = ObsParamsARD.generate(y_dims, x_dim, hyper_priors, np.ones(len(y_dims)), rng)
+    obs_params_true = ObsParamsARD.generate(
+        y_dims, x_dim, hyper_priors, np.ones(len(y_dims)), rng
+    )
     gp_true = mDLAGGP(gamma=gamma, delays=D / bin_width, eps=eps, kernel=RBFKernel())
     state_params_true = StateParamsDelayed(x_dim, len(y_dims), T)
 
@@ -55,7 +57,9 @@ def test_checkpoint_create_and_load(tmp_path: Path) -> None:
 
     # Configure model and enable checkpointing frequently
     model = mDLAGModel()
-    gp_fit_config = GPFitConfig(max_iter=10, tol=1e-6, grad_mode="autodiff", verbose=False)
+    gp_fit_config = GPFitConfig(
+        max_iter=10, tol=1e-6, grad_mode="autodiff", verbose=False
+    )
 
     checkpoint_dir = tmp_path / "ckpts"
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
@@ -81,7 +85,9 @@ def test_checkpoint_create_and_load(tmp_path: Path) -> None:
     model.fit(Y)
 
     # Check that checkpoints exist
-    ckpt_files = sorted(f for f in os.listdir(checkpoint_dir) if f.startswith("checkpoint_iter_"))
+    ckpt_files = sorted(
+        f for f in os.listdir(checkpoint_dir) if f.startswith("checkpoint_iter_")
+    )
     assert len(ckpt_files) >= 1, "Expected at least one checkpoint file to be created"
 
     # Load last checkpoint and sanity-check a couple of attributes

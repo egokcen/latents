@@ -141,27 +141,25 @@ def fit(
 
     # Initialize status flags
     flags = mDLAGFitFlags()
-    
+
     # Initialize checkpointing
     checkpoint_enabled = checkpoint_interval > 0
     if checkpoint_enabled:
         os.makedirs(checkpoint_dir, exist_ok=True)
         if verbose:
-            print(f"Checkpointing enabled: saving every {checkpoint_interval} iterations to {checkpoint_dir}")
-    
+            print(
+                f"Checkpointing enabled: saving every {checkpoint_interval} iterations to {checkpoint_dir}"
+            )
+
     fit_iter = 0
     for fit_iter in range(max_iter):
-        
-        
-        
-        
         # Check if any latents need to be removed
         if prune_X:
             is_active = np.zeros((x_dim, num_groups), dtype=bool)
             for group_idx in range(num_groups):
                 # Calculate mean squared activity for each latent in the current group
                 # Xs[groupIdx] has shape (x_dim, T_group), so we average over the time axis.
-                Xs = state_params.X.mean[:,group_idx,:,:].reshape(x_dim,-1)
+                Xs = state_params.X.mean[:, group_idx, :, :].reshape(x_dim, -1)
                 activity = np.mean(Xs**2, axis=1)
                 is_active[:, group_idx] = activity > prune_tol
 
@@ -178,8 +176,6 @@ def fit(
                 if x_dim <= 0:
                     # Stop fitting if no significant latents remain
                     break
-
-
 
         # Start timer for current iteration
         if save_fit_progress:
@@ -217,15 +213,17 @@ def fit(
             tracker.iter_time = np.append(tracker.iter_time, end_time - start_time)
             # Record the current lower bound
             tracker.lb = np.append(tracker.lb, lb_curr)
-        
+
         # Save checkpoint if enabled and at the right interval
         if checkpoint_enabled and (fit_iter + 1) % checkpoint_interval == 0:
-            checkpoint_filename = os.path.join(checkpoint_dir, f"checkpoint_iter_{fit_iter + 1}.pkl")
-            
+            checkpoint_filename = os.path.join(
+                checkpoint_dir, f"checkpoint_iter_{fit_iter + 1}.pkl"
+            )
+
             try:
                 # Create a temporary mDLAGModel object with current state to leverage existing save method
                 from latents.mdlag.data_types import mDLAGFitArgs
-                
+
                 # Create fit_args object with current parameters
                 fit_args = mDLAGFitArgs()
                 fit_args.set_args(
@@ -243,23 +241,30 @@ def fit(
                     checkpoint_interval=checkpoint_interval,
                     checkpoint_dir=checkpoint_dir,
                 )
-                
+
                 # Create temporary model object and use existing save method
                 checkpoint_model = mDLAGModel(
-                    params=params,
-                    tracker=tracker,
-                    flags=flags,
-                    fit_args=fit_args
+                    params=params, tracker=tracker, flags=flags, fit_args=fit_args
                 )
                 checkpoint_model.save(checkpoint_filename)
-                
+
                 if verbose:
-                    print(f"\nCheckpoint saved at iteration {fit_iter + 1}: {checkpoint_filename}")
-                    print(f"Iteration {fit_iter + 1} of {max_iter}        lb {lb_curr}", end="", flush=True)
+                    print(
+                        f"\nCheckpoint saved at iteration {fit_iter + 1}: {checkpoint_filename}"
+                    )
+                    print(
+                        f"Iteration {fit_iter + 1} of {max_iter}        lb {lb_curr}",
+                        end="",
+                        flush=True,
+                    )
             except Exception as e:
                 if verbose:
                     print(f"\nERROR saving checkpoint at iteration {fit_iter + 1}: {e}")
-                    print(f"Iteration {fit_iter + 1} of {max_iter}        lb {lb_curr}", end="", flush=True)
+                    print(
+                        f"Iteration {fit_iter + 1} of {max_iter}        lb {lb_curr}",
+                        end="",
+                        flush=True,
+                    )
 
         # Display progress
         if verbose:
@@ -449,7 +454,7 @@ def infer_latents(
     num_groups = len(obs_params.y_dims)
     T = params.T
     N = Y.data.shape[2]
-    
+
     K_big = gp.build_kernel_matrix(T, return_tensor=False)
 
     # Initialize X, if needed
@@ -1236,7 +1241,9 @@ class mDLAGModel:
         # we can simply use the existing load() method
         return mDLAGModel.load(checkpoint_filename)
 
-    def resume_fit(self, Y: ObsTimeSeries, checkpoint_filename: str | None = None) -> None:
+    def resume_fit(
+        self, Y: ObsTimeSeries, checkpoint_filename: str | None = None
+    ) -> None:
         """
         Resume fitting from a checkpoint.
 
@@ -1252,31 +1259,39 @@ class mDLAGModel:
             # Find the most recent checkpoint
             checkpoint_dir = self.fit_args.checkpoint_dir
             if not os.path.exists(checkpoint_dir):
-                raise FileNotFoundError(f"Checkpoint directory {checkpoint_dir} does not exist")
-            
-            checkpoint_files = [f for f in os.listdir(checkpoint_dir) if f.startswith("checkpoint_iter_") and f.endswith(".pkl")]
+                raise FileNotFoundError(
+                    f"Checkpoint directory {checkpoint_dir} does not exist"
+                )
+
+            checkpoint_files = [
+                f
+                for f in os.listdir(checkpoint_dir)
+                if f.startswith("checkpoint_iter_") and f.endswith(".pkl")
+            ]
             if not checkpoint_files:
-                raise FileNotFoundError(f"No checkpoint files found in {checkpoint_dir}")
-            
+                raise FileNotFoundError(
+                    f"No checkpoint files found in {checkpoint_dir}"
+                )
+
             # Sort by iteration number to get the most recent
             def extract_iter(filename):
                 return int(filename.split("_iter_")[1].split(".pkl")[0])
-            
+
             checkpoint_files.sort(key=extract_iter, reverse=True)
             checkpoint_filename = os.path.join(checkpoint_dir, checkpoint_files[0])
-        
+
         # Load checkpoint state using existing load method
         model = mDLAGModel.load(checkpoint_filename)
-        
+
         # Update current model state
         self.params = model.params
         self.tracker = model.tracker
         self.flags = model.flags
         self.fit_args = model.fit_args
-        
+
         if self.fit_args.verbose:
             print(f"Resuming from checkpoint: {checkpoint_filename}")
-        
+
         # Continue fitting
         self.fit(Y)
 

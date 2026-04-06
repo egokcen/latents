@@ -147,7 +147,7 @@ class mDLAGParams:
     def copy(self) -> mDLAGParams:
         """Return a copy of self."""
         raise NotImplementedError
-            
+
 
 class mDLAGFitTracker(FitTracker):
     """

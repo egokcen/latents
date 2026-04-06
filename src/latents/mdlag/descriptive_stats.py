@@ -45,7 +45,7 @@ def predictive_performance(
     """
     if y_dims is None:
         y_dims = obs_data.dims
-    
+
     # Create a new view of the observed data matching y_dims
     Y = ObsTimeSeries(data=obs_data.data, dims=y_dims, T=obs_data.T)
     Ys = Y.get_groups()
@@ -60,7 +60,7 @@ def predictive_performance(
     d_means, _ = params.obs_params.d.get_groups(y_dims)
 
     num_groups = len(y_dims)  # Number of observed groups
-    
+
     for group_idx in range(num_groups):
         # Group to be left out
         target_group = group_idx
@@ -73,7 +73,7 @@ def predictive_performance(
             y_dims=y_dims[source_groups],
             T=params.T,
         )
-        
+
         # Copy observation model parameters for source groups
         source_params.obs_params.C.mean = np.concatenate(
             [C_means[g] for g in source_groups], axis=0
@@ -88,20 +88,22 @@ def predictive_performance(
         source_params.obs_params.d.mean = np.concatenate(
             [d_means[g] for g in source_groups]
         )
-        
+
         # Copy other observation parameters (keeping same structure)
         source_params.obs_params.alpha = params.obs_params.alpha.copy()
-        
+
         # Copy and update state parameters for source groups
         source_params.state_params.num_groups = len(source_groups)
         source_params.state_params.T = params.T
         source_params.num_groups = len(source_groups)
-        
+
         # Copy and update GP parameters for source groups
         source_params.gp = params.gp.copy()
-        if hasattr(source_params.gp.params, 'delays'):
+        if hasattr(source_params.gp.params, "delays"):
             # Subset delays to only include source groups
-            source_params.gp.params.delays = source_params.gp.params.delays[source_groups, :]
+            source_params.gp.params.delays = source_params.gp.params.delays[
+                source_groups, :
+            ]
             source_params.gp.params.num_groups = len(source_groups)
 
         # Construct observed data that excludes the target group
@@ -115,27 +117,28 @@ def predictive_performance(
         X = infer_latents(Y_source, source_params, in_place=False)
 
         X_target_mean = np.mean(X.mean, axis=1)  # Average across source groups
-        
+
         # Predict target group observations: Y = C @ X + d
         # X_target_mean has shape (x_dim, T, N)
         # C_means[target_group] has shape (y_dim_target, x_dim)
         # d_means[target_group] has shape (y_dim_target,)
-        
+
         for t in range(Y.T):
             for n in range(Y.data.shape[2]):
                 Ys_pred[target_group][:, t, n] = (
-                    C_means[target_group] @ X_target_mean[:, t, n] + d_means[target_group]
+                    C_means[target_group] @ X_target_mean[:, t, n]
+                    + d_means[target_group]
                 )
 
     # Compute aggregate performance metrics
     MSE = np.mean((Y.data - Y_pred.data) ** 2)
-    
+
     # Compute R² with proper handling of time-series structure
     # For time-series data, we compute variance across all dimensions and time
     Y_mean = np.mean(Y.data, axis=(1, 2), keepdims=True)  # Mean across time and trials
     SS_res = np.sum((Y.data - Y_pred.data) ** 2)
     SS_tot = np.sum((Y.data - Y_mean) ** 2)
-    
+
     R2 = 1 - SS_res / SS_tot
 
     return R2, MSE
