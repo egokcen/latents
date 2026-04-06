@@ -344,15 +344,14 @@ class mDLAGGP:
             self.params.x_dim = len(dims)
             self.params.num_groups = self.params.delays.shape[0]
             return None
-        else:
-            # Return new instance with subset parameters
-            return mDLAGGP(
-                gamma=np.array(self.params.gamma[dims]),
-                delays=np.array(self.params.delays[:, dims]),
-                eps=np.array(self.params.eps[dims]),
-                kernel=self.kernel,
-                hyper_params=self.hyper_params,
-            )
+        # Return new instance with subset parameters
+        return mDLAGGP(
+            gamma=np.array(self.params.gamma[dims]),
+            delays=np.array(self.params.delays[:, dims]),
+            eps=np.array(self.params.eps[dims]),
+            kernel=self.kernel,
+            hyper_params=self.hyper_params,
+        )
 
     def copy(self) -> mDLAGGP:
         """Create a copy of the mDLAGGP instance.

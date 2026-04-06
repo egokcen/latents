@@ -147,9 +147,11 @@ def fit(
     if checkpoint_enabled:
         os.makedirs(checkpoint_dir, exist_ok=True)
         if verbose:
-            print(
-                f"Checkpointing enabled: saving every {checkpoint_interval} iterations to {checkpoint_dir}"
+            checkpoint_msg = (
+                "Checkpointing enabled: saving every "
+                f"{checkpoint_interval} iterations to {checkpoint_dir}"
             )
+            print(checkpoint_msg)
 
     fit_iter = 0
     for fit_iter in range(max_iter):
@@ -157,8 +159,9 @@ def fit(
         if prune_X:
             is_active = np.zeros((x_dim, num_groups), dtype=bool)
             for group_idx in range(num_groups):
-                # Calculate mean squared activity for each latent in the current group
-                # Xs[groupIdx] has shape (x_dim, T_group), so we average over the time axis.
+                # Calculate mean squared activity for each latent in the current
+                # group. Xs[groupIdx] has shape (x_dim, T_group), so we average
+                # over the time axis.
                 Xs = state_params.X.mean[:, group_idx, :, :].reshape(x_dim, -1)
                 activity = np.mean(Xs**2, axis=1)
                 is_active[:, group_idx] = activity > prune_tol
@@ -221,10 +224,7 @@ def fit(
             )
 
             try:
-                # Create a temporary mDLAGModel object with current state to leverage existing save method
-                from latents.mdlag.data_types import mDLAGFitArgs
-
-                # Create fit_args object with current parameters
+                # Create fit_args object with current parameters.
                 fit_args = mDLAGFitArgs()
                 fit_args.set_args(
                     hyper_priors=hyper_priors,
@@ -242,16 +242,18 @@ def fit(
                     checkpoint_dir=checkpoint_dir,
                 )
 
-                # Create temporary model object and use existing save method
+                # Create temporary model object and use existing save method.
                 checkpoint_model = mDLAGModel(
                     params=params, tracker=tracker, flags=flags, fit_args=fit_args
                 )
                 checkpoint_model.save(checkpoint_filename)
 
                 if verbose:
-                    print(
-                        f"\nCheckpoint saved at iteration {fit_iter + 1}: {checkpoint_filename}"
+                    saved_msg = (
+                        f"\nCheckpoint saved at iteration {fit_iter + 1}: "
+                        f"{checkpoint_filename}"
                     )
+                    print(saved_msg)
                     print(
                         f"Iteration {fit_iter + 1} of {max_iter}        lb {lb_curr}",
                         end="",
@@ -1197,8 +1199,6 @@ class mDLAGModel:
         filename
             Name of pickle file to save to.
         """
-        import pickle
-
         with open(filename, "wb") as f:
             pickle.dump(self, f)
 
@@ -1217,8 +1217,6 @@ class mDLAGModel:
         mDLAGModel
             Loaded mDLAGModel object.
         """
-        import pickle
-
         with open(filename, "rb") as f:
             return pickle.load(f)
 
@@ -1259,9 +1257,8 @@ class mDLAGModel:
             # Find the most recent checkpoint
             checkpoint_dir = self.fit_args.checkpoint_dir
             if not os.path.exists(checkpoint_dir):
-                raise FileNotFoundError(
-                    f"Checkpoint directory {checkpoint_dir} does not exist"
-                )
+                msg = f"Checkpoint directory {checkpoint_dir} does not exist"
+                raise FileNotFoundError(msg)
 
             checkpoint_files = [
                 f
@@ -1269,9 +1266,8 @@ class mDLAGModel:
                 if f.startswith("checkpoint_iter_") and f.endswith(".pkl")
             ]
             if not checkpoint_files:
-                raise FileNotFoundError(
-                    f"No checkpoint files found in {checkpoint_dir}"
-                )
+                msg = f"No checkpoint files found in {checkpoint_dir}"
+                raise FileNotFoundError(msg)
 
             # Sort by iteration number to get the most recent
             def extract_iter(filename):

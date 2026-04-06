@@ -135,14 +135,13 @@ class mDLAGParams:
             self.state_params.get_subset_dims(dims, in_place=True)
             self.gp.get_subset_dims(dims, in_place=True)
             return None
-        else:
-            return self.__class__(
-                obs_params=self.obs_params.get_subset_dims(dims, in_place=False),
-                state_params=self.state_params.get_subset_dims(dims, in_place=False),
-                gp=self.gp.get_subset_dims(dims, in_place=False),
-                save_X_cov=self.save_X_cov,
-                save_C_cov=self.save_C_cov,
-            )
+        return self.__class__(
+            obs_params=self.obs_params.get_subset_dims(dims, in_place=False),
+            state_params=self.state_params.get_subset_dims(dims, in_place=False),
+            gp=self.gp.get_subset_dims(dims, in_place=False),
+            save_X_cov=self.save_X_cov,
+            save_C_cov=self.save_C_cov,
+        )
 
     def copy(self) -> mDLAGParams:
         """Return a copy of self."""

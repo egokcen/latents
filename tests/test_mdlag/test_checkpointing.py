@@ -1,3 +1,5 @@
+"""Checkpointing tests for mDLAG model fitting."""
+
 import os
 from pathlib import Path
 
@@ -10,13 +12,12 @@ from latents.mdlag.gp.gp_model import mDLAGGP
 from latents.mdlag.gp.kernels.rbf.rbf_kernel import RBFKernel
 from latents.mdlag.simulation import generate_latents, generate_observations
 from latents.observation_model.probabilistic import HyperPriorParams, ObsParamsARD
-from latents.state_model.latents import StateParamsDelayed
 
 
 @pytest.mark.fast
 def test_checkpoint_create_and_load(tmp_path: Path) -> None:
-    """
-    Checkpointing smoke test:
+    """Checkpointing smoke test.
+
     - Fit a tiny synthetic model with checkpointing enabled
     - Assert that at least one checkpoint file is created
     - Load the last checkpoint and sanity-check a couple of fields
@@ -50,7 +51,6 @@ def test_checkpoint_create_and_load(tmp_path: Path) -> None:
         y_dims, x_dim, hyper_priors, np.ones(len(y_dims)), rng
     )
     gp_true = mDLAGGP(gamma=gamma, delays=D / bin_width, eps=eps, kernel=RBFKernel())
-    state_params_true = StateParamsDelayed(x_dim, len(y_dims), T)
 
     X_true = generate_latents(gp_true, T=T, N=N, rng=rng)
     Y = generate_observations(X_true, obs_params_true, rng)
