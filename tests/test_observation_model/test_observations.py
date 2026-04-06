@@ -30,11 +30,11 @@ def test_obsstatic_init_unspecified_attributes() -> None:
     dims = np.array([5, 5])
 
     # Test unspecified data or dims
-    with pytest.raises(TypeError, match="data must be a numpy.ndarray."):
+    with pytest.raises(TypeError, match=r"data must be a numpy\.ndarray\."):
         ObsStatic(data=None, dims=None)
-    with pytest.raises(TypeError, match="data must be a numpy.ndarray."):
+    with pytest.raises(TypeError, match=r"data must be a numpy\.ndarray\."):
         ObsStatic(data=None, dims=dims)
-    with pytest.raises(TypeError, match="dims must be a numpy.ndarray."):
+    with pytest.raises(TypeError, match=r"dims must be a numpy\.ndarray\."):
         ObsStatic(data=data, dims=None)
 
 
@@ -43,7 +43,8 @@ def test_obsstatic_init_mismatched_dims() -> None:
     data = np.ones((10, 20))
     dims = np.array([5, 6])
     with pytest.raises(
-        ValueError, match="The sum of dims must equal the number of rows in data."
+        ValueError,
+        match=r"The sum of dims must equal the number of rows in data\.",
     ):
         ObsStatic(data=data, dims=dims)
 
