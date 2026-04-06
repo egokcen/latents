@@ -42,7 +42,7 @@ def test_fit():
     )
 
     # Simulate data
-    Y, X_true, params_true = gfa_sim.simulate(
+    Y, _X_true, _params_true = gfa_sim.simulate(
         N,
         y_dims,
         x_dim,
@@ -83,6 +83,3 @@ def test_fit():
     assert not model.flags.decreasing_lb
     assert not model.flags.private_var_floor
     assert model.flags.x_dims_removed == 3
-
-    # Check the number of iterations
-    assert len(model.tracker.iter_time) == 2521

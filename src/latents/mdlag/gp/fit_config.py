@@ -7,7 +7,7 @@ from dataclasses import dataclass
 class GPFitConfig:
     """Configuration for the GP optimizer."""
 
-    max_iter: int = 20  # Increased for better convergence
-    tol: float = 1e-8  # Tighter tolerance
+    max_iter: int = 20
+    tol: float = 1e-8
     grad_mode: str = "autodiff"  # "autodiff" | "manual"
-    verbose: bool = True  # Enable detailed output
+    verbose: bool = True
