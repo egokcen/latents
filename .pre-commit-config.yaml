@@ -22,7 +22,7 @@ repos:
 
   # Python linting and formatting
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.9
+    rev: v0.15.9
     hooks:
       - id: ruff-check
         args: ['--fix']
@@ -32,13 +32,13 @@ repos:
 
   # GitHub workflow validation
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.36.0
+    rev: 0.37.1
     hooks:
       - id: check-github-workflows
 
   # Commit message linting
   - repo: https://github.com/commitizen-tools/commitizen
-    rev: v4.10.1
+    rev: v4.13.9
     hooks:
       - id: commitizen
         stages: [commit-msg]
