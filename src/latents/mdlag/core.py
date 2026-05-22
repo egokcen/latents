@@ -22,14 +22,24 @@ Core utilities to fit a delayed latents across multiple groups (mDLAG) model to 
 
 from __future__ import annotations
 
+import os
+import pickle
+import time
+
 import numpy as np
 from scipy.linalg import block_diag, eigh
 from scipy.special import gammaln, psi
 from scipy.stats import gmean
 
-from latents.mdlag.data_types import mDLAGParams
+from latents.mdlag.data_types import (
+    mDLAGFitArgs,
+    mDLAGFitFlags,
+    mDLAGFitTracker,
+    mDLAGParams,
+)
 from latents.mdlag.gp.fit_config import GPFitConfig
 from latents.mdlag.gp.gp_model import mDLAGGP
+from latents.mdlag.gp.kernels.rbf.rbf_kernel import RBFKernel
 from latents.observation_model.observations import ObsTimeSeries
 from latents.observation_model.probabilistic import (
     HyperPriorParams,
@@ -41,13 +51,250 @@ from latents.observation_model.probabilistic import (
 from latents.state_model.latents import PosteriorLatentDelayed
 
 
-def fit():
+def fit(
+    Y: ObsTimeSeries,
+    params: mDLAGParams,
+    hyper_priors: HyperPriorParams,
+    gp_fit_config: GPFitConfig,
+    max_iter: int = int(1e6),
+    fit_tol: float = 1e-8,
+    prune_X: bool = True,
+    prune_tol: float = 1e-7,
+    verbose: bool = False,
+    random_seed: int | None = 42,
+    save_X_cov: bool = False,
+    save_C_cov: bool = False,
+    save_fit_progress: bool = True,
+    checkpoint_interval: int = 0,
+    checkpoint_dir: str = "checkpoints",
+) -> tuple[mDLAGParams, mDLAGFitTracker, mDLAGFitFlags]:
     """Fit a mDLAG model to data.
 
     Fit a delayed latents across multiple groups (mDLAG) model using an iterative
     variational inference scheme with mean-field approximation.
     """
-    pass
+    if not params.is_initialized():
+        if verbose:
+            print("Initializing mDLAG model parameters...")
+        gp_init = params.gp
+        params = init(
+            Y,
+            gp_init,
+            hyper_priors,
+            random_seed=random_seed,
+            save_C_cov=save_C_cov,
+            save_X_cov=save_X_cov,
+        )
+
+    obs_params = params.obs_params
+    state_params = params.state_params
+    gp = params.gp
+
+    # Initialize hyper_priors if not provided
+    if hyper_priors is None:
+        hyper_priors = HyperPriorParams()
+    elif not isinstance(hyper_priors, HyperPriorParams):
+        msg = "hyper_priors must be a HyperPriorParams object."
+        raise TypeError(msg)
+
+    if gp_fit_config is None:
+        gp_fit_config = GPFitConfig()
+    elif not isinstance(gp_fit_config, GPFitConfig):
+        msg = "gp_fit_config must be a GPFitConfig object."
+        raise TypeError(msg)
+
+    # Check that the observed data dimensions match between the data and the
+    # parameters
+    if not np.array_equal(obs_params.y_dims, Y.dims):
+        msg = "params.obs_params.y_dims must match Y.dims."
+        raise ValueError(msg)
+
+    if obs_params.x_dim != gp.params.x_dim:
+        msg = "params.obs_params.x_dim must match gp.params.x_dim."
+        raise ValueError(msg)
+
+    if state_params.x_dim != gp.params.x_dim:
+        msg = "params.state_params.x_dim must match gp.params.x_dim."
+        raise ValueError(msg)
+
+    # Get data size characteristics:
+    y_dims = Y.dims
+    y_dim = y_dims.sum()
+    N = Y.data.shape[2]
+    T = Y.T
+    x_dim = gp.params.x_dim
+    num_groups = len(y_dims)
+
+    # Initialize the posterior covariance of C, if needed
+    if obs_params.C.cov is None:
+        obs_params.C.cov = np.zeros((y_dim, x_dim, x_dim))
+
+    # Constant factors in the lower bound
+    consts_lb = compute_lower_bound_constants(N, params, hyper_priors)
+
+    # Initialize tracked quantities
+    tracker = mDLAGFitTracker()
+    if save_fit_progress:
+        tracker.lb = np.array([])  # Lower bound
+        tracker.iter_time = np.array([])  # Runtime per iteration
+    lb_curr = -np.inf  # Initial lower bound
+
+    # Initialize status flags
+    flags = mDLAGFitFlags()
+
+    # Initialize checkpointing
+    checkpoint_enabled = checkpoint_interval > 0
+    if checkpoint_enabled:
+        os.makedirs(checkpoint_dir, exist_ok=True)
+        if verbose:
+            checkpoint_msg = (
+                "Checkpointing enabled: saving every "
+                f"{checkpoint_interval} iterations to {checkpoint_dir}"
+            )
+            print(checkpoint_msg)
+
+    fit_iter = 0
+    for fit_iter in range(max_iter):
+        # Check if any latents need to be removed
+        if prune_X:
+            is_active = np.zeros((x_dim, num_groups), dtype=bool)
+            for group_idx in range(num_groups):
+                # Calculate mean squared activity for each latent in the current
+                # group. Xs[groupIdx] has shape (x_dim, T_group), so we average
+                # over the time axis.
+                Xs = state_params.X.mean[:, group_idx, :, :].reshape(x_dim, -1)
+                activity = np.mean(Xs**2, axis=1)
+                is_active[:, group_idx] = activity > prune_tol
+
+            # A dimension is kept if it's active in at least one group
+            kept_x_dims = np.flatnonzero(np.any(is_active, axis=1))
+
+            if len(kept_x_dims) < x_dim:
+                # Remove inactive latents
+                if verbose:
+                    print(f"\nRemoving {x_dim - len(kept_x_dims)} latents")
+                params.get_subset_dims(kept_x_dims, in_place=True)
+                flags.x_dims_removed += x_dim - obs_params.x_dim
+                x_dim = obs_params.x_dim
+                if x_dim <= 0:
+                    # Stop fitting if no significant latents remain
+                    break
+
+        # Start timer for current iteration
+        if save_fit_progress:
+            start_time = time.time()
+
+        # Latent variables, X
+        infer_latents(Y, params, in_place=True)
+        X_moment = np.copy(params.state_params.X.moment_gp)
+
+        # GP parameters
+        l_gp = params.gp.fit(X_moment, N, T, gp_fit_config, in_place=True)
+
+        # Mean parameter, d
+        infer_obs_mean(Y, params, hyper_priors, in_place=True)
+
+        # Loading matrices, C
+        infer_loadings(Y, params, XY=None, in_place=True)
+
+        # ARD parameters, alpha
+        infer_ard(params, hyper_priors, in_place=True)
+
+        # Observation precision parameters, phi
+        infer_obs_prec(Y, params, hyper_priors, in_place=True)
+
+        # Compute the lower bound
+        lb_old = 1.0 * lb_curr
+        lb_curr = compute_lower_bound(
+            Y, params, hyper_priors, consts=consts_lb, gp_loss=l_gp
+        )
+
+        # Save progress
+        if save_fit_progress:
+            # Compute the runtime of this iteration
+            end_time = time.time()
+            tracker.iter_time = np.append(tracker.iter_time, end_time - start_time)
+            # Record the current lower bound
+            tracker.lb = np.append(tracker.lb, lb_curr)
+
+        # Save checkpoint if enabled and at the right interval
+        if checkpoint_enabled and (fit_iter + 1) % checkpoint_interval == 0:
+            checkpoint_filename = os.path.join(
+                checkpoint_dir, f"checkpoint_iter_{fit_iter + 1}.pkl"
+            )
+
+            try:
+                # Create fit_args object with current parameters.
+                fit_args = mDLAGFitArgs()
+                fit_args.set_args(
+                    hyper_priors=hyper_priors,
+                    gp_fit_config=gp_fit_config,
+                    max_iter=max_iter,
+                    fit_tol=fit_tol,
+                    prune_X=prune_X,
+                    prune_tol=prune_tol,
+                    verbose=verbose,
+                    random_seed=random_seed,
+                    save_X_cov=save_X_cov,
+                    save_C_cov=save_C_cov,
+                    save_fit_progress=save_fit_progress,
+                    checkpoint_interval=checkpoint_interval,
+                    checkpoint_dir=checkpoint_dir,
+                )
+
+                # Create temporary model object and use existing save method.
+                checkpoint_model = mDLAGModel(
+                    params=params, tracker=tracker, flags=flags, fit_args=fit_args
+                )
+                checkpoint_model.save(checkpoint_filename)
+
+                if verbose:
+                    saved_msg = (
+                        f"\nCheckpoint saved at iteration {fit_iter + 1}: "
+                        f"{checkpoint_filename}"
+                    )
+                    print(saved_msg)
+                    print(
+                        f"Iteration {fit_iter + 1} of {max_iter}        lb {lb_curr}",
+                        end="",
+                        flush=True,
+                    )
+            except Exception as e:
+                if verbose:
+                    print(f"\nERROR saving checkpoint at iteration {fit_iter + 1}: {e}")
+                    print(
+                        f"Iteration {fit_iter + 1} of {max_iter}        lb {lb_curr}",
+                        end="",
+                        flush=True,
+                    )
+
+        # Display progress
+        if verbose:
+            print(
+                f"\rIteration {fit_iter + 1} of {max_iter}        lb {lb_curr}",
+                end="",
+                flush=True,
+            )
+
+        # Check stopping conditions or errors
+        if fit_iter <= 1:
+            lb_base = lb_curr
+        elif lb_curr < lb_old:
+            flags.decreasing_lb = True
+        elif (lb_curr - lb_base) < (1 + fit_tol) * (lb_old - lb_base):
+            flags.converged = True
+            break
+
+    # Display reasons for stopping
+    if verbose:
+        if flags.converged:
+            print(f"\nLower bound converged after {fit_iter + 1} iterations.")
+        elif ((fit_iter + 1) < max_iter) and params.x_dim <= 0:
+            print("\nFitting stopped because no significant latent dimensions remain.")
+        else:
+            print(f"\nFitting stopped after max_iter ({max_iter}) was reached.")
+
+    return params, tracker, flags
 
 
 def init(
@@ -97,7 +344,7 @@ def init(
         msg = "hyper_priors must be a HyperPriorParams object."
         raise TypeError(msg)
 
-    # Seed the random number generator for reproducible initialization.
+    # Seed the random number generator for reproducible initialization
     rng = np.random.default_rng(random_seed)
 
     # Get data size characteristics
@@ -105,7 +352,7 @@ def init(
     y_dim = y_dims.sum()  # Total number of observed dimensions
     num_groups = len(y_dims)  # Number of observed groups
     N = Y.data.shape[2]  # Number of samples
-    T = Y.T  # Number of time point
+    T = Y.T  # Number of time points
     x_dim = gp_init.params.x_dim  # Number of latent dimensions
 
     # Get views of the observed data for each group
@@ -160,6 +407,9 @@ def init(
             np.sum(C_moments[group_idx], axis=0)
         )
 
+    # Initialize posterior mean of the latents:
+    infer_latents(Y, params, in_place=True)
+
     # If we're not saving X.cov, set it to None after initialization
     if not save_X_cov:
         state_params.X.cov = None
@@ -206,6 +456,7 @@ def infer_latents(
     num_groups = len(obs_params.y_dims)
     T = params.T
     N = Y.data.shape[2]
+
     K_big = gp.build_kernel_matrix(T, return_tensor=False)
 
     # Initialize X, if needed
@@ -259,34 +510,6 @@ def infer_latents(
         X.cov = None
 
     return None if in_place else X
-
-
-def learn_gp_params(state_params, gp):
-    """Learn Gaussian process parameters given mDLAG model parameters and latents.
-
-    This function uses the new mDLAGGP model's built-in optimization capabilities.
-
-    Parameters
-    ----------
-    state_params
-        State model parameters containing latent variables.
-    gp : mDLAGGP
-        Gaussian process parameters to be optimized.
-
-    Returns
-    -------
-    tuple
-        Updated GP parameters and total loss.
-    """
-    T = state_params.T
-    N = state_params.X.mean.shape[-1]
-    X_moment_GP = state_params.X.compute_moment_gp(in_place=False)
-
-    # Use the mDLAGGP's built-in fit method
-    config = GPFitConfig(max_iter=10, tol=1e-8, grad_mode="autodiff", verbose=False)
-    updated_gp, total_loss = gp.fit(X_moment_GP, N, T, config)
-
-    return updated_gp, total_loss
 
 
 def infer_loadings(
@@ -736,7 +959,7 @@ def compute_lower_bound(
         np.sum(np.log(obs_params.d.cov)) - hyper_priors.d_beta * np.sum(d_moment)
     )
 
-    return lb_lik, lb_x, lb_C, lb_alpha, lb_phi, lb_d
+    return lb_lik + lb_x + lb_C + lb_alpha + lb_phi + lb_d
 
 
 def compute_lower_bound_constants(
@@ -822,51 +1045,396 @@ def compute_lower_bound_constants(
 
 
 class mDLAGModel:
-    """Interface with, fit, and store the fitting results of a mDLAG model."""
+    """
+    Interface with, fit, and store the fitting results of a mDLAG model.
 
-    def __init__():
-        pass
+    Parameters
+    ----------
+    params
+        Current mDLAG model parameters.
+    tracker
+        Contains quantities tracked during fitting.
+    flags
+        Contains status messages about the fitting process.
+    fit_args
+        Keyword arguments used to fit the model.
 
-    def __repr__():
-        pass
+    Attributes
+    ----------
+    params
+        Same as **params**, above.
+    tracker
+        Same as **tracker**, above.
+    flags
+        Same as **flags**, above.
+    fit_args
+        Same as **fit_args**, above.
 
-    def fit():
-        """Fit a mDLAG model to data."""
-        pass
+    Raises
+    ------
+    TypeError
+        If **params**, **tracker**, **flags**, or **fit_args** are not the
+        respective types specified above.
+    """
 
-    def init():
-        """Initialize mDLAG model parameters."""
-        pass
+    def __init__(
+        self,
+        params: mDLAGParams | None = None,
+        tracker: mDLAGFitTracker | None = None,
+        flags: mDLAGFitFlags | None = None,
+        fit_args: mDLAGFitArgs | None = None,
+    ):
+        # Estimated parameters
+        if params is None:
+            self.params = mDLAGParams()
+        elif not isinstance(params, mDLAGParams):
+            msg = "params must be a mDLAGParams object."
+            raise TypeError(msg)
+        else:
+            self.params = params
 
-    def save():
-        """Save a mDLAGModel object to a JSON file."""
-        pass
+        # Fit tracker
+        if tracker is None:
+            self.tracker = mDLAGFitTracker()
+        elif not isinstance(tracker, mDLAGFitTracker):
+            msg = "tracker must be a mDLAGFitTracker object."
+            raise TypeError(msg)
+        else:
+            self.tracker = tracker
+
+        # Fit flags
+        if flags is None:
+            self.flags = mDLAGFitFlags()
+        elif not isinstance(flags, mDLAGFitFlags):
+            msg = "flags must be a mDLAGFitFlags object."
+            raise TypeError(msg)
+        else:
+            self.flags = flags
+
+        # Fit keyword arguments
+        if fit_args is None:
+            self.fit_args = mDLAGFitArgs()
+        elif not isinstance(fit_args, mDLAGFitArgs):
+            msg = "fit_args must be a mDLAGFitArgs object."
+            raise TypeError(msg)
+        else:
+            self.fit_args = fit_args
+
+    def __repr__(self) -> str:
+        return (
+            f"mDLAGModel(params={self.params}, "
+            f"tracker={self.tracker}, "
+            f"flags={self.flags}, "
+            f"fit_args={self.fit_args})"
+        )
+
+    def fit(self, Y: ObsTimeSeries) -> None:
+        """
+        Fit a mDLAG model to data.
+
+        Fit a mDLAG model to data. Uses the current model parameters as initial
+        values, and uses the current keyword arguments.
+
+        Parameters
+        ----------
+        Y
+            Observed time series data.
+        """
+        # Initialize mDLAG model parameters if they have not been initialized
+        if not self.params.is_initialized():
+            if self.fit_args.verbose:
+                print("mDLAG model parameters not initialized. Initializing...")
+            self.init(Y)
+
+        # Fit the model
+        self.params, self.tracker, self.flags = fit(
+            Y, self.params, **self.fit_args.get_args()
+        )
+
+    def init(
+        self,
+        Y: ObsTimeSeries,
+        x_dim_init: int = 1,
+        bin_width: int = 1,
+        kernel: RBFKernel = RBFKernel(),
+        eps: float = 1e-3,
+    ) -> None:
+        """
+        Initialize mDLAG model parameters.
+
+        Parameters
+        ----------
+        Y
+            Observed time series data.
+        """
+        # Get a subset of keyword arguments to pass to core.init
+        init_args = ["hyper_priors", "random_seed", "save_C_cov", "save_X_cov"]
+        kwargs = {
+            key: value
+            for key, value in self.fit_args.get_args().items()
+            if key in init_args
+        }
+
+        # Create a default GP initialization if none exists
+        if self.params.gp is None:
+            gp_init = mDLAGGP.initialize_with_defaults(
+                T=Y.T,
+                x_dim=x_dim_init,
+                num_groups=len(Y.dims),
+                bin_width=bin_width,
+                kernel=kernel,
+                eps=eps,
+            )
+        else:
+            gp_init = self.params.gp
+
+        self.params = init(Y, gp_init, **kwargs)
+
+    def save(self, filename: str) -> None:
+        """
+        Save a mDLAGModel object to a pickle file.
+
+        Parameters
+        ----------
+        filename
+            Name of pickle file to save to.
+        """
+        with open(filename, "wb") as f:
+            pickle.dump(self, f)
 
     @staticmethod
-    def load():
-        """Load a mDLAGModel object from a JSON file."""
-        pass
+    def load(filename: str) -> mDLAGModel:
+        """
+        Load a mDLAGModel object from a pickle file.
 
-    def infer_latents():
-        """Infer latent variables X given current params and observed data."""
-        pass
+        Parameters
+        ----------
+        filename
+            Name of pickle file to load from.
 
-    def infer_loadings():
-        """Infer loadings C given current params and observed data."""
-        pass
+        Returns
+        -------
+        mDLAGModel
+            Loaded mDLAGModel object.
+        """
+        with open(filename, "rb") as f:
+            return pickle.load(f)
 
-    def infer_ard():
-        """Infer ARD parameters alpha given current params."""
-        pass
+    @staticmethod
+    def load_from_checkpoint(checkpoint_filename: str) -> mDLAGModel:
+        """
+        Load a mDLAGModel object from a checkpoint file.
 
-    def infer_obs_mean():
-        """Infer observation mean parameter given current params and observed data."""
-        pass
+        Parameters
+        ----------
+        checkpoint_filename
+            Name of checkpoint file to load from.
 
-    def infer_obs_prec():
-        """Infer observation precision params given current params and observed data."""
-        pass
+        Returns
+        -------
+        mDLAGModel
+            Loaded mDLAGModel object with fit state restored from checkpoint.
+        """
+        # Since checkpoints are now saved using the standard save() method,
+        # we can simply use the existing load() method
+        return mDLAGModel.load(checkpoint_filename)
 
-    def compute_lower_bound():
-        """Compute the variational lower bound given observed data."""
-        pass
+    def resume_fit(
+        self, Y: ObsTimeSeries, checkpoint_filename: str | None = None
+    ) -> None:
+        """
+        Resume fitting from a checkpoint.
+
+        Parameters
+        ----------
+        Y
+            Observed time series data.
+        checkpoint_filename
+            Optional checkpoint filename to resume from. If None, will look for
+            the most recent checkpoint in the checkpoint directory.
+        """
+        if checkpoint_filename is None:
+            # Find the most recent checkpoint
+            checkpoint_dir = self.fit_args.checkpoint_dir
+            if not os.path.exists(checkpoint_dir):
+                msg = f"Checkpoint directory {checkpoint_dir} does not exist"
+                raise FileNotFoundError(msg)
+
+            checkpoint_files = [
+                f
+                for f in os.listdir(checkpoint_dir)
+                if f.startswith("checkpoint_iter_") and f.endswith(".pkl")
+            ]
+            if not checkpoint_files:
+                msg = f"No checkpoint files found in {checkpoint_dir}"
+                raise FileNotFoundError(msg)
+
+            # Sort by iteration number to get the most recent
+            def extract_iter(filename):
+                return int(filename.split("_iter_")[1].split(".pkl")[0])
+
+            checkpoint_files.sort(key=extract_iter, reverse=True)
+            checkpoint_filename = os.path.join(checkpoint_dir, checkpoint_files[0])
+
+        # Load checkpoint state using existing load method
+        model = mDLAGModel.load(checkpoint_filename)
+
+        # Update current model state
+        self.params = model.params
+        self.tracker = model.tracker
+        self.flags = model.flags
+        self.fit_args = model.fit_args
+
+        if self.fit_args.verbose:
+            print(f"Resuming from checkpoint: {checkpoint_filename}")
+
+        # Continue fitting
+        self.fit(Y)
+
+    def infer_latents(
+        self,
+        Y: ObsTimeSeries,
+        in_place: bool = True,
+    ) -> PosteriorLatentDelayed | None:
+        """
+        Infer latent variables X given current params and observed data.
+
+        Parameters
+        ----------
+        Y
+            Observed time series data.
+        in_place
+            If ``True``, update the posterior latents in place.
+            If ``False``, compute the posterior latents and return as a
+            new ``PosteriorLatentDelayed`` without modifying ``params``. Defaults to
+            ``True``.
+
+        Returns
+        -------
+        PosteriorLatentDelayed | None
+            Posterior estimates of latent variables. If ``in_place=True``, returns
+            ``None``. Otherwise, returns the computed posterior latents.
+        """
+        return infer_latents(Y, self.params, in_place=in_place)
+
+    def infer_loadings(
+        self,
+        Y: ObsTimeSeries,
+        in_place: bool = True,
+    ) -> PosteriorLoading | None:
+        """
+        Infer loadings C given current params and observed data.
+
+        Parameters
+        ----------
+        Y
+            Observed time series data.
+        in_place
+            If ``True``, update the posterior loadings in place.
+            If ``False``, compute the posterior loadings and return as a
+            new ``PosteriorLoading`` without modifying ``params``. Defaults to
+            ``True``.
+
+        Returns
+        -------
+        PosteriorLoading | None
+            Posterior estimates of loadings.
+        """
+        return infer_loadings(Y, self.params, in_place=in_place)
+
+    def infer_ard(
+        self,
+        in_place: bool = True,
+    ) -> PosteriorARD | None:
+        """
+        Infer ARD parameters alpha given current params.
+
+        Parameters
+        ----------
+        in_place
+            If ``True``, update the posterior ARD parameters in place.
+            If ``False``, compute the posterior ARD parameters and return as a
+            new ``PosteriorARD`` without modifying ``params``. Defaults to
+            ``True``.
+
+        Returns
+        -------
+        PosteriorARD | None
+            Posterior estimates of ARD parameters.
+        """
+        return infer_ard(self.params, self.fit_args.hyper_priors, in_place=in_place)
+
+    def infer_obs_mean(
+        self,
+        Y: ObsTimeSeries,
+        in_place: bool = True,
+    ) -> PosteriorObsMean | None:
+        """
+        Infer observation mean parameters given current params and observed data.
+
+        Parameters
+        ----------
+        Y
+            Observed time series data.
+        in_place
+            If ``True``, update the posterior observation mean parameters in
+            place.
+            If ``False``, compute the posterior observation mean parameters and
+            return as a new ``PosteriorObsMean`` without modifying ``params``.
+            Defaults to ``True``.
+
+        Returns
+        -------
+        PosteriorObsMean | None
+            Posterior estimates of observation mean parameters.
+        """
+        return infer_obs_mean(
+            Y, self.params, self.fit_args.hyper_priors, in_place=in_place
+        )
+
+    def infer_obs_prec(
+        self,
+        Y: ObsTimeSeries,
+        in_place: bool = True,
+    ) -> PosteriorObsPrec | None:
+        """
+        Infer observation precision parameters given current params and observed data.
+
+        Parameters
+        ----------
+        Y
+            Observed time series data.
+        in_place
+            If ``True``, update the posterior observation precision parameters
+            in place.
+            If ``False``, compute the posterior observation precision parameters
+            and return as a new ``PosteriorObsPrec`` without modifying
+            ``params``. Defaults to ``True``.
+
+        Returns
+        -------
+        PosteriorObsPrec | None
+            Posterior estimates of observation precision parameters.
+        """
+        return infer_obs_prec(
+            Y, self.params, self.fit_args.hyper_priors, in_place=in_place
+        )
+
+    def compute_lower_bound(
+        self,
+        Y: ObsTimeSeries,
+    ) -> float:
+        """
+        Compute the variational lower bound given observed data.
+
+        Parameters
+        ----------
+        Y
+            Observed time series data.
+
+        Returns
+        -------
+        float
+            Variational lower bound.
+        """
+        return compute_lower_bound(Y, self.params, self.fit_args.hyper_priors)
