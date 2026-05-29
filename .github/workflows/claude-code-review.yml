@@ -6,9 +6,9 @@ on:
 
 jobs:
   claude-review:
-    # Only run for external human contributors (skip Dependabot and other bots)
+    # Only run for external human contributors (skip all bots and repo members)
     if: |
-      github.event.pull_request.user.login != 'dependabot[bot]' &&
+      github.event.pull_request.user.type != 'Bot' &&
       (
         github.event.pull_request.author_association == 'FIRST_TIMER' ||
         github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR' ||
