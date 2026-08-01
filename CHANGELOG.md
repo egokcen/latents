@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Saved models and simulations no longer silently corrupt non-contiguous arrays. safetensors 0.8.0 serializes directly from the array buffer and ignores strides, so F-contiguous arrays (produced by ARD pruning during fitting) were written in the wrong element order and loaded back transposed. All arrays are now normalized to C-contiguous before writing.
+
 ## [0.0.5] - 2026-03-06
 
 ### Added

@@ -162,6 +162,29 @@ class TestSaveLoadSimulation:
         np.testing.assert_array_equal(loaded.obs_params.phi, result.obs_params.phi)
         np.testing.assert_array_equal(loaded.obs_params.alpha, result.obs_params.alpha)
 
+    def test_snapshot_roundtrip_noncontiguous_arrays(
+        self, sim_config, hyperprior_simple, tmp_path
+    ):
+        """Round-trip is exact for F-contiguous simulation arrays.
+
+        Regression test for silent corruption under safetensors >=0.8.0,
+        which serializes from the raw buffer pointer and ignores strides.
+        """
+        result = gfa_sim.simulate(sim_config, hyperprior_simple)
+        result.obs_params.C = np.asfortranarray(result.obs_params.C)
+        result.observations.data = np.asfortranarray(result.observations.data)
+        assert not result.obs_params.C.flags.c_contiguous
+        assert not result.observations.data.flags.c_contiguous
+
+        path = tmp_path / "snapshot_noncontiguous.safetensors"
+        gfa_sim.save_simulation(path, result)
+        loaded = gfa_sim.load_simulation(path)
+
+        np.testing.assert_array_equal(loaded.obs_params.C, result.obs_params.C)
+        np.testing.assert_array_equal(
+            loaded.observations.data, result.observations.data
+        )
+
     def test_snapshot_roundtrip_structured_hyperprior(
         self, hyperprior_structured, tmp_path
     ):

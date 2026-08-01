@@ -8,8 +8,8 @@ from dataclasses import asdict, dataclass
 
 import numpy as np
 from safetensors import safe_open
-from safetensors.numpy import save_file
 
+from latents._internal.serialization import save_tensors
 from latents.data import ObsStatic
 from latents.gfa.config import GFASimConfig
 from latents.observation import (
@@ -299,7 +299,7 @@ def save_simulation(path: str | os.PathLike[str], result: GFASimulationResult) -
     tensors["observations.data"] = result.observations.data
     tensors["observations.dims"] = result.observations.dims
 
-    save_file(tensors, path, metadata=metadata)
+    save_tensors(tensors, path, metadata)
 
 
 def save_simulation_recipe(
@@ -341,7 +341,7 @@ def save_simulation_recipe(
     _serialize_config(config, tensors, metadata)
     _serialize_hyperprior(hyperprior, tensors, metadata)
 
-    save_file(tensors, path, metadata=metadata)
+    save_tensors(tensors, path, metadata)
 
 
 def load_simulation(path: str | os.PathLike[str]) -> GFASimulationResult:
