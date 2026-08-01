@@ -8,8 +8,8 @@ from dataclasses import asdict, dataclass
 
 import numpy as np
 from safetensors import safe_open
-from safetensors.numpy import save_file
 
+from latents._internal.serialization import save_tensors
 from latents.gfa.config import GFAFitConfig
 from latents.observation import (
     ARDPosterior,
@@ -228,7 +228,7 @@ def save_gfa_state(
     if flags is not None:
         metadata["flags"] = json.dumps(asdict(flags))
 
-    save_file(tensors, path, metadata=metadata)
+    save_tensors(tensors, path, metadata)
 
 
 def load_gfa_state(

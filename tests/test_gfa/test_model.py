@@ -157,6 +157,28 @@ class TestSaveLoad:
         assert loaded.flags.private_var_floor == fitted_model.flags.private_var_floor
         assert loaded.flags.x_dims_removed == fitted_model.flags.x_dims_removed
 
+    def test_save_load_noncontiguous_posterior(self, fitted_model, tmp_path):
+        """Round-trip is exact for F-contiguous posterior arrays.
+
+        Regression test for silent corruption under safetensors >=0.8.0,
+        which serializes from the raw buffer pointer and ignores strides.
+        ARD pruning produces F-contiguous arrays via ``mean[:, kept_dims]``,
+        so fitted posteriors hit this in normal use. The layout is forced
+        explicitly here rather than relying on numpy's indexing heuristics.
+        """
+        obs = fitted_model.obs_posterior
+        obs.C.mean = np.asfortranarray(obs.C.mean)
+        obs.alpha.mean = np.asfortranarray(obs.alpha.mean)
+        assert not obs.C.mean.flags.c_contiguous
+        assert not obs.alpha.mean.flags.c_contiguous
+
+        path = tmp_path / "noncontiguous.safetensors"
+        fitted_model.save(path)
+        loaded = GFAModel.load(path)
+
+        np.testing.assert_array_equal(loaded.obs_posterior.C.mean, obs.C.mean)
+        np.testing.assert_array_equal(loaded.obs_posterior.alpha.mean, obs.alpha.mean)
+
     def test_loaded_model_can_infer(self, fitted_model, tmp_path):
         """Test that loaded model can perform inference on new data."""
         path = tmp_path / "fitted.safetensors"
