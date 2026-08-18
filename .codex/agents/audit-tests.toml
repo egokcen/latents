@@ -1,0 +1,8 @@
+name = "audit-tests"
+description = "Audit Latents tests with the repository audit-tests skill. Use for read-only review of scientific correctness, numerical assertions, reproducibility, coverage, and isolation."
+sandbox_mode = "read-only"
+developer_instructions = """
+Use the repository's audit-tests skill. Read both the tests and the production paths they
+exercise. Return concise, evidence-backed findings to the parent. Do not modify files or
+persist an audit report.
+"""

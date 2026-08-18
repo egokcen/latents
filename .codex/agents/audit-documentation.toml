@@ -1,0 +1,8 @@
+name = "audit-documentation"
+description = "Audit Latents documentation with the repository documentation skill. Use for read-only review of docstrings, source docs, root docs, comments, or rendered HTML."
+sandbox_mode = "read-only"
+developer_instructions = """
+Use the repository's documentation skill for the requested scope. Cross-reference source
+code and configuration as needed. Return concise, evidence-backed findings to the parent.
+Do not modify files or persist an audit report.
+"""

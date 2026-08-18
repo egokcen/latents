@@ -247,11 +247,58 @@ uv run pytest -m fit
 
 ### Writing new tests
 
-When adding tests, follow the patterns established in neighboring test files:
+Write tests against observable behavior and documented contracts. A passing test should
+fail when the behavior it protects regresses.
 
-- Place tests in the subdirectory that corresponds to the subpackage under test.
-- Mark any test that calls `model.fit()` or otherwise runs fitting to convergence with
-  `@pytest.mark.fit`.
+#### Organization
+
+- Place tests in the subdirectory that corresponds to the package under test.
+- Give each test a one-line docstring that states the behavior it verifies.
+- Use `_make_*` helpers for small, deterministic objects that are cheap to construct.
+- Use fixtures for shared or expensive setup. Choose the narrowest practical fixture
+  scope and avoid leaking mutable state between tests.
+- Use `_compute_*` helpers for independent reference calculations. A reference helper
+  must not call, or reproduce line-for-line, the production implementation it checks.
+- Group related tests in classes or use section comments when that organization makes a
+  long module easier to navigate. These structures are optional.
+
+#### Numerical tests
+
+- Use exact assertions for integers, booleans, and values that are exact by construction.
+- Use `numpy.testing.assert_allclose` for floating-point comparisons. Choose relative and
+  absolute tolerances from the numerical operation or statistical expectation, not only
+  from the data type. State the rationale for unusually loose tolerances.
+- Set a meaningful absolute tolerance when the expected value is near zero.
+- Check relevant invariants in addition to representative values. Examples include array
+  shape and data type, finiteness, symmetry, positive definiteness, and convergence flags.
+- Test convergence properties only when the algorithm documents them. Do not assume that
+  an objective must be strictly monotonic in the presence of numerical error.
+
+#### Randomness and isolation
+
+- Use `numpy.random.default_rng` instead of the legacy global random-number generator.
+- Control randomness when a test expects deterministic behavior. Pass an explicit
+  generator or seed through the public interface where supported.
+- Preserve enough information to reproduce randomized failures. A fixed seed is useful,
+  but not required when the test framework already records reproducible failing inputs.
+- Keep tests independent of execution order, global plotting state, the working
+  directory, wall-clock timing, and files outside pytest-provided temporary directories.
+
+#### Coverage and failure behavior
+
+- Cover meaningful behavior and risks rather than requiring one direct test per public
+  method. Integration coverage is acceptable when it exercises the contract clearly.
+- Test error and warning paths that are part of the public contract. Use
+  `pytest.raises` or `pytest.warns`; match message text only when it distinguishes a
+  failure mode or is itself part of the contract.
+- Include round-trip tests when changing serialization or checkpoint behavior.
+- Plotting tests may be smoke tests, but should verify the relevant Matplotlib objects or
+  state rather than only checking that execution completes.
+- Mark tests that call `model.fit()` or otherwise run fitting to convergence with
+  `@pytest.mark.fit`, including fitting performed by a fixture.
+
+Automated coverage is evidence, not a target by itself. Use the coverage report to find
+untested behavior, then judge gaps by their likelihood and impact.
 
 ### Testing on multiple Python versions
 

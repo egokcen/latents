@@ -36,7 +36,8 @@ Or for operations on multiple arrays:
 
 ## Section Comments
 
-For long modules (>200 lines), use section headers to organize code:
+For long modules, section headers can organize code when semantic groups are not already
+clear from classes and functions:
 
 ```python
 # =============================================================================
@@ -97,7 +98,8 @@ When a TODO or FIXME relates to a GitHub issue, include the issue number:
 
 ## Magic Numbers
 
-Avoid unexplained numeric literals. Either:
+Explain numerical literals when their value encodes a scientific assumption, stability
+threshold, convergence rule, or other non-obvious policy. Either:
 
 1. Define as a named constant with a docstring
 2. Add an inline comment explaining the value

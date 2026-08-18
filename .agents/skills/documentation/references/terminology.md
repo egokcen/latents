@@ -62,8 +62,8 @@ Define on first use, then use abbreviation:
 | mDLAG | Delayed Latents Across Multiple Groups | "Delayed Latents Across Multiple Groups (mDLAG)..." |
 | ELBO | Evidence Lower Bound | "...maximizes the Evidence Lower Bound (ELBO)..." |
 | ARD | Automatic Relevance Determination | "...uses Automatic Relevance Determination (ARD)..." |
-| API | Application Programming Interface | Generally known; no need to expand |
-| CI/CD | Continuous Integration/Deployment | Generally known; no need to expand |
+| API | Application programming interface | "application programming interface (API)" |
+| CI/CD | Continuous integration and continuous delivery | "continuous integration and continuous delivery (CI/CD)" |
 
 ## Units and Formatting
 
