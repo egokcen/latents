@@ -67,6 +67,9 @@ uv run pytest
   agent definitions.
 - Audit agents return findings to the requesting conversation. Persist an audit report
   only when the user explicitly requests a file.
+- Claude audit adapters use `dontAsk` with only `Read`, `Grep`, and `Glob`. If useful
+  validation requires shell access or would write artifacts, ask the orchestrator to
+  run it.
 
 ## Code architecture
 
