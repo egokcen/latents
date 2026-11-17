@@ -2,14 +2,9 @@
 
 from __future__ import annotations
 
-import sys
+from typing import Self
 
 import numpy as np
-
-if sys.version_info >= (3, 11):
-    from typing import Self
-else:
-    from typing_extensions import Self
 
 from latents.base import ArrayContainer
 from latents.state.realizations import LatentsRealization
