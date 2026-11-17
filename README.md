@@ -35,7 +35,7 @@ supported:
 
 ## Installation
 
-Requires Python 3.10 or higher.
+Requires Python 3.11.5 or higher.
 
 ```sh
 pip install latents

@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import os
 import platform
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import numpy as np
 import psutil
@@ -25,7 +25,7 @@ def get_system_info() -> dict:
         System information with keys: timestamp, hardware, software, os.
     """
     return {
-        "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "timestamp": datetime.now(UTC).isoformat(timespec="seconds"),
         "hardware": _get_hardware_info(),
         "software": _get_software_info(),
         "os": _get_os_info(),

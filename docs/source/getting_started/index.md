@@ -4,7 +4,7 @@
 
 ## Installation
 
-Latents requires Python 3.10 or higher.
+Latents requires Python 3.11.5 or higher.
 
 ```bash
 pip install latents

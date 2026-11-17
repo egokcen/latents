@@ -50,7 +50,7 @@ uv build
 
 ```sh
 # Switch to a different Python version (re-syncs dependencies)
-uv sync --python 3.10 --all-groups
+uv sync --python 3.11 --all-groups
 uv run pytest
 
 uv sync --python 3.14 --all-groups

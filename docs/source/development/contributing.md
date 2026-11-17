@@ -121,7 +121,7 @@ The release workflow automatically extracts your entry for GitHub Release notes.
 
 ### Prerequisites
 
-- Python 3.10 or higher
+- Python 3.11.5 or higher
 - [uv](https://docs.astral.sh/uv/) package manager
 
 To install uv, see the [uv installation guide](https://docs.astral.sh/uv/getting-started/installation/).
@@ -305,8 +305,8 @@ untested behavior, then judge gaps by their likelihood and impact.
 To test on a specific Python version, re-sync the environment with that version:
 
 ```sh
-# Test on Python 3.10
-uv sync --python 3.10 --all-groups
+# Test on Python 3.11
+uv sync --python 3.11 --all-groups
 uv run pytest
 
 # Test on Python 3.14
