@@ -18,7 +18,6 @@ class TestpPCAFitConfig:
         assert config.fit_tol == 1e-8
         assert config.max_iter == 1_000_000
         assert config.save_x is False
-        assert config.save_c_cov is False
         assert config.save_fit_progress is True
         assert config.random_seed is None
         assert config.min_var_frac == 0.001
@@ -30,7 +29,6 @@ class TestpPCAFitConfig:
             fit_tol=1e-6,
             max_iter=5000,
             save_x=True,
-            save_c_cov=True,
             save_fit_progress=False,
             random_seed=42,
             min_var_frac=0.01,
@@ -39,7 +37,6 @@ class TestpPCAFitConfig:
         assert config.fit_tol == 1e-6
         assert config.max_iter == 5000
         assert config.save_x is True
-        assert config.save_c_cov is True
         assert config.save_fit_progress is False
         assert config.random_seed == 42
         assert config.min_var_frac == 0.01

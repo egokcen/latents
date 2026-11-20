@@ -150,8 +150,6 @@ class pPCAFitConfig:
         Maximum EM iterations. Must be >= 1.
     save_x : bool
         If True, save posterior latent estimates.
-    save_c_cov : bool
-        If True, save loading covariances.
     save_fit_progress : bool
         If True, track ELBO and runtime per iteration.
     random_seed : int, sequence of int, or None
@@ -182,7 +180,6 @@ class pPCAFitConfig:
 
     # Output control
     save_x: bool = False
-    save_c_cov: bool = False
     save_fit_progress: bool = True
 
     # Reproducibility
