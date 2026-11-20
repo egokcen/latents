@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TypeVar
 
 import numpy as np
 
@@ -88,11 +89,15 @@ class ObsParamsPoint:
         return int(self.y_dims.sum())
 
 
+# Returns the same type given
+ObsParamsT = TypeVar("ObsParamsT", "ObsParamsRealization", "ObsParamsPoint")
+
+
 def adjust_snr(
-    realization: ObsParamsRealization,
+    realization: ObsParamsT,
     snr: float | np.ndarray,
     y_dims: np.ndarray | None = None,
-) -> ObsParamsRealization:
+) -> ObsParamsT:
     """Scale observation precisions to achieve target signal-to-noise ratios.
 
     SNR is defined as var(signal) / var(noise), where signal variance comes
@@ -101,7 +106,7 @@ def adjust_snr(
 
     Parameters
     ----------
-    realization : ObsParamsRealization
+    realization : ObsParamsRealization or ObsParamsPoint
         Observation parameters to adjust.
     snr : float or ndarray
         Target SNR. Either a scalar (broadcast to all groups) or per-group
@@ -111,8 +116,10 @@ def adjust_snr(
 
     Returns
     -------
-    ObsParamsRealization
-        New realization with adjusted phi values. Other parameters unchanged.
+    ObsParamsRealization or ObsParamsPoint
+        New parameters of the same type as ``realization``, with adjusted phi
+        values. Within each group, phi is scaled by a single factor, so an
+        isotropic phi stays isotropic. Other parameters are copied unchanged.
     """
     if y_dims is None:
         y_dims = realization.y_dims
@@ -139,11 +146,13 @@ def adjust_snr(
         # Scale phi to achieve desired noise variance
         phi_split[group_idx] *= var_noise_current / var_noise_desired
 
-    return ObsParamsRealization(
-        C=realization.C.copy(),
-        d=realization.d.copy(),
-        phi=phi_adjusted,
-        alpha=realization.alpha.copy(),
-        y_dims=realization.y_dims.copy(),
-        x_dim=realization.x_dim,
-    )
+    common = {
+        "C": realization.C.copy(),
+        "d": realization.d.copy(),
+        "phi": phi_adjusted,
+        "y_dims": realization.y_dims.copy(),
+        "x_dim": realization.x_dim,
+    }
+    if isinstance(realization, ObsParamsRealization):
+        return ObsParamsRealization(**common, alpha=realization.alpha.copy())
+    return ObsParamsPoint(**common)

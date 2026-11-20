@@ -30,6 +30,7 @@ def test_latents_namespace():
     assert "mdlag" in dir(latents)
     assert "observation" in dir(latents)
     assert "plotting" in dir(latents)
+    assert "ppca" in dir(latents)
     assert "state" in dir(latents)
     assert "tracking" in dir(latents)
 
@@ -44,6 +45,7 @@ def test_latents_import_subpackages():
         mdlag,  # noqa: F401
         observation,  # noqa: F401
         plotting,  # noqa: F401
+        ppca,  # noqa: F401
         state,  # noqa: F401
         tracking,  # noqa: F401
     )
@@ -56,6 +58,7 @@ def test_latents_import_subpackages():
     assert "mdlag" in dir()
     assert "observation" in dir()
     assert "plotting" in dir()
+    assert "ppca" in dir()
     assert "state" in dir()
     assert "tracking" in dir()
 
@@ -76,6 +79,15 @@ def test_mdlag_namespace():
     # Check primary exports
     assert "mDLAGModel" in dir(mdlag)
     assert "mDLAGFitConfig" in dir(mdlag)
+
+
+def test_ppca_namespace():
+    """Test that the ppca subpackage has the expected namespace."""
+    from latents import ppca
+
+    # Check primary exports
+    assert "pPCAModel" in dir(ppca)
+    assert "pPCAFitConfig" in dir(ppca)
 
 
 def test_data_namespace():

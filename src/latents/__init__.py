@@ -11,6 +11,7 @@ from latents import (
     mdlag,
     observation,
     plotting,
+    ppca,
     state,
     tracking,
 )
@@ -26,6 +27,7 @@ __all__ = [
     "mdlag",
     "observation",
     "plotting",
+    "ppca",
     "state",
     "tracking",
 ]
